@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
   <link rel="stylesheet" href="assets/vendor/lenis/lenis.css">
-  <link rel="stylesheet" href="assets/landing.css?v=202610062049">
+  <link rel="stylesheet" href="assets/landing.css?v=202610062058">
   <script>document.documentElement.classList.add('js');</script>
   <script type="importmap">
     { "imports": { "three": "./assets/vendor/three/three.module.min.js", "three/addons/": "./assets/vendor/three/addons/" } }
@@ -39,16 +39,21 @@
   </header>
 
   <main>
-    <!-- Acto 0: la promesa -->
+    <!-- Acto 0: la promesa, con las conversaciones de los tres canales -->
     <section class="acto hero" id="inicio" data-estado="0">
       <div class="hero-contenido">
-      <p class="kicker">Ventas por chat para comercios en Colombia</p>
-      <h1 class="titular" data-palabras>Tus clientes escriben a&nbsp;cualquier hora. <em>Leadbot vende</em> a&nbsp;toda hora.</h1>
-      <p class="bajada">Un asistente que responde por WhatsApp, Instagram y Messenger con tu catálogo, muestra fotos y precios, toma el pedido y te llama cuando hace falta una persona.</p>
-      <div class="acciones">
-        <a class="boton primario" href="#contacto">Quiero probarlo</a>
-        <a class="boton fantasma" href="#noche">Mira cómo funciona</a>
+        <p class="kicker">Ventas por chat para comercios en Colombia</p>
+        <h1 class="titular" data-palabras>Tus clientes escriben. <em>Leadbot vende.</em></h1>
+        <p class="bajada">WhatsApp, Instagram y Messenger en una sola bandeja. El bot responde y toma pedidos; tú entras cuando quieras.</p>
+        <div class="acciones">
+          <a class="boton primario" href="#contacto">Quiero probarlo</a>
+          <a class="boton fantasma" href="#noche">Mira cómo funciona</a>
+        </div>
       </div>
+      <div class="hero-tarjetas" aria-label="Ejemplos de conversaciones en Leadbot">
+        <div class="tarjeta t-wa"><span class="canal">WhatsApp</span><b>Laura G.</b><p>¡Me la llevo!</p><span class="estado ok">Pedido #1042</span></div>
+        <div class="tarjeta t-ms"><span class="canal">Messenger</span><b>Carolina R.</b><p>Quiero hablar con alguien</p><span class="estado alerta">Te necesita</span></div>
+        <div class="tarjeta t-ig"><span class="canal">Instagram</span><b>@andres.dev</b><p>¿Tienen teclados blancos?</p><span class="estado">Respondió el bot</span></div>
       </div>
       <div class="desliza" aria-hidden="true"><span></span>Desliza</div>
     </section>
@@ -103,21 +108,8 @@
       </div>
     </section>
 
-    <!-- Acto 3: una bandeja -->
-    <section class="acto bandeja" id="bandeja" data-estado="3">
-      <div class="pin">
-        <h2 class="bandeja-titulo">Tres canales.<br><em>Una sola bandeja.</em></h2>
-        <div class="tarjetas" aria-hidden="true">
-          <div class="tarjeta t-wa"><span class="canal">WhatsApp</span><b>Laura G.</b><p>¡Me la llevo!</p><span class="estado ok">Pedido #1042</span></div>
-          <div class="tarjeta t-ig"><span class="canal">Instagram</span><b>@andres.dev</b><p>¿Tienen teclados blancos?</p><span class="estado">Respondió el bot</span></div>
-          <div class="tarjeta t-ms"><span class="canal">Messenger</span><b>Carolina R.</b><p>Quiero hablar con alguien</p><span class="estado alerta">Te necesita</span></div>
-        </div>
-        <p class="bandeja-nota">Cada conversación, cada pedido y cada cliente en el mismo tablero. Tomas el control con un clic.</p>
-      </div>
-    </section>
-
-    <!-- Acto 4: qué hace -->
-    <section class="acto funciones" id="funciones" data-estado="4">
+    <!-- Acto 3: qué hace -->
+    <section class="acto funciones" id="funciones" data-estado="3">
       <h2 class="seccion-titulo">Todo lo que hace <em>mientras duermes</em></h2>
       <div class="rejilla">
         <article class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z M14 3v5h5 M10 13h6 M10 17h6"/></svg><h3>Catálogo en PDF</h3><p>Se arma solo con tus productos, fotos por color y precios. Se actualiza cuando cambias algo.</p></article>
@@ -129,13 +121,13 @@
       </div>
     </section>
 
-    <!-- Acto 5: la frase -->
-    <section class="acto frase" data-estado="5">
+    <!-- Acto 4: la frase -->
+    <section class="acto frase" data-estado="4">
       <p class="frase-texto" data-resaltar>El bot vende por ti a las once de la noche. Tú decides en qué momento entra una persona.</p>
     </section>
 
-    <!-- Acto 6: contacto -->
-    <section class="acto cierre" id="contacto" data-estado="6">
+    <!-- Acto 5: contacto -->
+    <section class="acto cierre" id="contacto" data-estado="5">
       <p class="kicker">Acceso por invitación</p>
       <h2 class="cierre-titulo">Ponlo a vender <em>esta noche.</em></h2>
       <p class="bajada">Estamos sumando comercios en Colombia. Escríbenos y te mostramos Leadbot con tus propios productos.</p>
@@ -163,6 +155,6 @@
   <script src="assets/vendor/lenis/lenis.min.js"></script>
   <script src="assets/vendor/gsap/gsap.min.js"></script>
   <script src="assets/vendor/gsap/ScrollTrigger.min.js"></script>
-  <script type="module" src="assets/landing.js?v=202610062049"></script>
+  <script type="module" src="assets/landing.js?v=202610062058"></script>
 </body>
 </html>

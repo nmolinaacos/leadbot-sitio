@@ -40,7 +40,7 @@ function scrollToY(y, duration = 1.4) {
 // completo (en los actos fijados, cuando terminó cada paso de su historia).
 // Al dejar de deslizar, la página aterriza en el momento más cercano; los
 // puntos del costado y el botón "Sigamos" del robot llevan de uno a otro.
-const ACT_NAMES = ['Inicio', 'La noche', 'La respuesta', 'Una bandeja', 'Qué hace', 'Tú decides', 'Hablemos'];
+const ACT_NAMES = ['Inicio', 'La noche', 'La respuesta', 'Qué hace', 'Tú decides', 'Hablemos'];
 
 function setupNavigation(pinned) {
   const maxScroll = () => document.documentElement.scrollHeight - innerHeight;
@@ -53,7 +53,6 @@ function setupNavigation(pinned) {
       [0],
       [at(pinned.night, 0.45), at(pinned.night, 0.86)],
       [at(pinned.reply, 0.36), at(pinned.reply, 0.64), at(pinned.reply, 0.9)],
-      [at(pinned.inbox, 0.8)],
       [top('#funciones') - 24],
       [frase.top + scrollY + frase.height / 2 - innerHeight / 2],
       [maxScroll()],
@@ -90,7 +89,7 @@ function setupNavigation(pinned) {
   });
 
   // Links del menú: al primer momento de su acto.
-  const actOf = { '#inicio': 0, '#noche': 1, '#respuesta': 2, '#bandeja': 3, '#funciones': 4, '#contacto': 6 };
+  const actOf = { '#inicio': 0, '#noche': 1, '#respuesta': 2, '#funciones': 3, '#contacto': 5 };
   document.querySelectorAll('a[href^="#"]').forEach((link) => {
     const index = actOf[link.getAttribute('href')];
     if (index === undefined) return;
@@ -116,7 +115,7 @@ function setupNavigation(pinned) {
   let active = -1;
   let green = null;
   // El acto activo es la última sección cuyo comienzo ya pasó la mitad de la pantalla.
-  const sections = ['#inicio', '#noche', '#respuesta', '#bandeja', '#funciones', '.frase', '#contacto'].map((sel) => document.querySelector(sel));
+  const sections = ['#inicio', '#noche', '#respuesta', '#funciones', '.frase', '#contacto'].map((sel) => document.querySelector(sel));
   const update = () => {
     let current = 0;
     sections.forEach((section, i) => {
@@ -184,8 +183,25 @@ function setupHero() {
     .fromTo('.hero .kicker', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 1 }, 0.1)
     .fromTo(['.hero .bajada', '.hero .acciones'], { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 1.2, stagger: 0.12 }, '-=0.9');
   // Al bajar, el titular se aleja hacia el fondo.
-  gsap.to('.hero-contenido', {
-    yPercent: -25, opacity: 0, scale: 0.97, ease: 'none',
+  // Las conversaciones llegan volando desde el fondo y quedan en abanico
+  // (en el celular, en cascada: una debajo de otra, corridas).
+  const mobile = innerWidth < 760;
+  const fan = mobile
+    ? { '.t-wa': { xPercent: 6, y: 0, rotateZ: 1.5, rotateY: 0, z: 0 }, '.t-ms': { xPercent: 0, y: 44, rotateZ: -1, rotateY: 0, z: 0 }, '.t-ig': { xPercent: -6, y: 88, rotateZ: -1.5, rotateY: 0, z: 0 } }
+    : { '.t-wa': { xPercent: -50, y: 34, rotateZ: -6, rotateY: 14, z: 0 }, '.t-ms': { xPercent: 50, y: 34, rotateZ: 6, rotateY: -14, z: 0 }, '.t-ig': { xPercent: 0, y: -12, rotateZ: 0, rotateY: 0, z: 70 } };
+  Object.entries(fan).forEach(([selector, end], i) => {
+    tl.fromTo(`.hero-tarjetas ${selector}`, { opacity: 0, z: -700, xPercent: end.xPercent * 2.4, y: end.y + 80, rotateY: end.rotateY * 4, rotateX: -40 },
+      { opacity: 1, ...end, rotateX: 0, duration: 1.4, ease: 'expo.out' }, 0.55 + i * 0.12);
+  });
+  // El abanico se inclina un poco siguiendo el mouse.
+  if (matchMedia('(hover: hover)').matches) {
+    const cards = document.querySelector('.hero-tarjetas');
+    addEventListener('pointermove', (event) => {
+      gsap.to(cards, { rotateY: (event.clientX / innerWidth - 0.5) * 12, rotateX: -(event.clientY / innerHeight - 0.5) * 8, duration: 0.8, ease: 'power2.out' });
+    });
+  }
+  gsap.to(['.hero-contenido', '.hero-tarjetas'], {
+    yPercent: -20, opacity: 0, scale: 0.97, ease: 'none',
     scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true },
   });
   gsap.to('.desliza', { opacity: 0, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: '20% top', scrub: true } });
@@ -259,27 +275,7 @@ function setupReply() {
   return tl.scrollTrigger;
 }
 
-// ── Acto 3: una bandeja ──────────────────────────────────────────────
-function setupInbox() {
-  // En el celular las tarjetas quedan en cascada (una debajo de otra, corridas),
-  // para que quepan sin cortarse.
-  const mobile = innerWidth < 700;
-  const spread = mobile ? 12 : 88;
-  const [yWa, yMs] = mobile ? [-58, 58] : [18, 18];
-  const tl = gsap.timeline({
-    defaults: { ease: 'power3.out' },
-    scrollTrigger: { trigger: '.bandeja .pin', start: 'top top', end: '+=150%', scrub: 0.8, pin: true },
-  });
-  tl.fromTo('.bandeja-titulo', { opacity: 0, y: 50, filter: 'blur(8px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.25 }, 0)
-    .fromTo('.t-wa', { xPercent: -260, z: -500, rotateY: 60, opacity: 0 }, { xPercent: -spread, z: 0, rotateY: 12, rotateZ: mobile ? -3 : -5, y: yWa, opacity: 1, duration: 0.4 }, 0.12)
-    .fromTo('.t-ms', { xPercent: 260, z: -500, rotateY: -60, opacity: 0 }, { xPercent: spread, z: 0, rotateY: -12, rotateZ: mobile ? 3 : 5, y: yMs, opacity: 1, duration: 0.4 }, 0.18)
-    .fromTo('.t-ig', { yPercent: 160, z: -700, rotateX: -70, opacity: 0 }, { yPercent: 0, z: 60, rotateX: 0, opacity: 1, duration: 0.4 }, 0.26)
-    .fromTo('.bandeja-nota', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.2 }, 0.6)
-    .to('.bandeja .pin', { opacity: 0, scale: 0.96, duration: 0.1 }, 0.92);
-  return tl.scrollTrigger;
-}
-
-// ── Acto 4: qué hace (aparecen y se inclinan con el mouse) ───────────
+// ── Acto 3: qué hace (aparecen y se inclinan con el mouse) ───────────
 function setupFeatures() {
   gsap.fromTo('.seccion-titulo', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 1.2, ease: 'expo.out', scrollTrigger: { trigger: '.seccion-titulo', start: 'top 85%' } });
   ScrollTrigger.batch('.tile', {
@@ -299,7 +295,7 @@ function setupFeatures() {
   }
 }
 
-// ── Acto 5: la frase se ilumina palabra por palabra ──────────────────
+// ── Acto 4: la frase se ilumina palabra por palabra ──────────────────
 function setupPhrase() {
   const words = splitWords(document.querySelector('[data-resaltar]'));
   gsap.fromTo(words, { opacity: 0.14 }, {
@@ -308,7 +304,7 @@ function setupPhrase() {
   });
 }
 
-// ── Acto 6: cierre ───────────────────────────────────────────────────
+// ── Acto 5: cierre ───────────────────────────────────────────────────
 function setupClosing() {
   gsap.fromTo('.cierre > *', { opacity: 0, y: 50, scale: 0.96 }, {
     opacity: 1, y: 0, scale: 1, stagger: 0.1, duration: 1.2, ease: 'expo.out',
@@ -486,10 +482,9 @@ function makeRobot() {
 // ── Escena ───────────────────────────────────────────────────────────
 // Lo que dice el robot en cada acto (mismo orden que data-estado).
 const MESSAGES = [
-  '¡Hola! Soy Leadbot 👋 Respondo los chats de tu negocio por ti.',
+  '¡Hola! Soy Leadbot 👋 Respondo tus chats de WhatsApp, Instagram y Messenger, y tú lo ves todo en un solo tablero.',
   'Son las 11:47 p. m. Tú descansas… yo sigo despierto. ☕',
   'Laura quiere la Nova en negro. Ya le mandé la foto, el precio y el catálogo. ⚡',
-  'WhatsApp, Instagram y Messenger: todo me llega aquí, y tú lo ves en un solo tablero.',
   'También recupero carritos, aviso cuando llega lo agotado y te cuento qué anuncio vende.',
   'Y si alguien pide hablar con una persona, te aviso al instante. 🙋',
   '¿Me pones a vender esta noche? Escríbenos 👇',
@@ -499,10 +494,9 @@ const MESSAGES = [
 // ancla]. Con ancla (un selector), el robot se ubica justo debajo de ese
 // elemento y se mueve con la página (el cierre: no cae sobre el pie).
 const DESKTOP = [
-  [3.5, -0.2, 0, 1, 'arriba'],
+  [4.35, -1.75, 0.2, 0.6, 'izquierda'],
   [-4.5, -1.0, 0, 0.8, 'arriba'],
   [4.6, 1.05, -0.3, 0.62, 'abajo'],
-  [-4.1, -1.2, 0, 0.72, 'derecha'],
   [5.0, 1.45, -0.5, 0.55, 'abajo'],
   [-4.8, 0.5, -0.3, 0.6, 'abajo'],
   [0, -2.05, 0, 0.56, 'derecha', '.cierre .acciones'],
@@ -511,7 +505,6 @@ const MOBILE = [
   [0.95, -2.2, 0, 0.42, 'izquierda'],
   [0.95, -2.25, 0, 0.42, 'izquierda'],
   [1.1, 2.4, 0, 0.32, 'izquierda'],
-  [0.95, -2.3, 0, 0.42, 'izquierda'],
   [1.15, 2.5, 0, 0.3, 'izquierda'],
   [1.05, -2.25, 0, 0.4, 'izquierda'],
   [0.9, -2.3, 0, 0.42, 'izquierda', '.cierre .acciones'],
@@ -549,7 +542,7 @@ function setupScene(canvas) {
   const LAST = MESSAGES.length - 1;
 
   // Chats que le llegan al robot (de noche y al responder) o con los que
-  // hace malabares (una bandeja): verde, rosado y azul, como los canales.
+  // hace malabares (en el inicio): verde, rosado y azul, como los canales.
   const geometry = bubbleGeometry();
   const CHANNEL_COLORS = [0x3fd68f, 0xff7ab0, 0x69b4ff];
   const CHATS = modest ? 4 : 6;
@@ -630,10 +623,10 @@ function setupScene(canvas) {
   // izquierdo hacia afuera y z positivo, el derecho.
   function armTargets(k, t) {
     const idle = [Math.sin(t * 1.4) * 0.08, -0.18, Math.sin(t * 1.4 + 1) * 0.08, 0.18];
-    if (k === 0 || k === LAST) return [idle[0], idle[1], -0.2, 2.5 + Math.sin(t * 7) * 0.4]; // saluda
+    if (k === LAST) return [idle[0], idle[1], -0.2, 2.5 + Math.sin(t * 7) * 0.4]; // se despide
+    if (k === 0) return [Math.sin(t * 3) * 0.3, -0.9, Math.sin(t * 3 + Math.PI) * 0.3, 0.9]; // malabares con los canales
     if (k === 1) return [-1.45 + Math.max(0, Math.sin(t * 0.9)) * -0.45, 0.35, idle[2], idle[3]]; // toma café
     if (k === 2) return [-1.15 + Math.sin(t * 16) * 0.22, 0.12, -1.15 + Math.sin(t * 16 + Math.PI) * 0.22, -0.12]; // escribe
-    if (k === 3) return [Math.sin(t * 3) * 0.3, -0.9, Math.sin(t * 3 + Math.PI) * 0.3, 0.9]; // malabares
     return idle;
   }
 
@@ -646,6 +639,18 @@ function setupScene(canvas) {
   const edgePos = new THREE.Vector3();
   const tmp = new THREE.Vector3();
   let state = scrollState();
+  // Modo de depuración (?depurar): dibujar la escena en un estado dado, sin
+  // depender del scroll ni de requestAnimationFrame (ej. pestañas ocultas).
+  let forced = null;
+  if (location.search.includes('depurar')) {
+    window.__escena = {
+      mostrar(value) {
+        forced = value;
+        frame();
+        return { estado: state, globo: dialog?.classList.contains('visible') ? dialogText.textContent : null };
+      },
+    };
+  }
   let blinkAt = 2;
   let flash = 0;
 
@@ -659,7 +664,7 @@ function setupScene(canvas) {
     clearTimeout(typingTimer);
     dialog.dataset.lado = pose(k).side;
     dialog.classList.add('visible');
-    if (reduce) {
+    if (reduce || forced !== null) {
       dialogText.textContent = MESSAGES[k];
       addAction(k);
       return;
@@ -739,7 +744,8 @@ function setupScene(canvas) {
   function frame() {
     const dt = Math.min(clock.getDelta(), 0.25);
     const t = clock.elapsedTime;
-    state += (scrollState() - state) * (1 - Math.exp(-dt * 4));
+    if (forced !== null) state = forced;
+    else state += (scrollState() - state) * (1 - Math.exp(-dt * 4));
     const k = Math.min(LAST, Math.max(0, Math.floor(state + 1e-4)));
     const next = Math.min(LAST, k + 1);
     const p = k === LAST ? 0 : THREE.MathUtils.clamp(state - k, 0, 1);
@@ -804,9 +810,9 @@ function setupScene(canvas) {
     robot.head.getWorldPosition(headWorld);
     robot.ring.getWorldPosition(ringWorld);
 
-    // Chats: llegan volando (noche y respuesta) o giran alrededor (bandeja).
+    // Chats: llegan volando (noche y respuesta) o giran alrededor (inicio).
     const incoming = (k === 1 || k === 2 ? 1 - smooth(p) : 0) + (next === 1 || next === 2 ? smooth(p) : 0);
-    const juggling = (k === 3 ? 1 - smooth(p) : 0) + (next === 3 ? smooth(p) : 0);
+    const juggling = (k === 0 ? 1 - smooth(p) : 0) + (next === 0 && k !== 0 ? smooth(p) : 0);
     const robotScale = root.scale.x / root.userData.base;
     chats.forEach((chat, i) => {
       const data = chat.userData;
@@ -914,7 +920,7 @@ if (gsap && ScrollTrigger && !reduce) {
   gsap.registerPlugin(ScrollTrigger);
   setupScroll();
   setupHero();
-  const pinned = { night: setupNight(), reply: setupReply(), inbox: setupInbox() };
+  const pinned = { night: setupNight(), reply: setupReply() };
   setupFeatures();
   setupPhrase();
   setupClosing();

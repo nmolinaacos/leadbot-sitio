@@ -125,8 +125,16 @@ main, .pie { position: relative; z-index: 2; }
 h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.02em; text-wrap: balance; }
 
 /* Acto 0: hero */
-.hero { min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; justify-content: center; padding-block: 120px 80px; }
-.titular { max-width: 15ch; font-size: clamp(44px, 7.4vw, 112px); line-height: 0.98; letter-spacing: -0.035em; font-weight: 600; }
+/* Dos columnas: el mensaje a la izquierda y, a la derecha, conversaciones
+   reales de los tres canales en abanico 3D (el robot va abajo a la derecha). */
+.hero { min-height: 100vh; min-height: 100svh; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: center; gap: clamp(24px, 4vw, 64px); padding-block: 110px 80px; }
+.titular { max-width: 11ch; font-size: clamp(46px, 6.6vw, 104px); line-height: 0.98; letter-spacing: -0.035em; font-weight: 600; }
+.hero .bajada { max-width: 470px; }
+.hero-tarjetas { position: relative; height: 330px; align-self: start; margin-top: 14vh; margin-right: 40px; perspective: 1200px; translate: -4% 0; }
+/* Abanico quieto (sin animaciones); con animaciones lo arma landing.js. */
+.hero-tarjetas .t-wa { transform: translate(-50%, 34px) rotate(-6deg); }
+.hero-tarjetas .t-ms { transform: translate(50%, 34px) rotate(6deg); }
+.hero-tarjetas .t-ig { transform: translateY(-10px); }
 .titular em { color: var(--text); background: linear-gradient(100deg, var(--accent-2), #fff 45%, var(--warm)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; padding-right: 0.06em; }
 .titular .palabra { display: inline-block; }
 .desliza { position: absolute; left: var(--gutter); bottom: 32px; display: flex; align-items: center; gap: 12px; font: 500 11px var(--mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
@@ -194,11 +202,8 @@ h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.02em; text-wrap: ba
   .telefono { height: min(520px, 58svh); }
 }
 
-/* Acto 3: una bandeja */
-.bandeja .pin { flex-direction: column; text-align: center; gap: clamp(28px, 5vh, 56px); overflow: hidden; }
-.bandeja-titulo { font-size: clamp(38px, 6vw, 88px); line-height: 1.02; letter-spacing: -0.035em; }
-.tarjetas { position: relative; width: min(760px, 100%); height: 220px; perspective: 1200px; }
-.tarjeta { position: absolute; left: 50%; top: 0; width: min(260px, 70vw); margin-left: calc(min(260px, 70vw) / -2); padding: 18px; border-radius: 20px; text-align: left; background: var(--panel); border: 1px solid var(--line); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.9); }
+/* Tarjetas de conversación (las del inicio). */
+.tarjeta { position: absolute; left: 50%; top: 0; width: min(270px, 70vw); margin-left: calc(min(270px, 70vw) / -2); padding: 18px; border-radius: 20px; text-align: left; background: var(--panel); border: 1px solid var(--line); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.9); }
 .tarjeta .canal { font: 500 10px var(--mono); letter-spacing: 0.16em; text-transform: uppercase; }
 .t-wa .canal { color: #3fd68f; } .t-ig .canal { color: #ff7ab0; } .t-ms .canal { color: #69b4ff; }
 .tarjeta b { display: block; margin-top: 10px; font-size: 16px; }
@@ -206,9 +211,8 @@ h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.02em; text-wrap: ba
 .estado { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: rgba(255, 255, 255, 0.07); color: var(--muted); }
 .estado.ok { background: rgba(63, 214, 143, 0.14); color: var(--ok); }
 .estado.alerta { background: rgba(255, 97, 112, 0.15); color: var(--alert); }
-.bandeja-nota { margin: 0; max-width: 520px; color: var(--muted); }
 
-/* Acto 4: funciones */
+/* Acto 3: funciones */
 .funciones { padding-block: clamp(100px, 16vh, 180px); max-width: 1240px; margin-inline: auto; }
 .seccion-titulo { font-size: clamp(36px, 5vw, 72px); line-height: 1.04; letter-spacing: -0.03em; max-width: 14ch; margin-bottom: clamp(40px, 6vh, 72px); }
 .rejilla { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
@@ -218,12 +222,12 @@ h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.02em; text-wrap: ba
 .tile h3 { margin-top: 22px; font-size: 21px; }
 .tile p { margin: 8px 0 0; color: var(--muted); font-size: 15.5px; }
 
-/* Acto 5: la frase */
+/* Acto 4: la frase */
 .frase { padding-block: clamp(120px, 24vh, 260px); }
 .frase-texto { margin: 0 auto; max-width: 20ch; font-family: var(--display); font-size: clamp(40px, 6.4vw, 104px); line-height: 1.04; letter-spacing: -0.02em; text-align: center; }
 .frase-texto .palabra { display: inline-block; }
 
-/* Acto 6: cierre */
+/* Acto 5: cierre */
 .cierre { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding-block: clamp(120px, 18vh, 180px) clamp(200px, 30vh, 280px); }
 .cierre .bajada { margin-inline: auto; }
 .cierre .acciones { justify-content: center; }
@@ -249,8 +253,16 @@ h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.02em; text-wrap: ba
 /* Celular: el robot vive abajo a la derecha (~150 px). Cada acto deja ese
    espacio libre para que el robot y su globo no tapen botones ni textos. */
 @media (max-width: 760px) {
-  .hero { padding-block: 92px 190px; }
-  .titular { font-size: clamp(34px, 10vw, 44px); }
+  .hero { grid-template-columns: 1fr; align-items: start; gap: 20px; padding-block: 96px 210px; }
+  .titular { font-size: clamp(38px, 11vw, 48px); }
+  .hero .bajada { display: none; }
+  .hero-tarjetas { height: 236px; margin: 4px 0 0; translate: none; perspective: none; }
+  .hero-tarjetas .tarjeta { width: 70vw; margin-left: -35vw; padding: 12px 14px; background: rgba(13, 18, 33, 0.97); }
+  .hero-tarjetas .tarjeta b { margin-top: 6px; font-size: 15px; }
+  .hero-tarjetas .tarjeta p { margin: 0 0 8px; font-size: 13px; }
+  .hero-tarjetas .t-wa { transform: translate(6%, 0) rotate(1.5deg); }
+  .hero-tarjetas .t-ms { transform: translate(0, 44px) rotate(-1deg); }
+  .hero-tarjetas .t-ig { transform: translate(-6%, 88px) rotate(-1.5deg); }
   .hero .bajada { margin-top: 16px; font-size: 15px; }
   .hero .acciones { margin-top: 24px; flex-wrap: nowrap; gap: 8px; }
   .hero .boton { min-height: 44px; padding: 0 16px; font-size: 14px; white-space: nowrap; }
@@ -261,9 +273,6 @@ h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.02em; text-wrap: ba
   .paso h2 { font-size: 22px; }
   .paso-kicker { margin-bottom: 14px; }
   .telefono { height: min(330px, 40svh); width: min(290px, 76vw); }
-  .tarjetas { height: 300px; }
-  .tarjeta { width: 66vw; margin-left: -33vw; padding: 14px; }
-  .tarjeta p { margin-bottom: 10px; }
   .noche .pin { gap: 12px; }
   .avisos li:nth-child(3) { bottom: 26%; left: 6%; }
   .dialogo { max-width: calc(100vw - 150px); }
