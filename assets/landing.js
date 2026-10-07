@@ -420,13 +420,11 @@ function bubbleGeometry() {
   return extrude(s, 0.45, 0.2);
 }
 
-// Leadbot: robot chibi construido desde cero (sin modelos externos), según
-// la imagen de referencia. Casco blanco brillante con visera sobre la frente,
-// ranura y marcas; cara gris claro hundida con una línea de luz cian a los
-// lados; ojos negros abombados con aro cian; nariz y sonrisa pequeñas;
-// audífonos por capas con aro azul; cuello de anillos; pecho blanco con
-// líneas de luz; abdomen de metal por segmentos; hombreras; antebrazos
-// blindados; manos de dedos articulados y botas por piezas.
+// Leadbot: robot blanco brillante construido desde cero según la imagen de
+// referencia. Cabeza redonda con un visor negro grande y dos ojos de luz azul;
+// orejas de disco; cuello oscuro; cuerpo alto en forma de cápsula con una
+// banda oscura de borde azul; brazos con antebrazo ensanchado, borde azul y
+// mano de dedos articulados; y en vez de piernas, dos esferas que flotan.
 function makeRobot() {
   const root = new THREE.Group();
   const rig = new THREE.Group();
@@ -434,20 +432,14 @@ function makeRobot() {
   const seg = modest ? 48 : 80;
 
   // ── Materiales
-  const white = new THREE.MeshPhysicalMaterial({ color: 0xf4f6f9, roughness: 0.16, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 1.35 });
-  const face = new THREE.MeshPhysicalMaterial({ color: 0xd3d9e0, roughness: 0.4, metalness: 0, clearcoat: 0.45, clearcoatRoughness: 0.22, envMapIntensity: 1.1 });
-  const metal = new THREE.MeshPhysicalMaterial({ color: 0xa2abb7, metalness: 0.85, roughness: 0.3, envMapIntensity: 1.7 });
-  const darkMetal = new THREE.MeshPhysicalMaterial({ color: 0x2a2f38, metalness: 0.6, roughness: 0.34, envMapIntensity: 1.3 });
-  const black = new THREE.MeshPhysicalMaterial({ color: 0x07090d, roughness: 0.3, metalness: 0.2 });
-  const lens = new THREE.MeshPhysicalMaterial({ color: 0x020307, roughness: 0.02, metalness: 0.15, clearcoat: 1, clearcoatRoughness: 0.01, envMapIntensity: 2.4 });
-  const blueRing = new THREE.MeshPhysicalMaterial({ color: 0x2f7dff, metalness: 0.55, roughness: 0.22, clearcoat: 1, emissive: 0x1f63ff, emissiveIntensity: 0.55, envMapIntensity: 1.4 });
-  // Luces cian: sin mapeo de tonos para que el cian quede intenso.
-  const glow = new THREE.MeshBasicMaterial({ color: 0x35d2ff, toneMapped: false });
-  const glowSoft = new THREE.MeshBasicMaterial({ color: 0x1a8fe8, toneMapped: false, transparent: true, opacity: 0.55, depthWrite: false });
-  // Luz que destella con los mensajes (línea de la cara y del pecho).
-  const ballMaterial = new THREE.MeshStandardMaterial({ color: 0x35d2ff, emissive: 0x18c0ff, emissiveIntensity: 1.2 });
-  const chestMaterial = new THREE.MeshStandardMaterial({ color: 0x35d2ff, emissive: 0x18c0ff, emissiveIntensity: 1 });
-  const highlight = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
+  const white = new THREE.MeshPhysicalMaterial({ color: 0xf2f4f6, roughness: 0.14, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.04, envMapIntensity: 1.35 });
+  const dark = new THREE.MeshPhysicalMaterial({ color: 0x15181d, roughness: 0.28, metalness: 0.4, clearcoat: 0.6, clearcoatRoughness: 0.15, envMapIntensity: 1.3 });
+  const grey = new THREE.MeshPhysicalMaterial({ color: 0x5b626c, roughness: 0.3, metalness: 0.7, envMapIntensity: 1.5 });
+  const visorMat = new THREE.MeshPhysicalMaterial({ color: 0x030406, roughness: 0.05, metalness: 0.2, clearcoat: 1, clearcoatRoughness: 0.02, envMapIntensity: 2.2 });
+  // Ojos y bordes azules (destellan con los mensajes).
+  const ballMaterial = new THREE.MeshStandardMaterial({ color: 0x9fe6ff, emissive: 0x3cc4ff, emissiveIntensity: 1.6 });
+  const chestMaterial = new THREE.MeshStandardMaterial({ color: 0x4aa8ff, emissive: 0x1f7fff, emissiveIntensity: 1 });
+  const halo = new THREE.MeshBasicMaterial({ color: 0x3cbcff, toneMapped: false, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false });
 
   const add = (parent, geometry, material, [x = 0, y = 0, z = 0] = [], rot) => {
     const mesh = new THREE.Mesh(geometry, material);
@@ -457,158 +449,35 @@ function makeRobot() {
     return mesh;
   };
   // Pieza torneada (perfil de abajo hacia arriba: las caras miran afuera).
-  const lathe = (points, n = 40) => new THREE.LatheGeometry(new THREE.SplineCurve(points.map(([x, y]) => new THREE.Vector2(x, y))).getPoints(n), seg);
-  const tube = (points, radius, closed = false) => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points, closed, 'centripetal'), Math.max(32, points.length * 6), radius, 12, closed);
+  const lathe = (points, n = 48) => new THREE.LatheGeometry(new THREE.SplineCurve(points.map(([x, y]) => new THREE.Vector2(x, y))).getPoints(n), seg);
+  const ring = (r, t) => new THREE.TorusGeometry(r, t, 12, seg);
 
-  // ── Cabeza (como la referencia): un elipsoide blanco perlado TALLADO, con
-  // una gorra (pieza aparte) que sobresale sobre la frente; en la gorra, la
-  // ranura con luz azul, rejillas y una placa grabada, y luz en el borde junto
-  // a la oreja. En la cara: ojos en cuencas hundidas con resplandor azul,
-  // cejas de luz, costuras laterales y la hendidura oscura de la mandíbula.
+  // ── Cabeza
   const head = new THREE.Group();
-  head.position.y = 1.0;
+  head.position.y = 1.05;
   rig.add(head);
-  // Forma de la cabeza: superelipsoide (cubo de esquinas muy redondeadas),
-  // apenas más ancha que alta y un poco plana al frente, como la referencia.
-  // P = 2 sería una esfera; más alto, más cuadrada.
-  const SX = 1.06, SY = 0.98, SZ = 0.97, P = 2.9;
-  const supF = (x, y, z) => Math.pow(Math.abs(x / SX) ** P + Math.abs(y / SY) ** P + Math.abs(z / SZ) ** P, 1 / P);
-  const supN = (x, y, z) => new THREE.Vector3(Math.sign(x) * Math.abs(x / SX) ** (P - 1) / SX, Math.sign(y) * Math.abs(y / SY) ** (P - 1) / SY, Math.sign(z) * Math.abs(z / SZ) ** (P - 1) / SZ).normalize();
-  const headWhite = new THREE.MeshPhysicalMaterial({ color: 0xf1f3f6, roughness: 0.2, metalness: 0.02, clearcoat: 1, clearcoatRoughness: 0.06, sheen: 0.2, sheenColor: 0xdfe8ff, envMapIntensity: 1.3, vertexColors: true });
-  const headHalo = new THREE.MeshBasicMaterial({ color: 0x1fb4ff, toneMapped: false, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false });
-
-  // Superficie del elipsoide en (x, y) y su normal.
-  const faceZ = (x, y, r = 1.0) => SZ * Math.pow(Math.max(0, r ** P - Math.abs(x / SX) ** P - Math.abs(y / SY) ** P), 1 / P);
-  const faceNormal = (x, y, z) => supN(x, y, z);
-  const onHead = (x, y, lift = 0, r = 1.0) => {
-    const z = faceZ(x, y, r);
-    return new THREE.Vector3(x, y, z).add(faceNormal(x, y, z).multiplyScalar(lift));
-  };
-  // Tallado: hunde los vértices de una malla densa a lo largo de recorridos
-  // (canales de perfil redondeado) o dentro de cuencas; oscurece el fondo.
-  const hSmooth = (pts) => new THREE.SplineCurve(pts.map(([x, y]) => new THREE.Vector2(x, y))).getPoints(Math.max(8, pts.length * 12));
-  const hDist = (pts, x, y) => {
-    let best = Infinity;
-    for (let i = 0; i < pts.length - 1; i++) {
-      const a = pts[i], b = pts[i + 1];
-      const vx = b.x - a.x, vy = b.y - a.y;
-      const t = Math.max(0, Math.min(1, ((x - a.x) * vx + (y - a.y) * vy) / (vx * vx + vy * vy || 1)));
-      const dx = a.x + vx * t - x, dy = a.y + vy * t - y;
-      best = Math.min(best, dx * dx + dy * dy);
-    }
-    return Math.sqrt(best);
-  };
-  const carve = (geometry, features, minZ = 0.05) => {
-    features.forEach((f) => {
-      if (f.path) {
-        f.pts = hSmooth(f.path);
-        f.box = f.pts.reduce((b, q) => [Math.min(b[0], q.x), Math.min(b[1], q.y), Math.max(b[2], q.x), Math.max(b[3], q.y)], [Infinity, Infinity, -Infinity, -Infinity]).map((v, i) => v + (i < 2 ? -f.w : f.w));
-      }
-    });
-    const pos = geometry.attributes.position;
-    const colors = new Float32Array(pos.count * 3);
-    const v = new THREE.Vector3(), n = new THREE.Vector3();
-    for (let i = 0; i < pos.count; i++) {
-      v.fromBufferAttribute(pos, i);
-      let push = 0, shade = 1, tint = null, tk = 0;
-      if (v.z > minZ) {
-        for (const f of features) {
-          let k = 0;
-          if (f.path) {
-            if (v.x < f.box[0] || v.y < f.box[1] || v.x > f.box[2] || v.y > f.box[3]) continue;
-            const d = hDist(f.pts, v.x, v.y);
-            if (d < f.w / 2) k = Math.pow(Math.cos((d / (f.w / 2)) * Math.PI / 2), 0.7);
-          } else {
-            // Cuenca: elipse con fondo plano y borde suave.
-            const d = Math.hypot((v.x - f.c[0]) / f.r[0], (v.y - f.c[1]) / f.r[1]);
-            if (d < 1) k = 1 - Math.pow(d, 6);
-          }
-          if (k > 0 && f.d * k > push) { push = f.d * k; shade = 1 - (1 - f.dark) * k; tint = f.tint || null; tk = k; }
-        }
-      }
-      if (push > 0) {
-        n.copy(supN(v.x, v.y, v.z));
-        v.addScaledVector(n, -push);
-        pos.setXYZ(i, v.x, v.y, v.z);
-      }
-      colors[i * 3] = colors[i * 3 + 1] = colors[i * 3 + 2] = shade;
-      if (tint) for (let c = 0; c < 3; c++) colors[i * 3 + c] = shade * (1 - tk + tk * tint[c]);
-    }
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    geometry.computeVertexNormals();
-    return geometry;
-  };
-  const ellipsoid = (r, w, h) => {
-    const g = new THREE.SphereGeometry(r, w, h);
-    // Cada vértice de la esfera se lleva a la superficie del superelipsoide.
-    const pp = g.attributes.position;
-    const d = new THREE.Vector3();
-    for (let i = 0; i < pp.count; i++) {
-      d.fromBufferAttribute(pp, i);
-      d.multiplyScalar(r / supF(d.x, d.y, d.z));
-      pp.setXYZ(i, d.x, d.y, d.z);
-    }
-    g.computeVertexNormals();
-    return g;
-  };
-  const dense = modest ? [220, 120] : [380, 200];
-
-  // Ojos (en coordenadas de la cabeza): centro y radio de la cuenca.
-  const EYE = [[-0.37, -0.06], [0.37, -0.06]];
-  const SOCKET = [0.28, 0.3];
-  const JAW = [[-0.86, -0.3], [-0.68, -0.48], [-0.38, -0.585], [0, -0.61], [0.38, -0.585], [0.68, -0.48], [0.86, -0.3]];
-  const headFeatures = [
-    // Cuencas teñidas de azul (la luz de los ojos rebota en ellas).
-    ...EYE.map((c) => ({ c, r: SOCKET, d: 0.07, dark: 0.95, tint: [0.22, 0.55, 1.0] })),
-    // Cejas de luz: ranuras cortas sobre los ojos.
-    ...[-1, 1].map((s) => ({ path: [[s * 0.53, 0.37], [s * 0.4, 0.4], [s * 0.27, 0.38]], w: 0.03, d: 0.016, dark: 0.3 })),
-  ];
-  // La cara (hundida dentro del casco) es apenas más gris que el casco.
-  const skullMat = headWhite.clone();
-  skullMat.color.set(0xe2e6eb);
-  const skull = add(head, carve(ellipsoid(1.0, dense[0], dense[1]), headFeatures, 0.0), skullMat);
-  skull.userData.carved = true;
-  // Luz dentro de las ranuras de las cejas y resplandor de las cuencas.
-  [-1, 1].forEach((s) => {
-    const brow = [[s * 0.52, 0.37], [s * 0.4, 0.4], [s * 0.28, 0.38]].map(([x, y]) => onHead(x, y, -0.012));
-    add(head, tube(brow, 0.011), glow);
-    add(head, tube(brow, 0.03), headHalo);
-  });
-
-  // Casco: una sola pieza que cubre todo el cráneo (arriba, lados, nuca y
-  // mentón) con una abertura al frente para la cara. El borde de arriba de la
-  // abertura es grueso y sobresale sobre la frente; abajo, entre la cara y el
-  // mentón del casco, queda la hendidura oscura de la mandíbula. Junto a las
-  // orejas, el borde lleva una luz azul. Arriba: ranura con luz, rejilla y
-  // placa grabada.
-  const HELM_R = 1.07;
-  // Abertura en coordenadas de la esfera: phi alrededor (frente en π/2),
-  // theta desde arriba. Rectángulo de esquinas redondeadas (superelipse).
-  const OPEN = { half: 1.02, top: 1.05, bottom: 2.25 };
-  const openingOutline = (n = 200) => Array.from({ length: n }, (_, i) => {
+  const HS = [1, 0.93, 0.96]; // un poco más ancha que alta
+  const skull = add(head, new THREE.SphereGeometry(0.8, seg, seg), white);
+  skull.scale.set(...HS);
+  // Visor: una lámina negra que sigue la curva de la cabeza, rectángulo de
+  // esquinas muy redondeadas en el frente.
+  const VIS = { half: 0.98, top: 1.0, bottom: 2.1 };
+  const visorOutline = (n = 160) => Array.from({ length: n }, (_, i) => {
     const a = (i / n) * Math.PI * 2;
-    const c = Math.cos(a), s = Math.sin(a);
-    const e = 2 / 4.5;
-    const cy = (OPEN.top + OPEN.bottom) / 2, hh = (OPEN.bottom - OPEN.top) / 2;
-    const px = Math.sign(c) * Math.pow(Math.abs(c), e) * OPEN.half;
-    let py = cy + Math.sign(s) * Math.pow(Math.abs(s), e) * hh;
-    // El borde de abajo sube hacia los lados, como una sonrisa (la mandíbula).
-    if (s > 0) py -= 0.3 * (px / OPEN.half) ** 2 * Math.pow(s, 0.5);
-    return [Math.PI / 2 + px, py];
+    const c = Math.cos(a), s = Math.sin(a), e = 2 / 3.4;
+    const cy = (VIS.top + VIS.bottom) / 2, hh = (VIS.bottom - VIS.top) / 2;
+    return [Math.PI / 2 + Math.sign(c) * Math.pow(Math.abs(c), e) * VIS.half, cy + Math.sign(s) * Math.pow(Math.abs(s), e) * hh];
   });
-  const outline = openingOutline();
-  const onEll = (phi, theta, r) => {
-    const d = new THREE.Vector3(-Math.cos(phi) * Math.sin(theta), Math.cos(theta), Math.sin(phi) * Math.sin(theta));
-    return d.multiplyScalar(r / supF(d.x, d.y, d.z));
-  };
-  const helmMask = (() => {
+  const outline = visorOutline();
+  const onHeadSphere = ([phi, theta], r) => new THREE.Vector3(-r * HS[0] * Math.cos(phi) * Math.sin(theta), r * HS[1] * Math.cos(theta), r * HS[2] * Math.sin(phi) * Math.sin(theta));
+  const visorMask = (() => {
     const c = document.createElement('canvas');
     c.width = 2048;
     c.height = 1024;
     const g = c.getContext('2d');
-    g.fillStyle = '#fff';
-    g.fillRect(0, 0, c.width, c.height);
     g.fillStyle = '#000';
+    g.fillRect(0, 0, c.width, c.height);
+    g.fillStyle = '#fff';
     g.beginPath();
     outline.forEach(([phi, theta], i) => {
       const x = (phi / (Math.PI * 2)) * c.width, y = (theta / Math.PI) * c.height;
@@ -620,306 +489,108 @@ function makeRobot() {
     t.anisotropy = 8;
     return t;
   })();
-  const helmFeatures = [
-    // Ranura con luz azul arriba de la frente.
-    { path: [[-0.2, 0.74], [0, 0.755], [0.2, 0.74]], w: 0.075, d: 0.04, dark: 0.3 },
-    // Rejilla: cuatro ranuras cortas arriba a un lado.
-    ...[0, 1, 2, 3].map((i) => ({ path: [[-0.6 + i * 0.045, 0.82 - i * 0.012], [-0.53 + i * 0.045, 0.86 - i * 0.012]], w: 0.016, d: 0.01, dark: 0.45 })),
-  ];
-  const helmGeo = carve(ellipsoid(HELM_R, dense[0], dense[1]), helmFeatures, 0.1);
-  add(head, helmGeo, Object.assign(headWhite.clone(), { alphaMap: helmMask, alphaTest: 0.5, side: THREE.DoubleSide }));
-  // Borde de la abertura: grueso y redondeado; arriba más grueso y salido.
-  const rimMat = (() => { const m = headWhite.clone(); m.vertexColors = false; return m; })();
-  add(head, tube(outline.map(([phi, theta]) => onEll(phi, theta, HELM_R - 0.022)), 0.03, true), rimMat);
-  const brow = outline.filter(([phi, theta]) => theta < OPEN.top + 0.12).sort((a, b) => a[0] - b[0]);
-  add(head, tube(brow.map(([phi, theta]) => onEll(phi, theta - 0.015, HELM_R + 0.02)), 0.06), rimMat);
-  // Mandíbula: hendidura oscura en el borde de abajo, con una luz tenue adentro.
-  const jaw = outline.filter(([phi, theta]) => theta > OPEN.top + 0.7 && Math.abs(phi - Math.PI / 2) < OPEN.half * 0.97).filter(([phi, theta], i, arr) => theta > (OPEN.top + OPEN.bottom) / 2 + 0.25).sort((a, b) => a[0] - b[0]);
-  add(head, tube(jaw.map(([phi, theta]) => onEll(phi, theta - 0.02, 1.012)), 0.04), darkMetal);
-  add(head, tube(jaw.map(([phi, theta]) => onEll(phi, theta - 0.035, 1.03)), 0.009), Object.assign(glowSoft.clone(), { opacity: 0.4 }));
-  // Luz azul en el borde junto a las orejas (de la esquina de arriba hacia abajo).
-  [-1, 1].forEach((s) => {
-    const side = outline.filter(([phi, theta]) => s * (phi - Math.PI / 2) > OPEN.half * 0.82 && theta < OPEN.top + 0.75).sort((a, b) => a[1] - b[1]);
-    const pts = side.map(([phi, theta]) => onEll(Math.PI / 2 + (phi - Math.PI / 2) * 0.985, theta + 0.015, HELM_R - 0.035));
-    add(head, tube(pts, 0.012), glow);
-    add(head, tube(pts, 0.032), headHalo);
-  });
-  // Luz en el fondo de la ranura de arriba.
-  const slotPts = [[-0.18, 0.74], [0, 0.755], [0.18, 0.74]].map(([x, y]) => {
-    const z = faceZ(x, y, HELM_R);
-    return new THREE.Vector3(x, y, z - 0.03);
-  });
-  add(head, tube(slotPts, 0.02), glow);
-  add(head, tube(slotPts.map((p) => p.clone().setZ(p.z + 0.025)), 0.045), headHalo);
-  // Placa grabada a un lado del casco.
-  const seamGrey = new THREE.MeshStandardMaterial({ color: 0x8a929e, roughness: 0.5 });
-  const badgeAt = onEll(Math.PI / 2 - 0.85, 0.72, HELM_R + 0.004);
-  const badge = add(head, new THREE.BoxGeometry(0.16, 0.09, 0.014), (() => { const m = headWhite.clone(); m.vertexColors = false; m.color.set(0xe6e9ee); return m; })(), [badgeAt.x, badgeAt.y, badgeAt.z]);
-  badge.lookAt(badgeAt.clone().multiplyScalar(2));
-  [-0.04, -0.013, 0.013, 0.04].forEach((dx) => add(badge, new THREE.BoxGeometry(0.006, 0.05, 0.003), seamGrey, [dx, 0, 0.008]));
+  const visor = add(head, new THREE.SphereGeometry(0.812, seg * 1.5, seg), Object.assign(visorMat.clone(), { alphaMap: visorMask, alphaTest: 0.5 }));
+  visor.scale.set(...HS);
+  // Borde fino del visor (gris con un hilo azul).
+  add(head, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(outline.map((p) => onHeadSphere(p, 0.812)), true), 240, 0.012, 8, true), grey);
+  add(head, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(outline.map((p) => onHeadSphere(p, 0.818)), true), 240, 0.005, 6, true), chestMaterial);
 
-  // Ojos: resplandor azul en la cuenca, aro cian, lente negro abombado con
-  // un punto rojo arriba, un punto azul abajo y un reflejo blanco.
-  const socketGlow = (() => {
-    const c = document.createElement('canvas');
-    c.width = c.height = 256;
-    const g = c.getContext('2d');
-    const grad = g.createRadialGradient(128, 128, 60, 128, 128, 128);
-    grad.addColorStop(0, 'rgba(25,135,250,1)');
-    grad.addColorStop(0.8, 'rgba(22,118,238,0.85)');
-    grad.addColorStop(1, 'rgba(20,100,220,0)');
-    g.fillStyle = grad;
-    g.fillRect(0, 0, 256, 256);
-    return new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, opacity: 0.9, depthWrite: false, toneMapped: false });
-  })();
-  const eyes = EYE.map(([x, y]) => {
-    const z = faceZ(x, y) - 0.07; // fondo de la cuenca
+  // Ojos: discos de luz azul con resplandor y un párpado (negro como el visor).
+  const eyeAt = (x, y) => {
+    const z = 0.812 * HS[2] * Math.sqrt(Math.max(0, 1 - (x / (0.812 * HS[0])) ** 2 - (y / (0.812 * HS[1])) ** 2));
+    return new THREE.Vector3(x, y, z + 0.004);
+  };
+  const eyes = [-1, 1].map((side) => {
+    const p = eyeAt(side * 0.27, 0.03);
     const eye = new THREE.Group();
-    eye.position.set(x, y, z);
-    eye.scale.setScalar(0.9);
-    eye.lookAt(new THREE.Vector3(x, y, z).add(faceNormal(x, y, z)));
+    eye.position.copy(p);
+    eye.lookAt(p.clone().multiply(new THREE.Vector3(1 / HS[0] ** 2, 1 / HS[1] ** 2, 1 / HS[2] ** 2)).normalize().add(p));
     head.add(eye);
-    const glowDisc = add(eye, new THREE.CircleGeometry(0.34, 48), socketGlow, [0, 0, 0.004]);
-    glowDisc.scale.set(SOCKET[0] / 0.3, SOCKET[1] / 0.3, 1);
-    add(eye, new THREE.TorusGeometry(0.25, 0.03, 16, seg), glow, [0, 0, 0.02]);
-    add(eye, new THREE.TorusGeometry(0.27, 0.05, 16, seg), Object.assign(headHalo.clone(), { opacity: 0.16 }), [0, 0, 0.03]);
-    const dome = add(eye, new THREE.SphereGeometry(0.235, seg, seg / 2), lens, [0, 0, 0]);
-    dome.scale.set(0.96, 1.04, 0.55);
-    add(eye, new THREE.TorusGeometry(0.17, 0.006, 8, seg), new THREE.MeshBasicMaterial({ color: 0x0f3f72, toneMapped: false }), [0, 0, 0.105]);
-    add(eye, new THREE.SphereGeometry(0.026, 14, 10), new THREE.MeshBasicMaterial({ color: 0xff5a6a, toneMapped: false }), [0.03, 0.095, 0.112]);
-    add(eye, new THREE.SphereGeometry(0.03, 14, 10), new THREE.MeshBasicMaterial({ color: 0x5fe2ff, toneMapped: false }), [0.015, -0.1, 0.11]);
-    const glare = add(eye, new THREE.TorusGeometry(0.13, 0.012, 8, 32, Math.PI * 0.45), highlight, [0.0, 0.0, 0.12], [0, 0, Math.PI * 0.18]);
-    glare.material = Object.assign(highlight.clone(), { transparent: true, opacity: 0.75 });
-    // Párpado (blanco de la cabeza): baja por delante del lente al parpadear.
-    const lid = add(eye, new THREE.SphereGeometry(0.26, 40, 20, 0, Math.PI * 2, 0, Math.PI / 2), Object.assign(headWhite.clone(), { vertexColors: false }));
-    lid.scale.z = 0.62;
+    const disc = add(eye, new THREE.CylinderGeometry(0.11, 0.11, 0.02, 48), ballMaterial, [0, 0, 0.005], [Math.PI / 2, 0, 0]);
+    disc.scale.set(1, 1, 1.12); // un poco ovalados en vertical
+    add(eye, new THREE.CircleGeometry(0.17, 48), Object.assign(halo.clone(), { opacity: 0.16 }), [0, 0, 0.002]);
+    add(eye, new THREE.CircleGeometry(0.13, 48), Object.assign(halo.clone(), { opacity: 0.3 }), [0, 0, 0.003]);
+    const lid = add(eye, new THREE.SphereGeometry(0.125, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), visorMat);
+    lid.scale.set(1, 1.12, 0.3);
     lid.rotation.x = -Math.PI / 2;
     eye.userData = { lid };
     return eye;
   });
-  // Sonrisa pequeña con labio inferior.
-  const mz = faceZ(0, -0.34);
-  add(head, new THREE.TorusGeometry(0.1, 0.013, 10, 40, Math.PI * 0.6), darkMetal, [0, -0.3, mz - 0.006], [-0.34, 0, Math.PI * 1.2]);
-  add(head, new THREE.TorusGeometry(0.06, 0.006, 8, 24, Math.PI * 0.5), Object.assign(darkMetal.clone(), { color: 0x9aa3b0 }), [0, -0.385, faceZ(0, -0.385) - 0.004], [-0.4, 0, Math.PI * 1.25]);
 
-  // Audífonos: aro de luz cian, banda gris oscuro, tapa plana clara y un botón.
+  // Orejas: disco gris oscuro con borde negro, aro azul y centro claro.
   [-1, 1].forEach((side) => {
     const ear = new THREE.Group();
-    ear.position.set(side * 1.15, -0.06, -0.04);
+    ear.position.set(side * 0.8, -0.02, 0);
+    ear.scale.setScalar(1.25);
     ear.rotation.z = (side * Math.PI) / 2;
     head.add(ear);
-    add(ear, new THREE.CylinderGeometry(0.4, 0.42, 0.14, seg), darkMetal, [0, 0.0, 0]);
-    add(ear, new THREE.TorusGeometry(0.41, 0.02, 16, seg), glow, [0, -0.07, 0], [Math.PI / 2, 0, 0]);
-    add(ear, new THREE.TorusGeometry(0.41, 0.045, 16, seg), Object.assign(headHalo.clone(), { opacity: 0.18 }), [0, -0.07, 0], [Math.PI / 2, 0, 0]);
-    add(ear, new THREE.CylinderGeometry(0.36, 0.38, 0.1, seg), new THREE.MeshPhysicalMaterial({ color: 0x5d6470, metalness: 0.7, roughness: 0.3, envMapIntensity: 1.5 }), [0, -0.1, 0]);
-    const lid = add(ear, new THREE.CylinderGeometry(0.31, 0.33, 0.06, seg), new THREE.MeshPhysicalMaterial({ color: 0xece5dc, roughness: 0.32, clearcoat: 0.6, clearcoatRoughness: 0.2 }), [0, -0.16, 0]);
-    lid.userData.cap = true;
-    add(ear, new THREE.BoxGeometry(0.07, 0.06, 0.1), darkMetal, [0.02, -0.08, -0.4]);
+    add(ear, new THREE.CylinderGeometry(0.21, 0.23, 0.12, seg), dark);
+    add(ear, ring(0.2, 0.012), chestMaterial, [0, -0.062, 0]).rotation.x = Math.PI / 2;
+    add(ear, new THREE.CylinderGeometry(0.15, 0.15, 0.13, seg), grey);
+    add(ear, new THREE.CylinderGeometry(0.09, 0.09, 0.14, seg), new THREE.MeshPhysicalMaterial({ color: 0xc9cfd6, metalness: 0.6, roughness: 0.25 }));
   });
 
-  // ── Cuello de anillos oscuros.
-  [0.08, 0.01, -0.06].forEach((y, i) => add(rig, new THREE.CylinderGeometry(0.15 + i * 0.015, 0.16 + i * 0.015, 0.06, seg), i === 1 ? metal : darkMetal, [0, y, 0]));
+  // ── Cuello oscuro.
+  add(rig, new THREE.CylinderGeometry(0.2, 0.24, 0.16, seg), dark, [0, 0.27, 0]);
 
-  // ── Torso (como la referencia): una coraza en forma de escudo, gris claro
-  // satinado, TALLADA: las líneas de ensamble y las ranuras son hendiduras
-  // reales en la malla, las franjas azules son canales con neón en el fondo
-  // y el escote es un hueco con paredes. A los lados, los puertos de los
-  // hombros; abajo, filo metálico, junta oscura y pelvis con luz.
-  const shellMat = new THREE.MeshPhysicalMaterial({ color: 0xc3c9d1, roughness: 0.27, metalness: 0.3, clearcoat: 0.75, clearcoatRoughness: 0.12, sheen: 0.15, sheenColor: 0xdfe8ff, envMapIntensity: 1.45, vertexColors: true });
-  const DEPTH = 0.74; // el frente es más plano que los lados
-  const torsoProfile = new THREE.SplineCurve([[0, -0.9], [0.28, -0.885], [0.43, -0.82], [0.53, -0.68], [0.59, -0.48], [0.6, -0.3], [0.57, -0.17], [0.47, -0.09], [0.28, -0.055], [0, -0.05]].map(([x, y]) => new THREE.Vector2(x, y))).getPoints(modest ? 160 : 300);
-  const torsoR = (y) => {
-    for (let i = 0; i < torsoProfile.length - 1; i++) {
-      const a = torsoProfile[i], b = torsoProfile[i + 1];
-      if (y >= a.y && y <= b.y) return a.x + ((y - a.y) / (b.y - a.y || 1)) * (b.x - a.x);
-    }
-    return 0.3;
-  };
-  const onTorso = (x, y, lift = 0) => {
-    const r = torsoR(y);
-    const z = DEPTH * Math.sqrt(Math.max(0, r * r - x * x));
-    return new THREE.Vector3(x, y, z + lift);
-  };
-  // Recorridos en el frente (x, y). Simétricos a ambos lados.
-  const mirror = (pts) => [pts, pts.map(([x, y]) => [-x, y])];
-  const U = [[0.2, -0.08], [0.4, -0.16], [0.47, -0.34], [0.43, -0.55], [0.3, -0.7], [0.12, -0.77], [0.0, -0.785]];
-  const STRIP = [[0.33, -0.2], [0.355, -0.32], [0.35, -0.46], [0.31, -0.57], [0.24, -0.62], [0.15, -0.64]];
-  // Líneas de ensamble extra a los costados del pecho y una banda baja.
-  const SIDE = [[0.47, -0.1], [0.55, -0.24], [0.565, -0.4], [0.52, -0.58], [0.43, -0.72]];
-  const LOW = [[0.28, -0.8], [0.14, -0.835], [0, -0.845]];
-  const VENTS = [0, 1, 2].map((i) => [[0.2 + i * 0.035, -0.3 - i * 0.012], [0.23 + i * 0.035, -0.42 - i * 0.012]]);
-  const NOTCH = [[-0.2, -0.062], [0.2, -0.062], [0.12, -0.235], [-0.12, -0.235]];
-  const grooves = [
-    ...mirror(U).map((p) => ({ p, w: 0.026, d: 0.014, dark: 0.45 })),
-    ...mirror(STRIP).map((p) => ({ p, w: 0.066, d: 0.032, dark: 0.25 })),
-    ...mirror(SIDE).map((p) => ({ p, w: 0.02, d: 0.011, dark: 0.5 })),
-    ...mirror(LOW).map((p) => ({ p, w: 0.02, d: 0.01, dark: 0.55 })),
-    ...VENTS.flatMap((v) => mirror(v)).map((p) => ({ p, w: 0.021, d: 0.012, dark: 0.5 })),
-    // Borde del escote: un filo hundido alrededor del hueco.
-    { p: [...NOTCH, NOTCH[0]], w: 0.02, d: 0.012, dark: 0.3 },
-  ];
-  // Distancia de un punto a un recorrido (polilínea suavizada).
-  const smoothPath = (pts) => new THREE.SplineCurve(pts.map(([x, y]) => new THREE.Vector2(x, y))).getPoints(Math.max(8, pts.length * 10));
-  grooves.forEach((g) => {
-    g.pts = g.p.length > 2 && g !== grooves[grooves.length - 1] ? smoothPath(g.p) : g.p.map(([x, y]) => new THREE.Vector2(x, y));
-    // Caja del recorrido: los vértices lejos ni se miden.
-    g.box = g.pts.reduce((b, q) => [Math.min(b[0], q.x), Math.min(b[1], q.y), Math.max(b[2], q.x), Math.max(b[3], q.y)], [Infinity, Infinity, -Infinity, -Infinity]).map((v, i) => v + (i < 2 ? -g.w : g.w));
-  });
-  const distTo = (pts, x, y) => {
-    let best = Infinity;
-    for (let i = 0; i < pts.length - 1; i++) {
-      const a = pts[i], b = pts[i + 1];
-      const vx = b.x - a.x, vy = b.y - a.y;
-      const t = Math.max(0, Math.min(1, ((x - a.x) * vx + (y - a.y) * vy) / (vx * vx + vy * vy || 1)));
-      const dx = a.x + vx * t - x, dy = a.y + vy * t - y;
-      best = Math.min(best, dx * dx + dy * dy);
-    }
-    return Math.sqrt(best);
-  };
-  const insideNotch = (x, y) => {
-    let inside = false;
-    for (let i = 0, j = NOTCH.length - 1; i < NOTCH.length; j = i++) {
-      const [xi, yi] = NOTCH[i], [xj, yj] = NOTCH[j];
-      if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
-    }
-    return inside;
-  };
-  const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
-  // El frente (donde va el tallado) con muchos más vértices que la espalda.
-  const FRONT = 1.7;
-  const torsoGeo = new THREE.LatheGeometry(torsoProfile, modest ? 420 : 760, -FRONT, FRONT * 2);
-  const torsoBack = new THREE.LatheGeometry(torsoProfile, 90, FRONT, Math.PI * 2 - FRONT * 2);
-  {
-    const pos = torsoGeo.attributes.position;
-    const colors = new Float32Array(pos.count * 3);
-    const v = new THREE.Vector3();
-    for (let i = 0; i < pos.count; i++) {
-      v.fromBufferAttribute(pos, i);
-      let push = 0, shade = 1;
-      if (v.z > 0.02) {
-        for (const g of grooves) {
-          if (v.x < g.box[0] || v.y < g.box[1] || v.x > g.box[2] || v.y > g.box[3]) continue;
-          const d = distTo(g.pts, v.x, v.y);
-          if (d < g.w / 2) {
-            // Canal de perfil redondeado.
-            const k = Math.pow(Math.cos((d / (g.w / 2)) * Math.PI / 2), 0.7);
-            if (g.d * k > push) { push = g.d * k; shade = 1 - (1 - g.dark) * k; }
-          }
-        }
-        // Escote: hueco profundo con paredes.
-        if (v.y > -0.25 && Math.abs(v.x) < 0.21 && insideNotch(v.x, v.y)) {
-          const edge = Math.min(...NOTCH.map((a, j) => distTo([new THREE.Vector2(...a), new THREE.Vector2(...NOTCH[(j + 1) % NOTCH.length])], v.x, v.y)));
-          const k = sstep(0.004, 0.02, edge);
-          if (0.09 * k > push) { push = 0.09 * k; shade = 1 - 0.8 * k; }
-        }
-      }
-      if (push > 0) {
-        const r = Math.hypot(v.x, v.z) || 1;
-        // Hacia adentro (en el sistema del torno; el frente se aplana después).
-        v.x -= (v.x / r) * push;
-        v.z -= (v.z / r) * (push / DEPTH);
-        pos.setXYZ(i, v.x, v.y, v.z);
-      }
-      colors[i * 3] = colors[i * 3 + 1] = colors[i * 3 + 2] = shade;
-    }
-    torsoGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    torsoGeo.computeVertexNormals();
-  }
-  const torso = add(rig, torsoGeo, shellMat);
-  torso.scale.z = DEPTH;
-  add(rig, torsoBack, Object.assign(shellMat.clone(), { vertexColors: false })).scale.z = DEPTH;
-  // Neón azul en el fondo de los canales de las franjas.
-  const halo = new THREE.MeshBasicMaterial({ color: 0x1fb4ff, toneMapped: false, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false });
-  for (const p of mirror(STRIP)) {
-    add(rig, tube(p.map(([x, y]) => onTorso(x, y, -0.02)), 0.026), glow);
-    // Halo: la luz se derrama un poco sobre los bordes del canal.
-    add(rig, tube(p.map(([x, y]) => onTorso(x, y, 0.006)), 0.05), halo);
-    add(rig, tube(p.map(([x, y]) => onTorso(x, y, 0.01)), 0.085), Object.assign(halo.clone(), { opacity: 0.1 }));
-  }
-  // Piezas oscuras y luz en el fondo del escote.
-  const nh = onTorso(0, -0.15);
-  const inner = new THREE.Group();
-  inner.position.set(0, -0.148, nh.z - 0.078);
-  inner.rotation.x = -0.2;
-  rig.add(inner);
-  // Fondo oscuro con costillas, un conector redondo con anillo, tubos y luces.
-  add(inner, new THREE.BoxGeometry(0.3, 0.16, 0.01), darkMetal, [0, 0, -0.012]);
-  [-0.1, -0.06, 0.06, 0.1].forEach((x) => add(inner, new THREE.BoxGeometry(0.012, 0.12, 0.02), metal, [x, 0, 0]));
-  add(inner, new THREE.CylinderGeometry(0.042, 0.042, 0.03, 32), metal, [0, 0.01, 0.01], [Math.PI / 2, 0, 0]);
-  add(inner, new THREE.TorusGeometry(0.042, 0.008, 10, 32), chestMaterial, [0, 0.01, 0.027]);
-  add(inner, new THREE.CylinderGeometry(0.018, 0.018, 0.03, 20), darkMetal, [0, 0.01, 0.03], [Math.PI / 2, 0, 0]);
-  add(inner, new THREE.CylinderGeometry(0.01, 0.01, 0.22, 12), metal, [0, -0.055, 0.008], [0, 0, Math.PI / 2]);
-  add(inner, new THREE.CylinderGeometry(0.008, 0.008, 0.18, 12), darkMetal, [0, 0.06, 0.006], [0, 0, Math.PI / 2]);
-  [-1, 1].forEach((side) => add(inner, new THREE.SphereGeometry(0.009, 10, 8), glow, [side * 0.08, 0.05, 0.016]));
-  add(inner, new THREE.BoxGeometry(0.15, 0.012, 0.01), glow, [0, -0.07, 0.014]);
-  // Puertos de los hombros: aro oscuro hundido con un arco de luz cian abajo.
+  // ── Cuerpo: cápsula alta, más ancha abajo, con banda oscura de borde azul.
+  const body = add(rig, lathe([[0, -1.48], [0.36, -1.45], [0.6, -1.3], [0.7, -1.05], [0.72, -0.7], [0.69, -0.35], [0.6, -0.02], [0.45, 0.16], [0.24, 0.22], [0, 0.23]], 60), white);
+  body.scale.z = 0.86;
+  const band = add(rig, ring(0.725, 0.03), dark, [0, -1.0, 0]);
+  band.rotation.x = Math.PI / 2;
+  band.scale.set(1, 0.86, 1);
+  const bandBlue = add(rig, ring(0.735, 0.008), chestMaterial, [0, -1.04, 0]);
+  bandBlue.rotation.x = Math.PI / 2;
+  bandBlue.scale.set(1, 0.86, 1);
+  // Punto oscuro arriba del pecho.
+  add(rig, new THREE.SphereGeometry(0.03, 16, 10), dark, [0, -0.02, 0.6]);
+  // Hombros: huecos oscuros donde entra el brazo.
   [-1, 1].forEach((side) => {
-    const port = new THREE.Group();
-    port.position.set(side * 0.575, -0.28, 0.03);
-    port.rotation.y = (side * Math.PI) / 2;
-    rig.add(port);
-    // Hueco profundo, aro grueso, rotor con tornillos y un arco de luz largo.
-    add(port, new THREE.CylinderGeometry(0.25, 0.25, 0.08, seg), black, [0, 0, -0.01], [Math.PI / 2, 0, 0]);
-    add(port, new THREE.TorusGeometry(0.25, 0.045, 16, seg), darkMetal, [0, 0, 0.025]);
-    add(port, new THREE.TorusGeometry(0.205, 0.012, 10, seg), metal, [0, 0, 0.03]);
-    add(port, new THREE.CylinderGeometry(0.12, 0.12, 0.04, seg), darkMetal, [0, 0, 0.02], [Math.PI / 2, 0, 0]);
-    for (let b = 0; b < 6; b++) {
-      const a = (b / 6) * Math.PI * 2;
-      add(port, new THREE.CylinderGeometry(0.012, 0.012, 0.02, 10), metal, [Math.cos(a) * 0.09, Math.sin(a) * 0.09, 0.045], [Math.PI / 2, 0, 0]);
-    }
-    add(port, new THREE.TorusGeometry(0.175, 0.016, 10, seg, Math.PI * 1.05), glow, [0, 0, 0.035], [0, 0, Math.PI * 0.975]);
-    add(port, new THREE.TorusGeometry(0.175, 0.04, 10, seg, Math.PI * 1.05), halo, [0, 0, 0.04], [0, 0, Math.PI * 0.975]);
+    const sock = add(rig, new THREE.SphereGeometry(0.2, 32, 16), dark, [side * 0.6, -0.05, 0]);
+    sock.scale.set(0.6, 1, 1);
   });
-  // Filo metálico abajo, junta oscura y pelvis clara con luz al costado.
-  add(rig, new THREE.TorusGeometry(0.3, 0.03, 12, seg), metal, [0, -0.875, 0], [Math.PI / 2, 0, 0]).scale.set(1, DEPTH, 1);
-  add(rig, new THREE.CylinderGeometry(0.24, 0.26, 0.08, seg), darkMetal, [0, -0.92, 0]).scale.set(1, 1, 0.85);
-  const pelvis = add(rig, lathe([[0, -1.03], [0.22, -1.02], [0.33, -0.98], [0.35, -0.94], [0.3, -0.92], [0, -0.92]]), Object.assign(shellMat.clone(), { vertexColors: false }));
-  pelvis.scale.z = 0.8;
-  [-1, 1].forEach((side) => add(rig, new THREE.CapsuleGeometry(0.012, 0.06, 4, 8), chestMaterial, [side * 0.32, -0.97, 0.12], [0, 0, Math.PI / 2 + side * 0.2]));
 
-  // ── Brazos: hombrera blanca con luz, brazo gris, codo, antebrazo blindado y mano.
-  const HAND = -0.8;
+  // ── Brazos: hombro oscuro, brazo blanco, codo oscuro, antebrazo ensanchado
+  // con borde azul y mano de dedos articulados.
+  const HAND = -1.18;
   const arms = [-1, 1].map((side) => {
     const pivot = new THREE.Group();
-    pivot.position.set(side * 0.72, -0.22, 0);
-    const pad = add(pivot, new THREE.SphereGeometry(0.215, seg, seg / 2), white, [side * 0.03, 0.02, 0]);
-    pad.scale.set(1.08, 0.95, 1);
-    add(pivot, tube([[0.12, 0.14], [0.17, 0.04], [0.16, -0.08]].map(([a, b]) => new THREE.Vector3(side * (0.03 + a * 0.5), b, 0.18)), 0.01), chestMaterial);
-    add(pivot, new THREE.CylinderGeometry(0.075, 0.075, 0.1, 20), darkMetal, [0, -0.19, 0]);
-    add(pivot, new THREE.CapsuleGeometry(0.085, 0.1, 6, 16), metal, [0, -0.3, 0]);
-    add(pivot, new THREE.SphereGeometry(0.088, 20, 12), darkMetal, [0, -0.43, 0]);
-    const fore = add(pivot, lathe([[0.09, -0.7], [0.128, -0.66], [0.135, -0.54], [0.105, -0.48]]), white);
-    fore.scale.z = 0.92;
-    add(pivot, new THREE.CapsuleGeometry(0.009, 0.12, 4, 8), chestMaterial, [side * 0.03, -0.59, 0.122]);
-    add(pivot, new THREE.CylinderGeometry(0.06, 0.066, 0.06, 16), darkMetal, [0, -0.72, 0]);
-    // Mano mecánica: palma, cuatro dedos de dos falanges y pulgar.
-    add(pivot, new THREE.BoxGeometry(0.17, 0.12, 0.075), metal, [0, -0.8, 0.01]);
+    pivot.position.set(side * 0.72, -0.08, 0);
+    add(pivot, new THREE.SphereGeometry(0.13, 32, 16), dark);
+    const upper = add(pivot, new THREE.CapsuleGeometry(0.15, 0.3, 10, 24), white, [0, -0.3, 0]);
+    upper.scale.set(1, 1, 0.95);
+    add(pivot, new THREE.CylinderGeometry(0.13, 0.13, 0.08, 32), dark, [0, -0.56, 0]);
+    add(pivot, ring(0.135, 0.008), chestMaterial, [0, -0.6, 0]).rotation.x = Math.PI / 2;
+    add(pivot, lathe([[0.2, -1.04], [0.23, -1.0], [0.22, -0.86], [0.17, -0.7], [0.13, -0.61]]), white);
+    add(pivot, ring(0.205, 0.012), chestMaterial, [0, -1.035, 0]).rotation.x = Math.PI / 2;
+    add(pivot, new THREE.CylinderGeometry(0.17, 0.2, 0.03, 32), dark, [0, -1.05, 0]);
+    // Mano: palma oscura, cuatro dedos (falanges blancas, nudillos oscuros) y pulgar.
+    const hand = new THREE.Group();
+    hand.position.y = -1.08;
+    hand.scale.setScalar(1.45);
+    pivot.add(hand);
+    const H = (y) => y + 1.08;
+    add(hand, new THREE.BoxGeometry(0.17, 0.08, 0.1), dark, [0, H(-1.1), 0]);
     [-0.06, -0.02, 0.02, 0.06].forEach((x, i) => {
-      const splay = (i - 1.5) * 0.07;
-      add(pivot, new THREE.SphereGeometry(0.022, 10, 8), darkMetal, [x, -0.865, 0.015]);
-      add(pivot, new THREE.CapsuleGeometry(0.02, 0.06, 4, 8), metal, [x + splay * 0.05, -0.91, 0.02], [0.2, 0, splay]);
-      add(pivot, new THREE.CapsuleGeometry(0.018, 0.045, 4, 8), metal, [x + splay * 0.12, -0.975, 0.04], [0.45, 0, splay]);
+      const sp = (i - 1.5) * 0.06;
+      add(hand, new THREE.SphereGeometry(0.02, 10, 8), dark, [x, H(-1.15), 0.01]);
+      add(hand, new THREE.CapsuleGeometry(0.018, 0.05, 4, 8), white, [x + sp * 0.04, H(-1.2), 0.015], [0.15, 0, sp]);
+      add(hand, new THREE.SphereGeometry(0.017, 10, 8), dark, [x + sp * 0.08, H(-1.245), 0.02]);
+      add(hand, new THREE.CapsuleGeometry(0.016, 0.04, 4, 8), white, [x + sp * 0.12, H(-1.285), 0.03], [0.35, 0, sp]);
     });
-    add(pivot, new THREE.CapsuleGeometry(0.022, 0.06, 4, 8), metal, [-side * 0.1, -0.81, 0.05], [0.4, 0, -side * 0.9]);
+    add(hand, new THREE.CapsuleGeometry(0.02, 0.05, 4, 8), white, [-side * 0.1, H(-1.13), 0.05], [0.4, 0, -side * 0.9]);
     rig.add(pivot);
     return pivot;
   });
 
-  // ── Piernas cortas: muslo blanco, rodilla oscura y botas por piezas.
+  // ── Piernas: articulación oscura con aro azul y una esfera blanca que flota.
   [-1, 1].forEach((side) => {
-    const x = side * 0.2;
-    add(rig, new THREE.SphereGeometry(0.1, 20, 12), darkMetal, [x, -1.0, 0]);
-    const thigh = add(rig, extrude(roundedRect(0.3, 0.2, 0.09), 0.28, 0.045), white, [x * 1.05, -1.11, 0.01]);
-    thigh.rotation.x = 0.04;
-    add(rig, new THREE.CylinderGeometry(0.085, 0.085, 0.1, 20), darkMetal, [x, -1.24, 0]);
-    add(rig, new THREE.CylinderGeometry(0.1, 0.115, 0.08, 20), metal, [x, -1.31, 0]);
-    const bx = x * 1.16;
-    add(rig, extrude(roundedRect(0.42, 0.22, 0.1), 0.5, 0.055), white, [bx, -1.42, 0.09]);
-    add(rig, new THREE.BoxGeometry(0.46, 0.06, 0.56), metal, [bx, -1.555, 0.09]);
-    add(rig, new THREE.BoxGeometry(0.46, 0.04, 0.58), darkMetal, [bx, -1.605, 0.09]);
-    add(rig, new THREE.CylinderGeometry(0.075, 0.075, 0.02, 24), metal, [bx + side * 0.235, -1.44, 0.06], [0, 0, Math.PI / 2]);
-    add(rig, new THREE.CylinderGeometry(0.03, 0.03, 0.025, 16), chestMaterial, [bx + side * 0.24, -1.44, 0.06], [0, 0, Math.PI / 2]);
-    add(rig, new THREE.BoxGeometry(0.14, 0.02, 0.01), chestMaterial, [bx, -1.4, 0.37]);
+    const x = side * 0.3;
+    add(rig, new THREE.CylinderGeometry(0.16, 0.16, 0.18, 32), dark, [x, -1.55, 0]);
+    add(rig, ring(0.165, 0.01), chestMaterial, [x, -1.62, 0]).rotation.x = Math.PI / 2;
+    const pod = add(rig, new THREE.SphereGeometry(0.34, seg, seg / 2), white, [x, -1.95, 0.02]);
+    pod.scale.set(1, 1.05, 1);
+    add(rig, ring(0.335, 0.007), chestMaterial, [x, -2.05, 0.02]).rotation.x = Math.PI / 2;
   });
 
   // Taza de café en la mano izquierda (la noche: no duerme).
@@ -931,21 +602,21 @@ function makeRobot() {
   const coffee = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.02, 32), glossy(0x4a2a12, { roughness: 0.4 }));
   coffee.position.y = 0.13;
   mug.add(coffee);
-  mug.position.set(0, HAND - 0.12, 0.12);
+  mug.position.set(0, HAND - 0.1, 0.12);
   mug.scale.setScalar(0.001);
   arms[0].add(mug);
 
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.045, 16, 72), new THREE.MeshBasicMaterial({ color: 0x6ff0ff, transparent: true, opacity: 0.8 }));
-  ring.rotation.x = Math.PI / 2;
-  ring.position.y = -1.72;
-  rig.add(ring);
+  const floatRing = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.045, 16, 72), new THREE.MeshBasicMaterial({ color: 0x6ff0ff, transparent: true, opacity: 0.8 }));
+  floatRing.rotation.x = Math.PI / 2;
+  floatRing.position.y = -2.42;
+  rig.add(floatRing);
 
   root.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(root);
   rig.position.y = -(box.min.y + box.max.y) / 2;
   root.userData.base = 2.7 / (box.max.y - box.min.y);
-  const fit = { hand: HAND - 0.04, desk: { y: -0.68, z: 1.0, floor: -1.63 }, props: 0.78 };
-  return { root, rig, head, eyes, ballMaterial, chestMaterial, arms, mug, ring, fit };
+  const fit = { hand: HAND - 0.04, desk: { y: -0.95, z: 1.05, floor: -2.3 }, props: 0.78 };
+  return { root, rig, head, eyes, ballMaterial, chestMaterial, arms, mug, ring: floatRing, fit };
 }
 
 // Pantalla dibujada en un canvas (el chat del celular, la gráfica de la tablet).
