@@ -621,45 +621,53 @@ function makeRobot() {
   hoop(-1.012, torsoR(-1.012) - 0.002, 0.005, chestMaterial);
   // Punto oscuro en el pecho, a un lado.
   add(rig, new THREE.SphereGeometry(0.028, 16, 10), dark, [0.13, 0.04, 0.86 * Math.sqrt(torsoR(0.04) ** 2 - 0.13 ** 2) - 0.008]);
-  // Hombros: huecos oscuros hundidos con borde azul, que siguen la
-  // inclinación del cono.
-  [-1, 1].forEach((side) => {
-    const y = 0.02, r = torsoR(y);
-    const sock = new THREE.Group();
-    sock.position.set(side * (r - 0.03), y, 0);
-    sock.rotation.set(0, 0, side * (-Math.PI / 2 + 0.2));
-    rig.add(sock);
-    add(sock, new THREE.CylinderGeometry(0.235, 0.235, 0.1, seg), dark, [0, 0.0, 0]);
-    add(sock, new THREE.TorusGeometry(0.24, 0.022, 12, seg), white, [0, 0.05, 0], [Math.PI / 2, 0, 0]);
-    add(sock, new THREE.TorusGeometry(0.248, 0.006, 8, seg), chestMaterial, [0, 0.066, 0], [Math.PI / 2, 0, 0]);
-  });
 
   // ── Brazos (como la referencia): rótula oscura dentro del hueco del hombro;
   // brazo corto que se angosta hacia el codo, con borde azul; codo oscuro de
   // anillos; antebrazo grande en forma de campana (angosto en el codo y ancho
   // en la muñeca) con borde azul y la boca oscura de donde sale la mano; mano
   // grande de dedos largos articulados, algo curvados, y pulgar aparte.
-  const HAND = -1.2;
+  const HAND = -1.32;
   const arms = [-1, 1].map((side) => {
     const pivot = new THREE.Group();
     pivot.position.set(side * 0.64, 0.02, 0);
-    add(pivot, new THREE.SphereGeometry(0.15, 32, 16), dark);
+    // Hombro: una bola negra grande, de la que sale el brazo.
+    add(pivot, new THREE.SphereGeometry(0.21, 40, 20), dark);
     // Brazo: casi cónico, ancho en el hombro.
     add(pivot, lathe([[0, -0.47], [0.1, -0.465], [0.135, -0.43], [0.15, -0.3], [0.165, -0.14], [0.15, -0.07], [0.09, -0.03], [0, -0.025]], 40), white);
     add(pivot, ring(0.138, 0.009), chestMaterial, [0, -0.44, 0]).rotation.x = Math.PI / 2;
     // Codo: anillos oscuros.
+    // Tapa oscura al final del brazo.
+    add(pivot, new THREE.CylinderGeometry(0.12, 0.1, 0.03, 32), dark, [0, -0.475, 0]);
+    // Codo: brazo y antebrazo separados, unidos por cables (dan la ilusión
+    // de articulación) y una varilla metálica al centro.
     const elbow = new THREE.Group();
-    elbow.position.y = -0.5;
+    elbow.position.y = -0.62;
     elbow.rotation.x = -0.3; // un poco doblado hacia adelante
     pivot.add(elbow);
-    add(elbow, new THREE.CylinderGeometry(0.11, 0.11, 0.12, 32), dark);
-    [-0.035, 0, 0.035].forEach((y) => add(elbow, ring(0.113, 0.008), grey, [0, y, 0]).rotation.x = Math.PI / 2);
+    const top = new THREE.Vector3(0, 0.15, 0);
+    add(elbow, new THREE.CylinderGeometry(0.025, 0.025, 0.24, 12), grey, [0, 0.03, 0]);
+    for (let c = 0; c < 6; c++) {
+      const a = (c / 6) * Math.PI * 2;
+      const r0 = 0.075, r1 = 0.085;
+      const p0 = new THREE.Vector3(Math.cos(a) * r0, 0.155, Math.sin(a) * r0);
+      const p1 = new THREE.Vector3(Math.cos(a + 0.5) * (r0 + 0.035), 0.03, Math.sin(a + 0.5) * (r0 + 0.035));
+      const p2 = new THREE.Vector3(Math.cos(a + 0.2) * r1, -0.09, Math.sin(a + 0.2) * r1);
+      add(elbow, new THREE.TubeGeometry(new THREE.CatmullRomCurve3([p0, p1, p2]), 20, 0.014, 8), c % 2 ? dark : grey);
+    }
+    // Tapa oscura al inicio del antebrazo.
+    add(elbow, new THREE.CylinderGeometry(0.1, 0.12, 0.03, 32), dark, [0, -0.085, 0]);
     // Antebrazo en campana, abierto abajo.
-    const fore = add(elbow, lathe([[0.235, -0.62], [0.25, -0.58], [0.25, -0.44], [0.23, -0.28], [0.19, -0.14], [0.14, -0.07], [0.1, -0.05]], 48), white);
+    const fore = add(elbow, lathe([[0.235, -0.62], [0.25, -0.58], [0.25, -0.44], [0.23, -0.28], [0.19, -0.16], [0.15, -0.11], [0.12, -0.095]], 48), white);
     fore.material = Object.assign(white.clone(), { side: THREE.DoubleSide });
     add(elbow, ring(0.236, 0.016), dark, [0, -0.615, 0]).rotation.x = Math.PI / 2;
     add(elbow, ring(0.245, 0.007), chestMaterial, [0, -0.6, 0]).rotation.x = Math.PI / 2;
     add(elbow, new THREE.CircleGeometry(0.23, 40), dark, [0, -0.5, 0], [Math.PI / 2, 0, 0]);
+    // Visera del antebrazo: sobresale por delante y cubre un poco los nudillos.
+    const cover = add(elbow, new THREE.CylinderGeometry(0.235, 0.215, 0.12, 48, 1, true, -Math.PI * 0.42, Math.PI * 0.84), Object.assign(white.clone(), { side: THREE.DoubleSide }), [0, -0.68, 0.02]);
+    cover.rotation.x = 0.12;
+    const coverEdge = add(elbow, new THREE.TorusGeometry(0.215, 0.011, 8, 48, Math.PI * 0.84), chestMaterial, [0, -0.738, 0.028]);
+    coverEdge.rotation.set(Math.PI / 2 + 0.12, 0, Math.PI / 2 - Math.PI * 0.42 - Math.PI);
     // Mano: palma oscura, cuatro dedos de tres falanges (blancas, nudillos
     // oscuros), un poco curvados, y el pulgar.
     const hand = new THREE.Group();
