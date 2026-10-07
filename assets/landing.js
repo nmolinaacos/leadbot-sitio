@@ -468,7 +468,7 @@ function makeRobot() {
   const head = new THREE.Group();
   head.position.y = 1.0;
   rig.add(head);
-  const SX = 1.13, SY = 0.97, SZ = 0.98; // la cabeza es un elipsoide un poco ancho
+  const SX = 1.04, SY = 1.0, SZ = 0.99; // casi esférica, apenas más ancha (como la referencia)
   const headWhite = new THREE.MeshPhysicalMaterial({ color: 0xf1f3f6, roughness: 0.2, metalness: 0.02, clearcoat: 1, clearcoatRoughness: 0.06, sheen: 0.2, sheenColor: 0xdfe8ff, envMapIntensity: 1.3, vertexColors: true });
   const headHalo = new THREE.MeshBasicMaterial({ color: 0x1fb4ff, toneMapped: false, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false });
 
@@ -541,20 +541,23 @@ function makeRobot() {
   const dense = modest ? [220, 120] : [380, 200];
 
   // Ojos (en coordenadas de la cabeza): centro y radio de la cuenca.
-  const EYE = [[-0.4, -0.04], [0.4, -0.04]];
-  const SOCKET = [0.31, 0.33];
-  const JAW = [[-0.93, -0.3], [-0.72, -0.47], [-0.4, -0.56], [0, -0.585], [0.4, -0.56], [0.72, -0.47], [0.93, -0.3]];
+  const EYE = [[-0.37, -0.06], [0.37, -0.06]];
+  const SOCKET = [0.28, 0.3];
+  const JAW = [[-0.86, -0.3], [-0.68, -0.48], [-0.38, -0.585], [0, -0.61], [0.38, -0.585], [0.68, -0.48], [0.86, -0.3]];
   const headFeatures = [
     // Cuencas teñidas de azul (la luz de los ojos rebota en ellas).
     ...EYE.map((c) => ({ c, r: SOCKET, d: 0.07, dark: 0.95, tint: [0.22, 0.55, 1.0] })),
     // Hendidura oscura de la mandíbula, de lado a lado.
     { path: JAW, w: 0.095, d: 0.06, dark: 0.08 },
     // Costuras laterales: de la gorra a la mandíbula, junto a las orejas.
-    ...[-1, 1].map((s) => ({ path: [[s * 0.84, 0.42], [s * 0.9, 0.15], [s * 0.9, -0.1], [s * 0.88, -0.32]], w: 0.024, d: 0.014, dark: 0.45 })),
+    ...[-1, 1].map((s) => ({ path: [[s * 0.76, 0.44], [s * 0.82, 0.15], [s * 0.82, -0.1], [s * 0.8, -0.32]], w: 0.024, d: 0.014, dark: 0.45 })),
     // Cejas de luz: ranuras cortas sobre los ojos.
     ...[-1, 1].map((s) => ({ path: [[s * 0.53, 0.37], [s * 0.4, 0.4], [s * 0.27, 0.38]], w: 0.03, d: 0.016, dark: 0.3 })),
   ];
-  const skull = add(head, carve(ellipsoid(1.0, dense[0], dense[1]), headFeatures, 0.0), headWhite);
+  // La cara es un tono apenas más gris que la gorra.
+  const skullMat = headWhite.clone();
+  skullMat.color.set(0xe2e6eb);
+  const skull = add(head, carve(ellipsoid(1.0, dense[0], dense[1]), headFeatures, 0.0), skullMat);
   skull.userData.carved = true;
   // Luz dentro de las ranuras de las cejas y resplandor de las cuencas.
   [-1, 1].forEach((s) => {
@@ -567,7 +570,9 @@ function makeRobot() {
 
   // Gorra: casquete un poco más grande que sobresale al frente. Su borde baja
   // hacia las orejas. Se recorta con una máscara (UV de la esfera).
-  const capEdge = (phi) => 1.03 + 0.12 * Math.cos(phi) ** 2; // theta del borde
+  // Al frente queda sobre las cejas; a los lados baja hasta encima de la oreja
+  // y atrás baja casi a la nuca.
+  const capEdge = (phi) => 1.0 + 0.22 * Math.cos(phi) ** 2 + (Math.sin(phi) < 0 ? 0.35 * Math.sin(phi) ** 2 : 0);
   const capMask = (() => {
     const c = document.createElement('canvas');
     c.width = 1024;
@@ -588,9 +593,10 @@ function makeRobot() {
     return new THREE.CanvasTexture(c);
   })();
   const cap = new THREE.Group();
-  cap.position.set(0, 0.015, 0.07);
+  cap.position.set(0, 0.02, 0.075);
+  cap.scale.set(1, 0.97, 1); // un poco más plana arriba
   head.add(cap);
-  const CAP_R = 1.05;
+  const CAP_R = 1.065;
   const capFeatures = [
     // Ranura con luz azul en la frente de la gorra.
     { path: [[-0.2, 0.72], [0, 0.735], [0.2, 0.72]], w: 0.075, d: 0.04, dark: 0.3 },
@@ -605,7 +611,7 @@ function makeRobot() {
     const phi = (i / 96) * Math.PI * 2;
     return onSphereEll(phi, capEdge(phi) - 0.012, CAP_R - 0.012);
   });
-  add(cap, tube(capRim, 0.042, true), Object.assign(headWhite.clone(), { vertexColors: false }));
+  add(cap, tube(capRim, 0.052, true), Object.assign(headWhite.clone(), { vertexColors: false }));
   // Luz en el fondo de la ranura de la frente.
   const slotPts = [[-0.18, 0.72], [0, 0.735], [0.18, 0.72]].map(([x, y]) => {
     const z = SZ * CAP_R * Math.sqrt(Math.max(0, 1 - (x / (SX * CAP_R)) ** 2 - (y / (SY * CAP_R)) ** 2));
@@ -647,6 +653,7 @@ function makeRobot() {
     const z = faceZ(x, y) - 0.07; // fondo de la cuenca
     const eye = new THREE.Group();
     eye.position.set(x, y, z);
+    eye.scale.setScalar(0.9);
     eye.lookAt(new THREE.Vector3(x, y, z).add(faceNormal(x, y, z)));
     head.add(eye);
     const glowDisc = add(eye, new THREE.CircleGeometry(0.34, 48), socketGlow, [0, 0, 0.004]);
@@ -675,7 +682,7 @@ function makeRobot() {
   // Audífonos: aro de luz cian, banda gris oscuro, tapa plana clara y un botón.
   [-1, 1].forEach((side) => {
     const ear = new THREE.Group();
-    ear.position.set(side * 1.12, -0.04, -0.04);
+    ear.position.set(side * 1.03, -0.04, -0.04);
     ear.rotation.z = (side * Math.PI) / 2;
     head.add(ear);
     add(ear, new THREE.CylinderGeometry(0.4, 0.42, 0.14, seg), darkMetal, [0, 0.0, 0]);
