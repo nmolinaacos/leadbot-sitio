@@ -468,13 +468,18 @@ function makeRobot() {
   const head = new THREE.Group();
   head.position.y = 1.0;
   rig.add(head);
-  const SX = 1.04, SY = 1.0, SZ = 0.99; // casi esférica, apenas más ancha (como la referencia)
+  // Forma de la cabeza: superelipsoide (cubo de esquinas muy redondeadas),
+  // apenas más ancha que alta y un poco plana al frente, como la referencia.
+  // P = 2 sería una esfera; más alto, más cuadrada.
+  const SX = 1.06, SY = 0.98, SZ = 0.97, P = 2.9;
+  const supF = (x, y, z) => Math.pow(Math.abs(x / SX) ** P + Math.abs(y / SY) ** P + Math.abs(z / SZ) ** P, 1 / P);
+  const supN = (x, y, z) => new THREE.Vector3(Math.sign(x) * Math.abs(x / SX) ** (P - 1) / SX, Math.sign(y) * Math.abs(y / SY) ** (P - 1) / SY, Math.sign(z) * Math.abs(z / SZ) ** (P - 1) / SZ).normalize();
   const headWhite = new THREE.MeshPhysicalMaterial({ color: 0xf1f3f6, roughness: 0.2, metalness: 0.02, clearcoat: 1, clearcoatRoughness: 0.06, sheen: 0.2, sheenColor: 0xdfe8ff, envMapIntensity: 1.3, vertexColors: true });
   const headHalo = new THREE.MeshBasicMaterial({ color: 0x1fb4ff, toneMapped: false, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false });
 
   // Superficie del elipsoide en (x, y) y su normal.
-  const faceZ = (x, y, r = 1.0) => SZ * r * Math.sqrt(Math.max(0, 1 - (x / (SX * r)) ** 2 - (y / (SY * r)) ** 2));
-  const faceNormal = (x, y, z) => new THREE.Vector3(x / SX ** 2, y / SY ** 2, z / SZ ** 2).normalize();
+  const faceZ = (x, y, r = 1.0) => SZ * Math.pow(Math.max(0, r ** P - Math.abs(x / SX) ** P - Math.abs(y / SY) ** P), 1 / P);
+  const faceNormal = (x, y, z) => supN(x, y, z);
   const onHead = (x, y, lift = 0, r = 1.0) => {
     const z = faceZ(x, y, r);
     return new THREE.Vector3(x, y, z).add(faceNormal(x, y, z).multiplyScalar(lift));
@@ -522,7 +527,7 @@ function makeRobot() {
         }
       }
       if (push > 0) {
-        n.set(v.x / SX ** 2, v.y / SY ** 2, v.z / SZ ** 2).normalize();
+        n.copy(supN(v.x, v.y, v.z));
         v.addScaledVector(n, -push);
         pos.setXYZ(i, v.x, v.y, v.z);
       }
@@ -535,7 +540,15 @@ function makeRobot() {
   };
   const ellipsoid = (r, w, h) => {
     const g = new THREE.SphereGeometry(r, w, h);
-    g.scale(SX, SY, SZ);
+    // Cada vértice de la esfera se lleva a la superficie del superelipsoide.
+    const pp = g.attributes.position;
+    const d = new THREE.Vector3();
+    for (let i = 0; i < pp.count; i++) {
+      d.fromBufferAttribute(pp, i);
+      d.multiplyScalar(r / supF(d.x, d.y, d.z));
+      pp.setXYZ(i, d.x, d.y, d.z);
+    }
+    g.computeVertexNormals();
     return g;
   };
   const dense = modest ? [220, 120] : [380, 200];
@@ -584,7 +597,10 @@ function makeRobot() {
     return [Math.PI / 2 + px, py];
   });
   const outline = openingOutline();
-  const onEll = (phi, theta, r) => new THREE.Vector3(-r * SX * Math.cos(phi) * Math.sin(theta), r * SY * Math.cos(theta), r * SZ * Math.sin(phi) * Math.sin(theta));
+  const onEll = (phi, theta, r) => {
+    const d = new THREE.Vector3(-Math.cos(phi) * Math.sin(theta), Math.cos(theta), Math.sin(phi) * Math.sin(theta));
+    return d.multiplyScalar(r / supF(d.x, d.y, d.z));
+  };
   const helmMask = (() => {
     const c = document.createElement('canvas');
     c.width = 2048;
@@ -630,7 +646,7 @@ function makeRobot() {
   });
   // Luz en el fondo de la ranura de arriba.
   const slotPts = [[-0.18, 0.74], [0, 0.755], [0.18, 0.74]].map(([x, y]) => {
-    const z = SZ * HELM_R * Math.sqrt(Math.max(0, 1 - (x / (SX * HELM_R)) ** 2 - (y / (SY * HELM_R)) ** 2));
+    const z = faceZ(x, y, HELM_R);
     return new THREE.Vector3(x, y, z - 0.03);
   });
   add(head, tube(slotPts, 0.02), glow);
@@ -689,7 +705,7 @@ function makeRobot() {
   // Audífonos: aro de luz cian, banda gris oscuro, tapa plana clara y un botón.
   [-1, 1].forEach((side) => {
     const ear = new THREE.Group();
-    ear.position.set(side * 1.1, -0.06, -0.04);
+    ear.position.set(side * 1.15, -0.06, -0.04);
     ear.rotation.z = (side * Math.PI) / 2;
     head.add(ear);
     add(ear, new THREE.CylinderGeometry(0.4, 0.42, 0.14, seg), darkMetal, [0, 0.0, 0]);
