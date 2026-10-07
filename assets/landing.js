@@ -454,7 +454,7 @@ function makeRobot() {
 
   // ── Cabeza: esfera gris muy claro brillante, un poco más ancha que alta.
   const head = new THREE.Group();
-  head.position.y = 1.05;
+  head.position.y = 1.23;
   rig.add(head);
   const HS = [1, 0.94, 0.97];
   const headMat = new THREE.MeshPhysicalMaterial({ color: 0xe6e9ed, roughness: 0.12, metalness: 0.05, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.5 });
@@ -587,15 +587,16 @@ function makeRobot() {
   });
 
   // ── Cuello: anillos oscuros y metálicos.
-  add(rig, new THREE.CylinderGeometry(0.19, 0.21, 0.07, seg), dark, [0, 0.33, 0]);
-  add(rig, new THREE.CylinderGeometry(0.2, 0.2, 0.05, seg), grey, [0, 0.275, 0]);
-  add(rig, new THREE.CylinderGeometry(0.22, 0.24, 0.06, seg), dark, [0, 0.225, 0]);
+  add(rig, new THREE.CylinderGeometry(0.19, 0.21, 0.07, seg), dark, [0, 0.51, 0]);
+  add(rig, new THREE.CylinderGeometry(0.2, 0.2, 0.05, seg), grey, [0, 0.455, 0]);
+  add(rig, new THREE.CylinderGeometry(0.22, 0.24, 0.06, seg), dark, [0, 0.405, 0]);
 
   // ── Cuerpo (como la referencia): forma cónica, más angosta arriba y ancha
   // abajo, con tapa superior casi plana; abajo se redondea. Banda hundida
   // oscura con dos hilos azules; huecos de hombro con borde azul; un punto
   // oscuro en el pecho, a un lado.
-  const torsoProfile = [[0, -1.48], [0.4, -1.45], [0.64, -1.32], [0.745, -1.12], [0.765, -0.98], [0.71, -0.62], [0.6, -0.26], [0.5, 0.04], [0.44, 0.17], [0.35, 0.225], [0.22, 0.24], [0, 0.24]];
+  // Por encima de la banda, el cuerpo se estira (más alto).
+  const torsoProfile = [[0, -1.48], [0.4, -1.45], [0.64, -1.32], [0.745, -1.12], [0.765, -0.98], [0.71, -0.62], [0.6, -0.26], [0.5, 0.04], [0.44, 0.17], [0.35, 0.225], [0.22, 0.24], [0, 0.24]].map(([r, y]) => [r, y > -0.98 ? -0.98 + (y + 0.98) * 1.15 : y]);
   const body = add(rig, lathe(torsoProfile, 70), white);
   body.scale.z = 0.86;
   const torsoR = (y) => {
@@ -612,18 +613,18 @@ function makeRobot() {
     return m;
   };
   // Borde oscuro alrededor del cuello, con hilo azul.
-  hoop(0.235, 0.24, 0.022, dark);
-  hoop(0.232, 0.265, 0.006, chestMaterial);
+  hoop(0.415, 0.24, 0.022, dark);
+  hoop(0.412, 0.265, 0.006, chestMaterial);
   // Banda: canal oscuro con un hilo azul arriba y otro abajo.
   hoop(-0.98, torsoR(-0.98) - 0.008, 0.02, dark);
   hoop(-0.948, torsoR(-0.948) - 0.002, 0.005, chestMaterial);
   hoop(-1.012, torsoR(-1.012) - 0.002, 0.005, chestMaterial);
   // Punto oscuro en el pecho, a un lado.
-  add(rig, new THREE.SphereGeometry(0.028, 16, 10), dark, [0.13, -0.12, 0.86 * Math.sqrt(torsoR(-0.12) ** 2 - 0.13 ** 2) - 0.008]);
+  add(rig, new THREE.SphereGeometry(0.028, 16, 10), dark, [0.13, 0.04, 0.86 * Math.sqrt(torsoR(0.04) ** 2 - 0.13 ** 2) - 0.008]);
   // Hombros: huecos oscuros hundidos con borde azul, que siguen la
   // inclinación del cono.
   [-1, 1].forEach((side) => {
-    const y = -0.14, r = torsoR(y);
+    const y = 0.02, r = torsoR(y);
     const sock = new THREE.Group();
     sock.position.set(side * (r - 0.03), y, 0);
     sock.rotation.set(0, 0, side * (-Math.PI / 2 + 0.2));
@@ -638,7 +639,7 @@ function makeRobot() {
   const HAND = -1.18;
   const arms = [-1, 1].map((side) => {
     const pivot = new THREE.Group();
-    pivot.position.set(side * 0.66, -0.14, 0);
+    pivot.position.set(side * 0.64, 0.02, 0);
     add(pivot, new THREE.SphereGeometry(0.13, 32, 16), dark);
     const upper = add(pivot, new THREE.CapsuleGeometry(0.15, 0.3, 10, 24), white, [0, -0.3, 0]);
     upper.scale.set(1, 1, 0.95);
