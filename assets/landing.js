@@ -558,23 +558,29 @@ function makeRobot() {
     return eye;
   });
 
-  // Orejas: un cilindro ancho que sale de la cabeza (canto claro con una
-  // línea negra donde se une a la cabeza), un aro negro, aro azul y el
-  // centro oscuro como un lente.
+  // Orejas: un disco grueso que sale de la cabeza, del mismo gris claro, con
+  // canto redondeado y una junta negra donde se une a la cabeza. La cara de
+  // afuera es cóncava: borde claro, un aro de luz azul ancho, un aro negro y
+  // un plato gris en el centro.
+  const earDish = new THREE.MeshPhysicalMaterial({ color: 0xaeb4bc, roughness: 0.22, metalness: 0.55, clearcoat: 0.8, clearcoatRoughness: 0.1, envMapIntensity: 1.6 });
+  const earGlow = new THREE.MeshBasicMaterial({ color: 0x3fb6f5, toneMapped: false });
   [-1, 1].forEach((side) => {
     const ear = new THREE.Group();
-    ear.position.set(side * 0.77, -0.02, -0.02);
+    ear.position.set(side * 0.74, -0.03, -0.02);
     ear.rotation.z = (side * Math.PI) / 2;
     head.add(ear);
-    // En el grupo de la oreja, -y apunta hacia afuera de la cabeza.
-    add(ear, new THREE.CylinderGeometry(0.29, 0.3, 0.16, seg), headMat, [0, -0.02, 0]);
-    add(ear, new THREE.TorusGeometry(0.305, 0.012, 10, seg), dark, [0, 0.05, 0], [Math.PI / 2, 0, 0]);
-    add(ear, new THREE.TorusGeometry(0.275, 0.022, 12, seg), dark, [0, -0.1, 0], [Math.PI / 2, 0, 0]);
-    add(ear, new THREE.CylinderGeometry(0.25, 0.25, 0.04, seg), new THREE.MeshPhysicalMaterial({ color: 0xd9dde2, roughness: 0.2, clearcoat: 1 }), [0, -0.102, 0]);
-    add(ear, new THREE.TorusGeometry(0.2, 0.014, 10, seg), chestMaterial, [0, -0.125, 0], [Math.PI / 2, 0, 0]);
-    add(ear, new THREE.CylinderGeometry(0.185, 0.185, 0.04, seg), dark, [0, -0.11, 0]);
-    const lens = add(ear, new THREE.SphereGeometry(0.15, seg, seg / 2), visorMat, [0, -0.125, 0]);
-    lens.scale.y = 0.18;
+    // En el grupo de la oreja, -y apunta hacia afuera de la cabeza. El perfil
+    // va de afuera (y negativo) hacia adentro para que las caras miren afuera.
+    add(ear, lathe([[0.215, -0.17], [0.245, -0.178], [0.28, -0.17], [0.305, -0.14], [0.315, -0.09], [0.31, -0.03], [0.3, -0.01], [0.27, 0.08]], 40), headMat);
+    // Junta negra contra la cabeza.
+    add(ear, new THREE.TorusGeometry(0.3, 0.03, 12, seg), dark, [0, 0.0, 0], [Math.PI / 2, 0, 0]);
+    // Cara cóncava: aro de luz azul, aro negro y plato gris.
+    add(ear, new THREE.RingGeometry(0.18, 0.218, seg), earGlow, [0, -0.165, 0], [Math.PI / 2, 0, 0]).material.side = THREE.DoubleSide;
+    add(ear, new THREE.TorusGeometry(0.2, 0.03, 12, seg), Object.assign(halo.clone(), { opacity: 0.25 }), [0, -0.166, 0], [Math.PI / 2, 0, 0]);
+    add(ear, new THREE.CylinderGeometry(0.182, 0.182, 0.03, seg, 1, true), dark, [0, -0.15, 0]);
+    add(ear, new THREE.RingGeometry(0.15, 0.182, seg), dark, [0, -0.136, 0], [Math.PI / 2, 0, 0]).material = Object.assign(dark.clone(), { side: THREE.DoubleSide });
+    const dish = add(ear, new THREE.SphereGeometry(0.2, seg, 16, 0, Math.PI * 2, 0, 0.85), earDish, [0, -0.3, 0]);
+    dish.material.side = THREE.DoubleSide;
   });
 
   // ── Cuello oscuro.
