@@ -8,8 +8,6 @@
 // Con movimiento reducido o sin WebGL la página se ve completa y estática.
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 const { gsap, ScrollTrigger, Lenis } = window;
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -422,118 +420,267 @@ function bubbleGeometry() {
   return extrude(s, 0.45, 0.2);
 }
 
-// Leadbot: modelo 3D (assets/leadbot-robot.glb, a partir de un modelo de
-// Tripo con texturas limpias). Viene cortado en cabeza, cuerpo y brazos para
-// poder moverlos. Aquí se arma con pivotes en el cuello y los hombros, se le
-// agregan párpados y aros de luz en los ojos, la taza de café y el anillo.
-// Medidas del modelo original (alto 1): ojos, cuello y hombros.
-const MODEL = {
-  scale: 3.6,
-  feet: -1.63,
-  neck: [0, 0.455, 0],
-  shoulders: [[-0.19, 0.42, 0], [0.19, 0.42, 0]],
-  // Centro del lente (ajuste de esfera sobre la textura) y radio del párpado.
-  eyes: [[-0.158, 0.672, 0.135], [0.165, 0.675, 0.135]],
-  eyeRadius: 0.072,
-};
-
+// Leadbot: robot chibi construido desde cero (sin modelos externos), según
+// la imagen de referencia. Casco blanco brillante con visera sobre la frente,
+// ranura y marcas; cara gris claro hundida con una línea de luz cian a los
+// lados; ojos negros abombados con aro cian; nariz y sonrisa pequeñas;
+// audífonos por capas con aro azul; cuello de anillos; pecho blanco con
+// líneas de luz; abdomen de metal por segmentos; hombreras; antebrazos
+// blindados; manos de dedos articulados y botas por piezas.
 function makeRobot() {
   const root = new THREE.Group();
   const rig = new THREE.Group();
   root.add(rig);
-  const S = MODEL.scale;
-  // Del sistema del modelo (pies en y = 0) al del cuerpo del robot.
-  const toRig = ([x, y, z]) => new THREE.Vector3(x * S, MODEL.feet + y * S, z * S);
+  const seg = modest ? 48 : 80;
 
+  // ── Materiales
+  const white = new THREE.MeshPhysicalMaterial({ color: 0xf4f6f9, roughness: 0.16, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 1.35 });
+  const face = new THREE.MeshPhysicalMaterial({ color: 0xd3d9e0, roughness: 0.4, metalness: 0, clearcoat: 0.45, clearcoatRoughness: 0.22, envMapIntensity: 1.1 });
+  const metal = new THREE.MeshPhysicalMaterial({ color: 0xa2abb7, metalness: 0.85, roughness: 0.3, envMapIntensity: 1.7 });
+  const darkMetal = new THREE.MeshPhysicalMaterial({ color: 0x2a2f38, metalness: 0.6, roughness: 0.34, envMapIntensity: 1.3 });
+  const black = new THREE.MeshPhysicalMaterial({ color: 0x07090d, roughness: 0.3, metalness: 0.2 });
+  const lens = new THREE.MeshPhysicalMaterial({ color: 0x020307, roughness: 0.02, metalness: 0.15, clearcoat: 1, clearcoatRoughness: 0.01, envMapIntensity: 2.4 });
+  const blueRing = new THREE.MeshPhysicalMaterial({ color: 0x2f7dff, metalness: 0.55, roughness: 0.22, clearcoat: 1, emissive: 0x1f63ff, emissiveIntensity: 0.55, envMapIntensity: 1.4 });
+  // Luces cian: sin mapeo de tonos para que el cian quede intenso.
+  const glow = new THREE.MeshBasicMaterial({ color: 0x35d2ff, toneMapped: false });
+  const glowSoft = new THREE.MeshBasicMaterial({ color: 0x1a8fe8, toneMapped: false, transparent: true, opacity: 0.55, depthWrite: false });
+  // Luz que destella con los mensajes (línea de la cara y del pecho).
+  const ballMaterial = new THREE.MeshStandardMaterial({ color: 0x35d2ff, emissive: 0x18c0ff, emissiveIntensity: 1.2 });
+  const chestMaterial = new THREE.MeshStandardMaterial({ color: 0x35d2ff, emissive: 0x18c0ff, emissiveIntensity: 1 });
+  const highlight = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
+
+  const add = (parent, geometry, material, [x = 0, y = 0, z = 0] = [], rot) => {
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(x, y, z);
+    if (rot) mesh.rotation.set(...rot);
+    parent.add(mesh);
+    return mesh;
+  };
+  // Pieza torneada (perfil de abajo hacia arriba: las caras miran afuera).
+  const lathe = (points, n = 40) => new THREE.LatheGeometry(new THREE.SplineCurve(points.map(([x, y]) => new THREE.Vector2(x, y))).getPoints(n), seg);
+  const tube = (points, radius, closed = false) => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points, closed, 'centripetal'), Math.max(32, points.length * 6), radius, 12, closed);
+
+  // ── Cabeza
   const head = new THREE.Group();
-  head.position.copy(toRig(MODEL.neck));
+  head.position.y = 1.0;
   rig.add(head);
-  const arms = MODEL.shoulders.map((sh) => {
-    const pivot = new THREE.Group();
-    pivot.position.copy(toRig(sh));
-    rig.add(pivot);
-    return pivot;
+  const SX = 1.13, SY = 0.97, SZ = 0.98; // la cabeza es un elipsoide un poco ancho
+  const shell = new THREE.Group();
+  shell.scale.set(SX, SY, SZ);
+  head.add(shell);
+  // Ventana de la cara en coordenadas de la esfera: phi alrededor (frente en
+  // π/2), theta desde arriba.
+  const WIN = { phi: 2.06, top: 1.2, bottom: 2.3, round: 0.42 };
+  // Contorno de la ventana (rectángulo redondeado en phi/theta).
+  const windowOutline = (n = 160) => {
+    const pts = [];
+    const hw = WIN.phi / 2, h = WIN.bottom - WIN.top, rr = WIN.round;
+    const cx = Math.PI / 2, cy = (WIN.top + WIN.bottom) / 2, hh = h / 2;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      // Superelipse: esquinas redondeadas.
+      const c = Math.cos(a), s = Math.sin(a);
+      const e = 2 / 3.6;
+      const px = Math.sign(c) * Math.pow(Math.abs(c), e) * hw;
+      const py = Math.sign(s) * Math.pow(Math.abs(s), e) * hh;
+      pts.push([cx + px, cy + py]);
+    }
+    return pts;
+  };
+  const outline = windowOutline();
+  const onSphere = ([phi, theta], r) => new THREE.Vector3(-r * Math.cos(phi) * Math.sin(theta), r * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta));
+  // Máscara del casco: blanco = casco, negro = ventana (usa las UV de la esfera).
+  const mask = (() => {
+    const c = document.createElement('canvas');
+    c.width = 2048;
+    c.height = 1024;
+    const g = c.getContext('2d');
+    g.fillStyle = '#fff';
+    g.fillRect(0, 0, c.width, c.height);
+    g.fillStyle = '#000';
+    g.beginPath();
+    outline.forEach(([phi, theta], i) => {
+      const x = (phi / (Math.PI * 2)) * c.width, y = (theta / Math.PI) * c.height;
+      if (i) g.lineTo(x, y); else g.moveTo(x, y);
+    });
+    g.closePath();
+    g.fill();
+    const t = new THREE.CanvasTexture(c);
+    t.anisotropy = 8;
+    return t;
+  })();
+  add(shell, new THREE.SphereGeometry(1.0, seg, seg), face); // cara (se ve por la ventana)
+  add(shell, new THREE.SphereGeometry(1.045, seg * 1.5, seg), Object.assign(white.clone(), { alphaMap: mask, alphaTest: 0.5, side: THREE.DoubleSide }));
+  // Borde redondeado alrededor de la cara (da grosor al casco).
+  add(shell, tube(outline.map((p) => onSphere(p, 1.03)), 0.034, true), white);
+  // Visera: el borde de arriba sobresale sobre la frente.
+  const brim = outline.filter(([phi, theta]) => theta < WIN.top + 0.16 && Math.abs(phi - Math.PI / 2) < WIN.phi / 2 - 0.05);
+  brim.sort((a, b) => a[0] - b[0]);
+  add(shell, tube(brim.map(([phi, theta]) => onSphere([phi, theta - 0.02], 1.07)), 0.05), white);
+  // Línea de luz cian entre el casco y la cara, en los costados y abajo.
+  const sides = outline.filter(([phi, theta]) => theta > WIN.top + 0.22);
+  const leftSide = sides.filter(([phi]) => phi < Math.PI / 2).sort((a, b) => a[1] - b[1]);
+  const rightSide = sides.filter(([phi]) => phi >= Math.PI / 2).sort((a, b) => a[1] - b[1]);
+  // Un poco hacia adentro de la ventana, para que se vea junto al borde.
+  const inward = ([phi, theta]) => [Math.PI / 2 + (phi - Math.PI / 2) * 0.955, (WIN.top + WIN.bottom) / 2 + (theta - (WIN.top + WIN.bottom) / 2) * 0.94];
+  for (const line of [leftSide, rightSide]) add(shell, tube(line.map((p) => onSphere(inward(p), 1.008)), 0.012), ballMaterial);
+  // Ranura sobre la visera y marcas pequeñas del casco.
+  const slotAt = onSphere([Math.PI / 2, 0.86], 1.045);
+  const slot = add(shell, new THREE.CapsuleGeometry(0.045, 0.3, 8, 20), black, [slotAt.x, slotAt.y, slotAt.z], [Math.PI / 2 - 0.86, 0, Math.PI / 2]);
+  slot.scale.set(1, 1, 0.45);
+  [[2.2, 0.62, 0.11], [2.12, 0.7, 0.07]].forEach(([phi, theta, w]) => {
+    const p = onSphere([phi, theta], 1.046);
+    const mark = add(shell, new THREE.BoxGeometry(w, 0.025, 0.01), darkMetal, [p.x, p.y, p.z]);
+    mark.lookAt(p.clone().multiplyScalar(2));
   });
-  const body = new THREE.Group();
-  rig.add(body);
+  // Línea de unión del casco: de oreja a oreja por encima, detrás de la visera.
+  add(shell, new THREE.TorusGeometry(1.046, 0.007, 8, seg * 2, Math.PI), darkMetal, [0, 0, -0.32], [0, 0, 0]);
 
-  // Párpados (casco blanco) y aros de luz sobre los ojos.
-  const lidMaterial = new THREE.MeshPhysicalMaterial({ color: 0xeef1f6, roughness: 0.3, clearcoat: 0.6, clearcoatRoughness: 0.15 });
-  const ringMaterial = new THREE.MeshBasicMaterial({ color: 0x2cc8ff, toneMapped: false, transparent: true, opacity: 0.9 });
-  const eyes = MODEL.eyes.map((e) => {
-    const center = toRig(e).sub(head.position);
+  // Superficie de la cara en (x, y): profundidad y normal del elipsoide.
+  const faceZ = (x, y, r = 1.0) => SZ * r * Math.sqrt(Math.max(0, 1 - (x / (SX * r)) ** 2 - (y / (SY * r)) ** 2));
+  const faceNormal = (x, y, z) => new THREE.Vector3(x / SX ** 2, y / SY ** 2, z / SZ ** 2).normalize();
+
+  // Ojos: borde oscuro, aro cian que brilla, lente negro abombado y reflejos.
+  const eyes = [-1, 1].map((side) => {
+    const x = side * 0.41, y = -0.03, z = faceZ(x, y) - 0.015;
     const eye = new THREE.Group();
-    eye.position.copy(center);
-    // Mira al frente, un poco hacia afuera.
-    eye.rotation.y = Math.sign(e[0]) * 0.18;
+    eye.position.set(x, y, z);
+    eye.lookAt(new THREE.Vector3(x, y, z).add(faceNormal(x, y, z)));
     head.add(eye);
-    const R = MODEL.eyeRadius * S;
-    // Párpado: media esfera que baja por delante del lente al parpadear.
-    const lid = new THREE.Mesh(new THREE.SphereGeometry(R, 40, 20, 0, Math.PI * 2, 0, Math.PI / 2), lidMaterial);
-    lid.rotation.x = -Math.PI / 2; // abierto: escondido detrás del lente
-    eye.add(lid);
+    add(eye, new THREE.CylinderGeometry(0.31, 0.31, 0.06, seg), darkMetal, [0, 0, -0.02], [Math.PI / 2, 0, 0]);
+    add(eye, new THREE.TorusGeometry(0.285, 0.022, 14, seg), darkMetal, [0, 0, 0.012]);
+    add(eye, new THREE.TorusGeometry(0.255, 0.034, 18, seg), glow, [0, 0, 0.02]);
+    add(eye, new THREE.TorusGeometry(0.228, 0.014, 12, seg), glowSoft, [0, 0, 0.03]);
+    const dome = add(eye, new THREE.SphereGeometry(0.232, seg, seg / 2), lens, [0, 0, 0]);
+    dome.scale.z = 0.52;
+    add(eye, new THREE.TorusGeometry(0.15, 0.006, 8, seg), new THREE.MeshBasicMaterial({ color: 0x0f3f72, toneMapped: false }), [0, 0, 0.1]);
+    add(eye, new THREE.SphereGeometry(0.052, 16, 10), highlight, [0.075, 0.085, 0.105]);
+    add(eye, new THREE.SphereGeometry(0.024, 12, 8), highlight, [-0.085, -0.075, 0.1]);
+    // Párpado (blanco del casco): baja por delante del lente al parpadear.
+    const lid = add(eye, new THREE.SphereGeometry(0.245, 40, 20, 0, Math.PI * 2, 0, Math.PI / 2), white);
+    lid.scale.z = 0.62;
+    lid.rotation.x = -Math.PI / 2;
     eye.userData = { lid };
     return eye;
   });
+  // Nariz apenas marcada y sonrisa pequeña.
+  const nz = faceZ(0, -0.27);
+  const nose = add(head, new THREE.SphereGeometry(0.038, 16, 10), face, [0, -0.27, nz - 0.01]);
+  nose.scale.set(1.25, 0.6, 0.55);
+  const mz = faceZ(0, -0.36);
+  add(head, new THREE.TorusGeometry(0.085, 0.011, 10, 40, Math.PI * 0.62), darkMetal, [0, -0.33, mz - 0.006], [-0.36, 0, Math.PI * 1.19]);
 
-  // Luz de los aros y las líneas del modelo (destella con los mensajes). Hasta
-  // que carga el modelo es un material suelto que nadie dibuja.
-  const robotParts = { ballMaterial: new THREE.MeshStandardMaterial(), chestMaterial: ringMaterial };
+  // Audífonos: carcasa blanca, aro azul, disco oscuro y tapa blanca.
+  [-1, 1].forEach((side) => {
+    const ear = new THREE.Group();
+    ear.position.set(side * 1.16, -0.02, -0.06);
+    ear.rotation.z = (side * Math.PI) / 2;
+    head.add(ear);
+    add(ear, lathe([[0, -0.13], [0.33, -0.13], [0.38, -0.1], [0.4, -0.02], [0.4, 0.06], [0.34, 0.11], [0, 0.11]]), white);
+    add(ear, new THREE.TorusGeometry(0.29, 0.05, 18, seg), blueRing, [0, -0.13, 0], [Math.PI / 2, 0, 0]);
+    add(ear, new THREE.CylinderGeometry(0.235, 0.235, 0.05, seg), darkMetal, [0, -0.145, 0]);
+    const cap = add(ear, new THREE.SphereGeometry(0.15, seg, seg / 2), white, [0, -0.15, 0]);
+    cap.scale.y = 0.35;
+  });
 
-  new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load('assets/leadbot-robot.glb?v=202610071104', (gltf) => {
-    const parts = {};
-    gltf.scene.traverse((o) => { if (o.isMesh) parts[o.name] = o; });
-    const material = Object.values(parts)[0]?.material;
-    if (material) {
-      material.envMapIntensity = 1.3;
-      material.emissiveIntensity = 1.1;
-      robotParts.ballMaterial = material;
+  // ── Cuello de anillos oscuros.
+  [0.08, 0.01, -0.06].forEach((y, i) => add(rig, new THREE.CylinderGeometry(0.15 + i * 0.015, 0.16 + i * 0.015, 0.06, seg), i === 1 ? metal : darkMetal, [0, y, 0]));
+
+  // ── Torso: pecho blanco, placa gris y líneas de luz.
+  const chestProfile = [[0, -0.6], [0.32, -0.59], [0.43, -0.47], [0.51, -0.28], [0.5, -0.14], [0.36, -0.09], [0, -0.08]];
+  const chest = add(rig, lathe(chestProfile), white);
+  chest.scale.z = 0.78;
+  const chestZ = (x, y) => {
+    // Radio del torso a esa altura (interpolado) → profundidad del frente.
+    let r = 0.5;
+    for (let i = 0; i < chestProfile.length - 1; i++) {
+      const [r0, y0] = chestProfile[i], [r1, y1] = chestProfile[i + 1];
+      if (y >= y0 && y <= y1) r = r0 + ((y - y0) / (y1 - y0)) * (r1 - r0);
     }
-    const place = (mesh, parent, pivot) => {
-      if (!mesh) return;
-      mesh.updateWorldMatrix(true, false);
-      const m = new THREE.Matrix4().makeTranslation(0, MODEL.feet, 0).multiply(new THREE.Matrix4().makeScale(S, S, S)).multiply(mesh.matrixWorld);
-      m.premultiply(new THREE.Matrix4().makeTranslation(-pivot.x, -pivot.y, -pivot.z));
-      mesh.removeFromParent();
-      mesh.matrixAutoUpdate = false;
-      mesh.matrix.copy(m);
-      parent.add(mesh);
-    };
-    const zero = new THREE.Vector3();
-    place(parts.cuerpo, body, zero);
-    place(parts.cabeza, head, head.position);
-    place(parts.brazo_izq, arms[0], arms[0].position);
-    place(parts.brazo_der, arms[1], arms[1].position);
-    root.userData.loaded = true;
+    return 0.78 * Math.sqrt(Math.max(0, r * r - x * x));
+  };
+  // Placa del cuello (gris) y líneas de luz en el pecho, como en la referencia.
+  add(rig, new THREE.BoxGeometry(0.2, 0.08, 0.05), metal, [0, -0.13, chestZ(0, -0.13) - 0.005], [-0.25, 0, 0]);
+  [-1, 1].forEach((side) => {
+    const pts = [[0.3, -0.16], [0.22, -0.26], [0.12, -0.35], [0.06, -0.44]].map(([x, y]) => new THREE.Vector3(side * x, y, chestZ(x, y) + 0.004));
+    add(rig, tube(pts, 0.012), chestMaterial);
+  });
+  // Abdomen de metal por segmentos y cadera blanca.
+  const belly = add(rig, lathe([[0, -0.86], [0.27, -0.85], [0.3, -0.75], [0.29, -0.63], [0.25, -0.58], [0, -0.58]]), metal);
+  belly.scale.z = 0.82;
+  [-0.64, -0.71, -0.78].forEach((y) => add(rig, new THREE.TorusGeometry(0.295, 0.016, 8, seg), darkMetal, [0, y, 0], [Math.PI / 2, 0, 0]).scale.set(1, 0.82, 1));
+  const hips = add(rig, lathe([[0, -1.0], [0.24, -0.99], [0.35, -0.93], [0.36, -0.86], [0, -0.85]]), white);
+  hips.scale.z = 0.8;
+
+  // ── Brazos: hombrera blanca con luz, brazo gris, codo, antebrazo blindado y mano.
+  const HAND = -0.8;
+  const arms = [-1, 1].map((side) => {
+    const pivot = new THREE.Group();
+    pivot.position.set(side * 0.6, -0.2, 0);
+    const pad = add(pivot, new THREE.SphereGeometry(0.215, seg, seg / 2), white, [side * 0.03, 0.02, 0]);
+    pad.scale.set(1.08, 0.95, 1);
+    add(pivot, tube([[0.12, 0.14], [0.17, 0.04], [0.16, -0.08]].map(([a, b]) => new THREE.Vector3(side * (0.03 + a * 0.5), b, 0.18)), 0.01), chestMaterial);
+    add(pivot, new THREE.CylinderGeometry(0.075, 0.075, 0.1, 20), darkMetal, [0, -0.19, 0]);
+    add(pivot, new THREE.CapsuleGeometry(0.085, 0.1, 6, 16), metal, [0, -0.3, 0]);
+    add(pivot, new THREE.SphereGeometry(0.088, 20, 12), darkMetal, [0, -0.43, 0]);
+    const fore = add(pivot, lathe([[0.09, -0.7], [0.128, -0.66], [0.135, -0.54], [0.105, -0.48]]), white);
+    fore.scale.z = 0.92;
+    add(pivot, new THREE.CapsuleGeometry(0.009, 0.12, 4, 8), chestMaterial, [side * 0.03, -0.59, 0.122]);
+    add(pivot, new THREE.CylinderGeometry(0.06, 0.066, 0.06, 16), darkMetal, [0, -0.72, 0]);
+    // Mano mecánica: palma, cuatro dedos de dos falanges y pulgar.
+    add(pivot, new THREE.BoxGeometry(0.17, 0.12, 0.075), metal, [0, -0.8, 0.01]);
+    [-0.06, -0.02, 0.02, 0.06].forEach((x, i) => {
+      const splay = (i - 1.5) * 0.07;
+      add(pivot, new THREE.SphereGeometry(0.022, 10, 8), darkMetal, [x, -0.865, 0.015]);
+      add(pivot, new THREE.CapsuleGeometry(0.02, 0.06, 4, 8), metal, [x + splay * 0.05, -0.91, 0.02], [0.2, 0, splay]);
+      add(pivot, new THREE.CapsuleGeometry(0.018, 0.045, 4, 8), metal, [x + splay * 0.12, -0.975, 0.04], [0.45, 0, splay]);
+    });
+    add(pivot, new THREE.CapsuleGeometry(0.022, 0.06, 4, 8), metal, [-side * 0.1, -0.81, 0.05], [0.4, 0, -side * 0.9]);
+    rig.add(pivot);
+    return pivot;
+  });
+
+  // ── Piernas cortas: muslo blanco, rodilla oscura y botas por piezas.
+  [-1, 1].forEach((side) => {
+    const x = side * 0.2;
+    add(rig, new THREE.SphereGeometry(0.1, 20, 12), darkMetal, [x, -1.0, 0]);
+    const thigh = add(rig, extrude(roundedRect(0.3, 0.2, 0.09), 0.28, 0.045), white, [x * 1.05, -1.11, 0.01]);
+    thigh.rotation.x = 0.04;
+    add(rig, new THREE.CylinderGeometry(0.085, 0.085, 0.1, 20), darkMetal, [x, -1.24, 0]);
+    add(rig, new THREE.CylinderGeometry(0.1, 0.115, 0.08, 20), metal, [x, -1.31, 0]);
+    const bx = x * 1.16;
+    add(rig, extrude(roundedRect(0.42, 0.22, 0.1), 0.5, 0.055), white, [bx, -1.42, 0.09]);
+    add(rig, new THREE.BoxGeometry(0.46, 0.06, 0.56), metal, [bx, -1.555, 0.09]);
+    add(rig, new THREE.BoxGeometry(0.46, 0.04, 0.58), darkMetal, [bx, -1.605, 0.09]);
+    add(rig, new THREE.CylinderGeometry(0.075, 0.075, 0.02, 24), metal, [bx + side * 0.235, -1.44, 0.06], [0, 0, Math.PI / 2]);
+    add(rig, new THREE.CylinderGeometry(0.03, 0.03, 0.025, 16), chestMaterial, [bx + side * 0.24, -1.44, 0.06], [0, 0, Math.PI / 2]);
+    add(rig, new THREE.BoxGeometry(0.14, 0.02, 0.01), chestMaterial, [bx, -1.4, 0.37]);
   });
 
   // Taza de café en la mano izquierda (la noche: no duerme).
-  const HAND = (0.17 - MODEL.shoulders[0][1]) * S;
   const mug = new THREE.Group();
-  const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.13, 0.27, 32), glossy(0xffb547));
-  mug.add(cup);
+  mug.add(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.13, 0.27, 32), glossy(0xffb547)));
   const handle = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.026, 12, 24), glossy(0xffb547));
   handle.position.x = 0.16;
   mug.add(handle);
   const coffee = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.02, 32), glossy(0x4a2a12, { roughness: 0.4 }));
   coffee.position.y = 0.13;
   mug.add(coffee);
-  mug.position.set(-0.12, HAND - 0.05, 0.12);
+  mug.position.set(0, HAND - 0.12, 0.12);
   mug.scale.setScalar(0.001);
   arms[0].add(mug);
 
   const ring = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.045, 16, 72), new THREE.MeshBasicMaterial({ color: 0x6ff0ff, transparent: true, opacity: 0.8 }));
   ring.rotation.x = Math.PI / 2;
-  ring.position.y = MODEL.feet - 0.09;
+  ring.position.y = -1.72;
   rig.add(ring);
 
-  // Alto total: del anillo a la coronilla.
-  const top = MODEL.feet + S;
-  const bottom = ring.position.y - 0.05;
-  rig.position.y = -(top + bottom) / 2;
-  root.userData.base = 2.7 / (top - bottom);
-  const fit = { hand: HAND - 0.02, desk: { y: -0.66, z: 1.2, floor: MODEL.feet }, props: 0.78 };
-  return Object.assign(robotParts, { root, rig, head, eyes, arms, mug, ring, fit });
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(root);
+  rig.position.y = -(box.min.y + box.max.y) / 2;
+  root.userData.base = 2.7 / (box.max.y - box.min.y);
+  const fit = { hand: HAND - 0.04, desk: { y: -0.68, z: 1.0, floor: -1.63 }, props: 0.78 };
+  return { root, rig, head, eyes, ballMaterial, chestMaterial, arms, mug, ring, fit };
 }
 
 // Pantalla dibujada en un canvas (el chat del celular, la gráfica de la tablet).
@@ -908,6 +1055,7 @@ function setupScene(canvas) {
   // depender del scroll ni de requestAnimationFrame (ej. pestañas ocultas).
   let forced = null;
   let portrait = null;
+  let portraitScale = 2.1;
   if (location.search.includes('depurar')) {
     window.__escena = {
       mostrar(value) {
@@ -916,8 +1064,9 @@ function setupScene(canvas) {
         return { estado: state, globo: dialog?.classList.contains('visible') ? dialogText.textContent : null };
       },
       // Robot grande y centrado, girado `giro` radianes (para revisarlo de cerca).
-      retrato(giro = 0) {
+      retrato(giro = 0, escala = 2.1) {
         portrait = giro;
+        portraitScale = escala;
         frame();
       },
     };
@@ -1079,7 +1228,7 @@ function setupScene(canvas) {
 
     if (portrait !== null) {
       root.position.set(0, 0, 0);
-      root.scale.setScalar(root.userData.base * 2.1);
+      root.scale.setScalar(root.userData.base * portraitScale);
       robot.rig.rotation.set(0.05, portrait, 0);
       robot.head.rotation.set(0, 0, 0);
     }
