@@ -46,9 +46,11 @@ function splitWords(element) {
   [...element.childNodes].forEach((node) => {
     if (node.nodeType === Node.TEXT_NODE) {
       const fragment = document.createDocumentFragment();
-      node.textContent.split(/(\s+)/).forEach((part) => {
+      // Solo espacios normales: el espacio duro (&nbsp;) une palabras que no
+      // deben separarse ("a toda") y queda dentro de la misma pieza.
+      node.textContent.split(/([ \t\n\r]+)/).forEach((part) => {
         if (!part) return;
-        if (/^\s+$/.test(part)) fragment.append(part);
+        if (/^[ \t\n\r]+$/.test(part)) fragment.append(part);
         else {
           const span = document.createElement('span');
           span.className = 'palabra';
@@ -152,16 +154,18 @@ function setupReply() {
 
 // ── Acto 3: una bandeja ──────────────────────────────────────────────
 function setupInbox() {
-  // En el celular las tarjetas se abren menos, para que quepan.
-  const spread = innerWidth < 700 ? 30 : 88;
-  const drop = innerWidth < 700 ? 34 : 18;
+  // En el celular las tarjetas quedan en cascada (una debajo de otra, corridas),
+  // para que quepan sin cortarse.
+  const mobile = innerWidth < 700;
+  const spread = mobile ? 12 : 88;
+  const [yWa, yMs] = mobile ? [-58, 58] : [18, 18];
   const tl = gsap.timeline({
     defaults: { ease: 'power3.out' },
     scrollTrigger: { trigger: '.bandeja .pin', start: 'top top', end: '+=150%', scrub: 0.8, pin: true },
   });
   tl.fromTo('.bandeja-titulo', { opacity: 0, y: 50, filter: 'blur(8px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.25 }, 0)
-    .fromTo('.t-wa', { xPercent: -260, z: -500, rotateY: 60, opacity: 0 }, { xPercent: -spread, z: 0, rotateY: 12, rotateZ: -5, y: drop, opacity: 1, duration: 0.4 }, 0.12)
-    .fromTo('.t-ms', { xPercent: 260, z: -500, rotateY: -60, opacity: 0 }, { xPercent: spread, z: 0, rotateY: -12, rotateZ: 5, y: drop, opacity: 1, duration: 0.4 }, 0.18)
+    .fromTo('.t-wa', { xPercent: -260, z: -500, rotateY: 60, opacity: 0 }, { xPercent: -spread, z: 0, rotateY: 12, rotateZ: mobile ? -3 : -5, y: yWa, opacity: 1, duration: 0.4 }, 0.12)
+    .fromTo('.t-ms', { xPercent: 260, z: -500, rotateY: -60, opacity: 0 }, { xPercent: spread, z: 0, rotateY: -12, rotateZ: mobile ? 3 : 5, y: yMs, opacity: 1, duration: 0.4 }, 0.18)
     .fromTo('.t-ig', { yPercent: 160, z: -700, rotateX: -70, opacity: 0 }, { yPercent: 0, z: 60, rotateX: 0, opacity: 1, duration: 0.4 }, 0.26)
     .fromTo('.bandeja-nota', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.2 }, 0.6)
     .to('.bandeja .pin', { opacity: 0, scale: 0.96, duration: 0.1 }, 0.92);
@@ -479,10 +483,24 @@ function setupScene(canvas) {
 
   // Mitad del alto visible en el plano z = 0 (la cámara está en z = 10).
   const halfHeight = () => Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.position.z;
+  // De píxeles de la pantalla al plano z = 0.
+  const toWorld = (px, py) => {
+    const h = halfHeight();
+    return { x: ((2 * px) / innerWidth - 1) * h * camera.aspect, y: (1 - (2 * py) / innerHeight) * h };
+  };
+  // En el celular no hay espacio a los lados: el robot vive abajo a la
+  // derecha, como un chat, y cada acto deja ese espacio libre (ver CSS
+  // .pin y .hero). Mide ~125 px de alto.
+  const DOCK_PX = 125;
+  const dockScale = () => (DOCK_PX * 2 * halfHeight()) / (2.7 * innerHeight);
   const pose = (k) => {
     const wide = camera.aspect >= 1;
     const [x, y, z, s, side, anchor] = (wide ? DESKTOP : MOBILE)[k];
     const placed = { x: x * (wide ? Math.min(1, camera.aspect / 1.8) : 1), y, z, s, side };
+    if (!wide) {
+      const dock = toWorld(innerWidth - 58, innerHeight - DOCK_PX / 2 - 22);
+      Object.assign(placed, { x: dock.x, y: dock.y, z: 0, s: dockScale(), side: 'izquierda' });
+    }
     const element = anchor && document.querySelector(anchor);
     if (element) {
       // Debajo del elemento: el alto del robot en pantalla es ~2,7 × escala.
@@ -548,6 +566,9 @@ function setupScene(canvas) {
       if (i < text.length) {
         dialogText.insertAdjacentHTML('beforeend', '<span class="cursor"></span>');
         typingTimer = setTimeout(type, 26);
+      } else if (camera.aspect < 1) {
+        // En el celular el globo se va a los segundos, para no tapar lo que se lee.
+        typingTimer = setTimeout(() => shown === k && dialog.classList.remove('visible'), 5500);
       }
     };
     typingTimer = setTimeout(type, 650);
@@ -609,11 +630,13 @@ function setupScene(canvas) {
     const direction = Math.sign(B.x - A.x) || 1;
 
     // Posición: vuela en arco y pasa cerca de la cámara, por encima del texto.
+    // En el celular solo da un saltico en su esquina.
+    const wide = camera.aspect >= 1;
     const root = robot.root;
     root.position.set(
       THREE.MathUtils.lerp(A.x, B.x, e),
-      THREE.MathUtils.lerp(A.y, B.y, e) + flight * 0.9 + Math.sin(t * 1.6) * 0.07,
-      THREE.MathUtils.lerp(A.z, B.z, e) + flight * 3.2,
+      THREE.MathUtils.lerp(A.y, B.y, e) + flight * (wide ? 0.9 : 0.35) + Math.sin(t * 1.6) * 0.07,
+      THREE.MathUtils.lerp(A.z, B.z, e) + flight * (wide ? 3.2 : 0.8),
     );
     root.scale.setScalar(root.userData.base * THREE.MathUtils.lerp(A.s, B.s, e));
     // Se inclina hacia donde va; quieto, mira un poco al mouse.

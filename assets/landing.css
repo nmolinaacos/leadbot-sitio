@@ -219,3 +219,23 @@ h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.02em; text-wrap: ba
 @media (prefers-reduced-motion: reduce) {
   .grano, .desliza span, .msg.escribiendo span { animation: none; }
 }
+
+/* Celular: el robot vive abajo a la derecha (~150 px). Cada acto deja ese
+   espacio libre para que el robot y su globo no tapen botones ni textos. */
+@media (max-width: 760px) {
+  .hero { padding-bottom: 200px; }
+  .desliza { display: none; }
+  .pin { padding-bottom: 170px; }
+  .respuesta .pin { padding-block: 84px 170px; gap: 18px; }
+  .pasos ol { gap: 8px; }
+  .paso h2 { font-size: 22px; }
+  .paso-kicker { margin-bottom: 14px; }
+  .telefono { height: min(400px, 44svh); width: min(300px, 78vw); }
+  .tarjetas { height: 300px; }
+  .tarjeta { width: 66vw; margin-left: -33vw; padding: 14px; }
+  .tarjeta p { margin-bottom: 10px; }
+  .noche .pin { gap: 12px; }
+  .avisos li:nth-child(3) { bottom: 26%; left: 6%; }
+  .dialogo { max-width: calc(100vw - 150px); }
+  .cierre { padding-bottom: 210px; }
+}
