@@ -3,7 +3,7 @@
 // - Three.js dibuja a Leadbot, un robot 3D que acompaña toda la página
 //   (canvas fijo, encima del texto, sin capturar el mouse). En cada acto
 //   (data-estado 0..6) se ubica a un lado, hace algo (saluda, toma café,
-//   escribe, hace malabares con los chats…) y le habla al visitante en un
+//   escribe en el celular, trabaja en su escritorio…) y le habla al visitante en un
 //   globo. Entre actos vuela por encima del texto hasta su nuevo lugar.
 // Con movimiento reducido o sin WebGL la página se ve completa y estática.
 import * as THREE from 'three';
@@ -576,6 +576,209 @@ function makeRobot() {
   return { root, rig, head, eyes, ballMaterial, chestMaterial, arms, mug, ring };
 }
 
+// Pantalla dibujada en un canvas (el chat del celular, la gráfica de la tablet).
+function screenTexture(width, height, draw) {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  draw(canvas.getContext('2d'), width, height);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
+  return texture;
+}
+
+const FONT = 'Figtree, "Helvetica Neue", Arial, sans-serif';
+
+function drawChat(g, w, h) {
+  g.fillStyle = '#0b1020';
+  g.fillRect(0, 0, w, h);
+  g.fillStyle = '#121a2e';
+  g.fillRect(0, 0, w, 70);
+  g.fillStyle = '#4a78ff';
+  g.beginPath();
+  g.arc(36, 36, 18, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = '#fff';
+  g.font = `700 13px ${FONT}`;
+  g.fillText('TJ', 27, 41);
+  g.font = `700 19px ${FONT}`;
+  g.fillText('Todo Juegos', 64, 33);
+  g.fillStyle = '#3fd68f';
+  g.font = `500 14px ${FONT}`;
+  g.fillText('en línea', 64, 54);
+  const bubble = (x, y, bw, bh, color, lines, text = '#fff') => {
+    g.fillStyle = color;
+    g.beginPath();
+    g.roundRect(x, y, bw, bh, 14);
+    g.fill();
+    g.fillStyle = text;
+    g.font = `500 17px ${FONT}`;
+    lines.forEach((line, i) => g.fillText(line, x + 14, y + 27 + i * 22));
+  };
+  bubble(14, 88, 190, 56, '#1d2539', ['¿Tienen la silla', 'Nova en negro?']);
+  bubble(70, 156, 172, 36, '#4a78ff', ['¡Sí! Mírala 👇']);
+  g.fillStyle = '#f3f5fa';
+  g.beginPath();
+  g.roundRect(100, 202, 142, 112, 14);
+  g.fill();
+  g.fillStyle = '#1d2230';
+  g.beginPath();
+  g.roundRect(155, 216, 32, 46, 8);
+  g.roundRect(144, 258, 54, 11, 4);
+  g.fill();
+  g.fillRect(168, 268, 6, 22);
+  g.fillRect(150, 290, 42, 5);
+  bubble(56, 326, 186, 36, '#4a78ff', ['$650.000 · envío gratis']);
+  bubble(14, 374, 140, 36, '#1d2539', ['¡Me la llevo!']);
+  bubble(86, 424, 156, 36, '#3fd68f', ['Pedido #1042 ✓'], '#0b1020');
+}
+
+function drawChart(g, w, h) {
+  g.fillStyle = '#0b1020';
+  g.fillRect(0, 0, w, h);
+  g.fillStyle = '#fff';
+  g.font = `700 26px ${FONT}`;
+  g.fillText('Ventas por anuncio', 28, 48);
+  g.fillStyle = '#3fd68f';
+  g.font = `700 40px ${FONT}`;
+  g.fillText('+38 %', w - 150, 54);
+  const bars = [0.3, 0.42, 0.38, 0.6, 0.72, 0.92];
+  const base = h - 40;
+  const barW = 52;
+  bars.forEach((v, i) => {
+    const x = 34 + i * 76;
+    const bh = v * (h - 130);
+    const grad = g.createLinearGradient(0, base - bh, 0, base);
+    grad.addColorStop(0, i === bars.length - 1 ? '#3fd68f' : '#8eaaff');
+    grad.addColorStop(1, '#2a4fd0');
+    g.fillStyle = grad;
+    g.beginPath();
+    g.roundRect(x, base - bh, barW, bh, 8);
+    g.fill();
+  });
+  g.strokeStyle = 'rgba(255,255,255,0.15)';
+  g.lineWidth = 2;
+  g.beginPath();
+  g.moveTo(24, base + 2);
+  g.lineTo(w - 24, base + 2);
+  g.stroke();
+}
+
+// Lo que el robot usa en cada acto: celular, escritorio con laptop y
+// lámpara, tablet, campana y caja de regalo. Viven en el cuerpo (rig) y se
+// acomodan en sus manos cada cuadro.
+function makeProps(robot) {
+  const chrome = new THREE.MeshPhysicalMaterial({ color: 0xe4e9f2, metalness: 1, roughness: 0.14, envMapIntensity: 2.2 });
+  const gunmetal = new THREE.MeshPhysicalMaterial({ color: 0x2b303c, metalness: 0.7, roughness: 0.3, envMapIntensity: 1.4 });
+  const blue = new THREE.MeshPhysicalMaterial({ color: 0x3f6dff, metalness: 0.5, roughness: 0.25, clearcoat: 1, envMapIntensity: 1.4 });
+  const orange = glossy(0xffb547);
+  const wood = new THREE.MeshPhysicalMaterial({ color: 0x8a5a3c, roughness: 0.45, clearcoat: 0.6, clearcoatRoughness: 0.2 });
+  const glow = glossy(0x4a78ff, { emissive: 0x2f6bff, emissiveIntensity: 1.1 });
+  const screen = (texture) => new THREE.MeshBasicMaterial({ map: texture, toneMapped: false });
+  const add = (parent, geometry, material, [x = 0, y = 0, z = 0] = [], rot) => {
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(x, y, z);
+    if (rot) mesh.rotation.set(...rot);
+    parent.add(mesh);
+    return mesh;
+  };
+  const slab = (w, h, r, d) => extrude(roundedRect(w, h, r), d, Math.min(0.02, d / 3));
+  const hidden = (group) => {
+    group.scale.setScalar(0.001);
+    robot.rig.add(group);
+    return group;
+  };
+
+  // Celular: marco oscuro y la conversación de una venta en la pantalla.
+  const phone = hidden(new THREE.Group());
+  add(phone, slab(0.62, 1.24, 0.1, 0.05), gunmetal);
+  add(phone, new THREE.PlaneGeometry(0.56, 1.12), screen(screenTexture(256, 512, drawChat)), [0, 0, 0.051]);
+
+  // Tablet con la gráfica de ventas por anuncio.
+  const tablet = hidden(new THREE.Group());
+  add(tablet, slab(1.5, 1.06, 0.1, 0.05), gunmetal);
+  add(tablet, new THREE.PlaneGeometry(1.4, 0.96), screen(screenTexture(512, 352, drawChart)), [0, 0, 0.051]);
+
+  // Campana de mano: el robot te avisa cuando alguien pide una persona.
+  const bell = hidden(new THREE.Group());
+  const ring = new THREE.Group(); // el pivote está en el mango
+  bell.add(ring);
+  add(ring, new THREE.CylinderGeometry(0.06, 0.07, 0.36, 20), blue, [0, -0.18, 0]);
+  add(ring, new THREE.SphereGeometry(0.08, 20, 12), chrome, [0, 0, 0]);
+  const dome = add(ring, new THREE.LatheGeometry([[0, -0.78], [0.36, -0.78], [0.33, -0.7], [0.26, -0.56], [0.2, -0.44], [0.12, -0.38], [0, -0.36]].map(([x, y]) => new THREE.Vector2(x, y)), 48),
+    new THREE.MeshPhysicalMaterial({ color: 0xffc861, metalness: 1, roughness: 0.18, envMapIntensity: 2 }));
+  dome.material.side = THREE.DoubleSide;
+  add(ring, new THREE.SphereGeometry(0.07, 16, 10), gunmetal, [0, -0.76, 0]);
+
+  // Caja de regalo: los 14 días de prueba.
+  const gift = hidden(new THREE.Group());
+  add(gift, new THREE.BoxGeometry(0.8, 0.62, 0.62), blue);
+  add(gift, new THREE.BoxGeometry(0.84, 0.66, 0.12), orange);
+  add(gift, new THREE.BoxGeometry(0.12, 0.66, 0.66), orange);
+  add(gift, new THREE.TorusGeometry(0.11, 0.035, 12, 24), orange, [-0.1, 0.38, 0], [0, 0, 0.7]);
+  add(gift, new THREE.TorusGeometry(0.11, 0.035, 12, 24), orange, [0.1, 0.38, 0], [0, 0, -0.7]);
+
+  // Escritorio de noche: tablero de madera, patas cromadas, laptop con el
+  // logo encendido y una lámpara.
+  const desk = hidden(new THREE.Group());
+  desk.position.set(0, -0.98, 1.25);
+  add(desk, new THREE.BoxGeometry(3.0, 0.1, 1.3), wood);
+  [-1, 1].forEach((sx) => [-1, 1].forEach((sz) => add(desk, new THREE.CylinderGeometry(0.045, 0.045, 1.1, 16), chrome, [sx * 1.38, -0.6, sz * 0.55])));
+  add(desk, new THREE.BoxGeometry(1.1, 0.04, 0.72), gunmetal, [0.15, 0.07, -0.08]);
+  const lid = new THREE.Group();
+  lid.position.set(0.15, 0.09, 0.28);
+  lid.rotation.x = 0.22;
+  desk.add(lid);
+  add(lid, new THREE.BoxGeometry(1.1, 0.74, 0.035), gunmetal, [0, 0.37, 0]);
+  const logo = add(lid, bubbleGeometry(), glow, [0, 0.38, 0.03]);
+  logo.scale.setScalar(0.09);
+  const lamp = new THREE.Group();
+  // Al otro lado de la taza; reflejada para que la luz apunte a la laptop.
+  lamp.position.set(1.22, 0.05, 0.3);
+  lamp.scale.x = -1;
+  desk.add(lamp);
+  add(lamp, new THREE.CylinderGeometry(0.16, 0.18, 0.04, 32), chrome);
+  add(lamp, new THREE.CylinderGeometry(0.025, 0.025, 0.7, 12), chrome, [0.08, 0.34, 0], [0, 0, -0.25]);
+  add(lamp, new THREE.CylinderGeometry(0.025, 0.025, 0.45, 12), chrome, [0.3, 0.75, 0], [0, 0, -1.2]);
+  add(lamp, new THREE.ConeGeometry(0.17, 0.24, 24, 1, true), gunmetal, [0.5, 0.78, 0], [0, 0, 2.6]).material.side = THREE.DoubleSide;
+  add(lamp, new THREE.SphereGeometry(0.07, 16, 10), glossy(0xfff1c9, { emissive: 0xffd27a, emissiveIntensity: 2 }), [0.53, 0.72, 0]);
+
+  // Puntos de agarre en cada mano (en el sistema del brazo).
+  const hands = robot.arms.map((arm) => {
+    const anchor = new THREE.Object3D();
+    anchor.position.set(0, -1.16, 0.04);
+    arm.add(anchor);
+    return anchor;
+  });
+  const handPos = [new THREE.Vector3(), new THREE.Vector3()];
+  const mid = new THREE.Vector3();
+  const place = (prop, at, weight, [ox, oy, oz], [rx, ry, rz] = [0, 0, 0]) => {
+    prop.position.copy(at).add(mid.set(ox, oy, oz));
+    prop.rotation.set(rx, ry, rz);
+    prop.scale.setScalar(Math.max(0.001, weight));
+  };
+
+  // w[i]: cuánto está en pantalla el acto i (0..1).
+  return function update(w, t) {
+    hands.forEach((anchor, i) => {
+      anchor.getWorldPosition(handPos[i]);
+      robot.rig.worldToLocal(handPos[i]);
+    });
+    const center = new THREE.Vector3().addVectors(handPos[0], handPos[1]).multiplyScalar(0.5);
+    // Celular: en una mano en el inicio, entre las dos al responder.
+    const phoneW = Math.max(w[0], w[2]);
+    const share = phoneW ? w[2] / (w[0] + w[2]) : 0;
+    const phoneAt = new THREE.Vector3().lerpVectors(handPos[1], center, share);
+    place(phone, phoneAt, phoneW, [share * 0, 0.42, 0.12], [-0.2, -0.15 * (1 - share), 0.08 * (1 - share)]);
+    place(tablet, center, w[3], [0, 0.3, 0.14], [-0.18, 0, 0]);
+    place(bell, handPos[1], w[4], [0, 0.02, 0.02]);
+    ring.rotation.z = Math.sin(t * 14) * 0.35 * w[4];
+    place(gift, center, w[5], [0, 0.2, 0.22], [0, 0.25, 0]);
+    desk.scale.setScalar(Math.max(0.001, w[1]));
+  };
+}
+
 // ── Escena ───────────────────────────────────────────────────────────
 // Lo que dice el robot en cada acto (mismo orden que data-estado).
 const MESSAGES = [
@@ -643,48 +846,9 @@ function setupScene(canvas) {
 
   // Chats que le llegan al robot (de noche y al responder) o con los que
   // hace malabares (en el inicio): verde, rosado y azul, como los canales.
-  // Globos de chat de vidrio, teñidos del color de cada canal, con los tres
-  // puntos de "escribiendo…" adentro; al responderlos se ponen verdes con un visto.
-  const geometry = bubbleGeometry();
-  const CHANNEL_COLORS = [0x3fd68f, 0xff7ab0, 0x69b4ff].map((c) => new THREE.Color(c));
-  const ANSWERED = new THREE.Color(0x3fd68f);
-  const WHITE = new THREE.Color(0xffffff);
-  const CHATS = modest ? 4 : 6;
-  const dotGeometry = new THREE.SphereGeometry(0.2, 20, 12);
-  const checkGeometry = new THREE.CapsuleGeometry(0.11, 0.5, 6, 12);
-  const chats = Array.from({ length: CHATS }, (_, i) => {
-    const chat = new THREE.Group();
-    const tint = CHANNEL_COLORS[i % 3];
-    const glassMaterial = new THREE.MeshPhysicalMaterial({
-      color: tint.clone().lerp(new THREE.Color(0xffffff), 0.3), emissive: tint.clone(), emissiveIntensity: 0.75,
-      roughness: 0.06, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.04, envMapIntensity: 1.6,
-      transparent: true, opacity: 0.5, depthWrite: false,
-    });
-    chat.add(new THREE.Mesh(geometry, glassMaterial));
-    const dotMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true });
-    const dots = [-0.6, 0, 0.6].map((x) => {
-      const dot = new THREE.Mesh(dotGeometry, dotMaterial);
-      dot.position.set(x, 0.05, 0.05);
-      chat.add(dot);
-      return dot;
-    });
-    // El visto: dos cápsulas en V.
-    const check = new THREE.Group();
-    const short = new THREE.Mesh(checkGeometry, dotMaterial);
-    short.scale.y = 0.55;
-    short.position.set(-0.32, -0.08, 0.05);
-    short.rotation.z = 0.8;
-    const long = new THREE.Mesh(checkGeometry, dotMaterial);
-    long.position.set(0.18, 0.1, 0.05);
-    long.rotation.z = -0.65;
-    check.add(short, long);
-    check.scale.setScalar(0.001);
-    chat.add(check);
-    chat.scale.setScalar(0.001);
-    chat.userData = { offset: i / CHATS, from: new THREE.Vector3(), seed: Math.random(), tint, glassMaterial, dotMaterial, dots, check };
-    scene.add(chat);
-    return chat;
-  });
+  // Lo que usa en cada acto (celular, escritorio, tablet, campana, regalo).
+  const updateProps = makeProps(robot);
+  let lastPing = 0;
 
   // Estela de luz cuando vuela.
   const TRAIL = 160;
@@ -756,10 +920,14 @@ function setupScene(canvas) {
   // izquierdo hacia afuera y z positivo, el derecho.
   function armTargets(k, t) {
     const idle = [Math.sin(t * 1.4) * 0.08, -0.18, Math.sin(t * 1.4 + 1) * 0.08, 0.18];
+    const tap = Math.sin(t * 14) * 0.08;
     if (k === LAST) return [idle[0], idle[1], -0.2, 2.5 + Math.sin(t * 7) * 0.4]; // se despide
-    if (k === 0) return [Math.sin(t * 3) * 0.3, -0.9, Math.sin(t * 3 + Math.PI) * 0.3, 0.9]; // malabares con los canales
-    if (k === 1) return [-1.45 + Math.max(0, Math.sin(t * 0.9)) * -0.45, 0.35, idle[2], idle[3]]; // toma café
-    if (k === 2) return [-1.15 + Math.sin(t * 16) * 0.22, 0.12, -1.15 + Math.sin(t * 16 + Math.PI) * 0.22, -0.12]; // escribe
+    if (k === 0) return [-0.2, -2.4 + Math.sin(t * 7) * 0.35, -1.25, -0.15]; // saluda y muestra el celular
+    if (k === 1) return [-1.45 + Math.max(0, Math.sin(t * 0.9)) * -0.45, 0.35, -1.0 + Math.sin(t * 16) * 0.12, -0.15]; // café y escribe en la laptop
+    if (k === 2) return [-1.3 + tap, 0.38, -1.3, -0.38]; // escribe en el celular con las dos manos
+    if (k === 3) return [-1.0, 0.5, -1.0, -0.5]; // muestra la tablet
+    if (k === 4) return [idle[0], idle[1], -0.3, 2.2 + Math.sin(t * 12) * 0.1]; // levanta y toca la campana
+    if (k === 5) return [-0.7, 0.55, -0.7, -0.55]; // sostiene el regalo
     return idle;
   }
 
@@ -943,57 +1111,14 @@ function setupScene(canvas) {
     robot.head.getWorldPosition(headWorld);
     robot.ring.getWorldPosition(ringWorld);
 
-    // Chats: llegan volando (noche y respuesta) o giran alrededor (inicio).
-    const incoming = (k === 1 || k === 2 ? 1 - smooth(p) : 0) + (next === 1 || next === 2 ? smooth(p) : 0);
-    const juggling = (k === 0 ? 1 - smooth(p) : 0) + (next === 0 && k !== 0 ? smooth(p) : 0);
-    const robotScale = root.scale.x / root.userData.base;
-    // En la respuesta, el globo que llega al robot queda respondido (verde y con visto).
-    const answering = (k === 2 ? 1 - smooth(p) : 0) + (next === 2 && k !== 2 ? smooth(p) : 0);
-    const ORBIT = 3;
-    chats.forEach((chat, i) => {
-      const data = chat.userData;
-      let show = Math.max(incoming, juggling) * (1 - flight * 0.8);
-      let answered = 0;
-      if (juggling > incoming) {
-        // Órbita ordenada: tres globos, uno por canal, en un anillo inclinado
-        // por encima de la cabeza (no le tapan la cara).
-        if (i >= ORBIT) show = 0;
-        const a = t * 0.7 + (i / ORBIT) * Math.PI * 2;
-        chat.position.set(
-          headWorld.x + Math.cos(a) * 1.55 * robotScale,
-          headWorld.y + (1.25 + Math.sin(a) * 0.22) * robotScale,
-          headWorld.z + Math.sin(a) * 1.0 * robotScale,
-        );
-        chat.rotation.set(0, Math.sin(a) * 0.25, Math.sin(t * 1.3 + i) * 0.08);
-        // Los de atrás se ven un poco más pequeños: da profundidad.
-        chat.scale.setScalar((0.2 + Math.sin(a) * 0.03) * robotScale * show + 0.001);
-      } else {
-        const cycle = (t / 2.4 + data.offset) % 1;
-        // Salen de alrededor del robot (no cruzan el texto del acto) y llegan a su cabeza.
-        if (cycle < 0.02 || data.from.lengthSq() === 0) {
-          const angle = data.seed * Math.PI * 2 + Math.floor(t / 2.4 + data.offset) * 2.1;
-          const reach = 2.6 * robotScale + 0.8;
-          data.from.set(headWorld.x + Math.cos(angle) * reach, headWorld.y + Math.sin(angle) * reach * 0.8, headWorld.z - 0.5);
-        }
-        const f = smooth(cycle);
-        chat.position.lerpVectors(data.from, edgePos.copy(headWorld), f);
-        chat.rotation.set(0, Math.sin(t + i) * 0.4, Math.sin(t * 2 + i) * 0.2);
-        const life = Math.min(1, cycle / 0.12, cycle > 0.88 ? (1 - cycle) / 0.12 : 1);
-        chat.scale.setScalar((0.13 * life * show + 0.001) * (0.6 + robotScale * 0.6));
-        if (cycle > 0.97 && show > 0.5) flash = 1;
-        answered = answering * smooth(THREE.MathUtils.clamp((cycle - 0.55) / 0.25, 0, 1));
-      }
-      // Color del canal → verde al responderlo; los puntos se vuelven un visto.
-      data.glassMaterial.emissive.copy(data.tint).lerp(ANSWERED, answered);
-      data.glassMaterial.color.copy(data.tint).lerp(ANSWERED, answered).lerp(WHITE, 0.3);
-      data.glassMaterial.opacity = Math.min(0.72, show * 0.9);
-      data.dotMaterial.opacity = Math.min(1, show * 1.4);
-      data.dots.forEach((dot, d) => {
-        dot.position.y = 0.05 + Math.max(0, Math.sin(t * 7 - d * 0.9)) * 0.22 * (1 - answered);
-        dot.scale.setScalar(Math.max(0.001, 1 - answered));
-      });
-      data.check.scale.setScalar(Math.max(0.001, answered));
-    });
+    // Cada acto con su objeto; aparecen y se guardan al cambiar de acto.
+    const weights = Array.from({ length: LAST + 1 }, (_, s) => (k === s ? 1 - mix : 0) + (next === s && next !== k ? mix : 0));
+    updateProps(weights, t);
+    // Le llega un mensaje al celular: la antena destella.
+    if (weights[0] + weights[2] > 0.5 && Math.floor(t / 2.4) !== lastPing) {
+      lastPing = Math.floor(t / 2.4);
+      flash = 1;
+    }
 
     // Estela: salen chispas del anillo mientras vuela.
     const emit = Math.round(arc * 4);
