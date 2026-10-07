@@ -437,7 +437,7 @@ function makeRobot() {
   const grey = new THREE.MeshPhysicalMaterial({ color: 0x5b626c, roughness: 0.3, metalness: 0.7, envMapIntensity: 1.5 });
   const visorMat = new THREE.MeshPhysicalMaterial({ color: 0x030406, roughness: 0.05, metalness: 0.2, clearcoat: 1, clearcoatRoughness: 0.02, envMapIntensity: 2.2 });
   // Ojos y bordes azules (destellan con los mensajes).
-  const ballMaterial = new THREE.MeshStandardMaterial({ color: 0x9fe6ff, emissive: 0x3cc4ff, emissiveIntensity: 1.6 });
+  const ballMaterial = new THREE.MeshStandardMaterial({ color: 0xa8ecff, emissive: 0x5fd2ff, emissiveIntensity: 1.3 });
   const chestMaterial = new THREE.MeshStandardMaterial({ color: 0x4aa8ff, emissive: 0x1f7fff, emissiveIntensity: 1 });
   const halo = new THREE.MeshBasicMaterial({ color: 0x3cbcff, toneMapped: false, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false });
 
@@ -452,19 +452,21 @@ function makeRobot() {
   const lathe = (points, n = 48) => new THREE.LatheGeometry(new THREE.SplineCurve(points.map(([x, y]) => new THREE.Vector2(x, y))).getPoints(n), seg);
   const ring = (r, t) => new THREE.TorusGeometry(r, t, 12, seg);
 
-  // ── Cabeza
+  // ── Cabeza: esfera gris muy claro brillante, un poco más ancha que alta.
   const head = new THREE.Group();
   head.position.y = 1.05;
   rig.add(head);
-  const HS = [1, 0.93, 0.96]; // un poco más ancha que alta
-  const skull = add(head, new THREE.SphereGeometry(0.8, seg, seg), white);
+  const HS = [1, 0.94, 0.97];
+  const headMat = new THREE.MeshPhysicalMaterial({ color: 0xe6e9ed, roughness: 0.12, metalness: 0.05, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.5 });
+  const skull = add(head, new THREE.SphereGeometry(0.8, seg, seg), headMat);
   skull.scale.set(...HS);
-  // Visor: una lámina negra que sigue la curva de la cabeza, rectángulo de
-  // esquinas muy redondeadas en el frente.
-  const VIS = { half: 0.98, top: 1.0, bottom: 2.1 };
-  const visorOutline = (n = 160) => Array.from({ length: n }, (_, i) => {
+  // Visor: gran lámina negra de esquinas redondeadas que cubre casi todo el
+  // frente (de la frente casi al mentón y de oreja a oreja), un poco abombada
+  // sobre la cabeza y con un hilo azul claro en el borde.
+  const VIS = { half: 1.1, top: 1.06, bottom: 2.24 };
+  const visorOutline = (n = 200) => Array.from({ length: n }, (_, i) => {
     const a = (i / n) * Math.PI * 2;
-    const c = Math.cos(a), s = Math.sin(a), e = 2 / 3.4;
+    const c = Math.cos(a), s = Math.sin(a), e = 2 / 4.2;
     const cy = (VIS.top + VIS.bottom) / 2, hh = (VIS.bottom - VIS.top) / 2;
     return [Math.PI / 2 + Math.sign(c) * Math.pow(Math.abs(c), e) * VIS.half, cy + Math.sign(s) * Math.pow(Math.abs(s), e) * hh];
   });
@@ -489,45 +491,56 @@ function makeRobot() {
     t.anisotropy = 8;
     return t;
   })();
-  const visor = add(head, new THREE.SphereGeometry(0.812, seg * 1.5, seg), Object.assign(visorMat.clone(), { alphaMap: visorMask, alphaTest: 0.5 }));
+  const VR = 0.816;
+  const visor = add(head, new THREE.SphereGeometry(VR, seg * 1.5, seg), Object.assign(visorMat.clone(), { alphaMap: visorMask, alphaTest: 0.5 }));
   visor.scale.set(...HS);
-  // Borde fino del visor (gris con un hilo azul).
-  add(head, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(outline.map((p) => onHeadSphere(p, 0.812)), true), 240, 0.012, 8, true), grey);
-  add(head, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(outline.map((p) => onHeadSphere(p, 0.818)), true), 240, 0.005, 6, true), chestMaterial);
+  // Canto del visor (negro) y el hilo azul claro que lo rodea.
+  const edge = (r) => new THREE.CatmullRomCurve3(outline.map((p) => onHeadSphere(p, r)), true);
+  add(head, new THREE.TubeGeometry(edge(VR - 0.004), 260, 0.01, 8, true), visorMat);
+  add(head, new THREE.TubeGeometry(edge(VR + 0.002), 260, 0.0055, 6, true), new THREE.MeshBasicMaterial({ color: 0x8fcfff, toneMapped: false }));
 
-  // Ojos: discos de luz azul con resplandor y un párpado (negro como el visor).
+  // Ojos: óvalos verticales celestes con borde azul más oscuro y un resplandor
+  // suave; párpado negro como el visor.
   const eyeAt = (x, y) => {
-    const z = 0.812 * HS[2] * Math.sqrt(Math.max(0, 1 - (x / (0.812 * HS[0])) ** 2 - (y / (0.812 * HS[1])) ** 2));
+    const z = VR * HS[2] * Math.sqrt(Math.max(0, 1 - (x / (VR * HS[0])) ** 2 - (y / (VR * HS[1])) ** 2));
     return new THREE.Vector3(x, y, z + 0.004);
   };
+  const eyeRim = new THREE.MeshBasicMaterial({ color: 0x2c7cf0, toneMapped: false });
   const eyes = [-1, 1].map((side) => {
-    const p = eyeAt(side * 0.27, 0.03);
+    const p = eyeAt(side * 0.27, -0.03);
     const eye = new THREE.Group();
     eye.position.copy(p);
     eye.lookAt(p.clone().multiply(new THREE.Vector3(1 / HS[0] ** 2, 1 / HS[1] ** 2, 1 / HS[2] ** 2)).normalize().add(p));
     head.add(eye);
-    const disc = add(eye, new THREE.CylinderGeometry(0.11, 0.11, 0.02, 48), ballMaterial, [0, 0, 0.005], [Math.PI / 2, 0, 0]);
-    disc.scale.set(1, 1, 1.12); // un poco ovalados en vertical
-    add(eye, new THREE.CircleGeometry(0.17, 48), Object.assign(halo.clone(), { opacity: 0.16 }), [0, 0, 0.002]);
-    add(eye, new THREE.CircleGeometry(0.13, 48), Object.assign(halo.clone(), { opacity: 0.3 }), [0, 0, 0.003]);
-    const lid = add(eye, new THREE.SphereGeometry(0.125, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), visorMat);
-    lid.scale.set(1, 1.12, 0.3);
+    const oval = new THREE.Group();
+    oval.scale.set(0.8, 1, 1);
+    eye.add(oval);
+    add(oval, new THREE.CircleGeometry(0.15, 64), eyeRim, [0, 0, 0.003]);
+    add(oval, new THREE.CylinderGeometry(0.128, 0.128, 0.012, 64), ballMaterial, [0, 0, 0.008], [Math.PI / 2, 0, 0]);
+    const lid = add(eye, new THREE.SphereGeometry(0.155, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), visorMat);
+    lid.scale.set(0.82, 1, 0.25);
     lid.rotation.x = -Math.PI / 2;
     eye.userData = { lid };
     return eye;
   });
 
-  // Orejas: disco gris oscuro con borde negro, aro azul y centro claro.
+  // Orejas: un cilindro ancho que sale de la cabeza (canto claro con una
+  // línea negra donde se une a la cabeza), un aro negro, aro azul y el
+  // centro oscuro como un lente.
   [-1, 1].forEach((side) => {
     const ear = new THREE.Group();
-    ear.position.set(side * 0.8, -0.02, 0);
-    ear.scale.setScalar(1.25);
+    ear.position.set(side * 0.77, -0.02, -0.02);
     ear.rotation.z = (side * Math.PI) / 2;
     head.add(ear);
-    add(ear, new THREE.CylinderGeometry(0.21, 0.23, 0.12, seg), dark);
-    add(ear, ring(0.2, 0.012), chestMaterial, [0, -0.062, 0]).rotation.x = Math.PI / 2;
-    add(ear, new THREE.CylinderGeometry(0.15, 0.15, 0.13, seg), grey);
-    add(ear, new THREE.CylinderGeometry(0.09, 0.09, 0.14, seg), new THREE.MeshPhysicalMaterial({ color: 0xc9cfd6, metalness: 0.6, roughness: 0.25 }));
+    // En el grupo de la oreja, -y apunta hacia afuera de la cabeza.
+    add(ear, new THREE.CylinderGeometry(0.29, 0.3, 0.16, seg), headMat, [0, -0.02, 0]);
+    add(ear, new THREE.TorusGeometry(0.305, 0.012, 10, seg), dark, [0, 0.05, 0], [Math.PI / 2, 0, 0]);
+    add(ear, new THREE.TorusGeometry(0.275, 0.022, 12, seg), dark, [0, -0.1, 0], [Math.PI / 2, 0, 0]);
+    add(ear, new THREE.CylinderGeometry(0.25, 0.25, 0.04, seg), new THREE.MeshPhysicalMaterial({ color: 0xd9dde2, roughness: 0.2, clearcoat: 1 }), [0, -0.102, 0]);
+    add(ear, new THREE.TorusGeometry(0.2, 0.014, 10, seg), chestMaterial, [0, -0.125, 0], [Math.PI / 2, 0, 0]);
+    add(ear, new THREE.CylinderGeometry(0.185, 0.185, 0.04, seg), dark, [0, -0.11, 0]);
+    const lens = add(ear, new THREE.SphereGeometry(0.15, seg, seg / 2), visorMat, [0, -0.125, 0]);
+    lens.scale.y = 0.18;
   });
 
   // ── Cuello oscuro.
