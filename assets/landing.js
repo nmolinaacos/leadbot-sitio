@@ -186,9 +186,14 @@ function setupHero() {
   // Las conversaciones llegan volando desde el fondo y quedan en abanico
   // (en el celular, en cascada: una debajo de otra, corridas).
   const mobile = innerWidth < 760;
+  // Cuánto se abre el abanico: lo que permita la columna, para que las tres
+  // quepan en su mitad sin montarse sobre el texto ni salirse de la pantalla.
+  const column = document.querySelector('.hero-tarjetas').clientWidth;
+  const card = document.querySelector('.hero-tarjetas .tarjeta').offsetWidth;
+  const spread = Math.round(Math.min(58, Math.max(26, ((column - card) / 2 / card) * 100 * 0.92)));
   const fan = mobile
     ? { '.t-wa': { xPercent: 6, y: 0, rotateZ: 1.5, rotateY: 0, z: 0 }, '.t-ms': { xPercent: 0, y: 44, rotateZ: -1, rotateY: 0, z: 0 }, '.t-ig': { xPercent: -6, y: 88, rotateZ: -1.5, rotateY: 0, z: 0 } }
-    : { '.t-wa': { xPercent: -50, y: 34, rotateZ: -6, rotateY: 14, z: 0 }, '.t-ms': { xPercent: 50, y: 34, rotateZ: 6, rotateY: -14, z: 0 }, '.t-ig': { xPercent: 0, y: -12, rotateZ: 0, rotateY: 0, z: 70 } };
+    : { '.t-wa': { xPercent: -spread, y: 34, rotateZ: -6, rotateY: 12, z: 0 }, '.t-ms': { xPercent: spread, y: 34, rotateZ: 6, rotateY: -12, z: 0 }, '.t-ig': { xPercent: 0, y: -14, rotateZ: 0, rotateY: 0, z: 60 } };
   Object.entries(fan).forEach(([selector, end], i) => {
     tl.fromTo(`.hero-tarjetas ${selector}`, { opacity: 0, z: -700, xPercent: end.xPercent * 2.4, y: end.y + 80, rotateY: end.rotateY * 4, rotateX: -40 },
       { opacity: 1, ...end, rotateX: 0, duration: 1.4, ease: 'expo.out' }, 0.55 + i * 0.12);
@@ -197,7 +202,7 @@ function setupHero() {
   if (matchMedia('(hover: hover)').matches) {
     const cards = document.querySelector('.hero-tarjetas');
     addEventListener('pointermove', (event) => {
-      gsap.to(cards, { rotateY: (event.clientX / innerWidth - 0.5) * 12, rotateX: -(event.clientY / innerHeight - 0.5) * 8, duration: 0.8, ease: 'power2.out' });
+      gsap.to(cards, { rotateY: (event.clientX / innerWidth - 0.5) * 6, rotateX: -(event.clientY / innerHeight - 0.5) * 5, duration: 0.8, ease: 'power2.out' });
     });
   }
   gsap.to(['.hero-contenido', '.hero-tarjetas'], {
@@ -494,7 +499,7 @@ const MESSAGES = [
 // ancla]. Con ancla (un selector), el robot se ubica justo debajo de ese
 // elemento y se mueve con la página (el cierre: no cae sobre el pie).
 const DESKTOP = [
-  [4.35, -1.75, 0.2, 0.6, 'izquierda'],
+  [4.35, -1.75, 0.2, 0.5, 'izquierda', '.hero-tarjetas'],
   [-4.5, -1.0, 0, 0.8, 'arriba'],
   [4.6, 1.05, -0.3, 0.62, 'abajo'],
   [5.0, 1.45, -0.5, 0.55, 'abajo'],
@@ -609,9 +614,10 @@ function setupScene(canvas) {
       const h = halfHeight();
       const robotPx = ((2.7 * s) / (2 * h)) * innerHeight;
       let py = box.bottom + 24 + robotPx / 2;
-      // Nunca por debajo del borde de arriba del pie (pantallas bajitas).
+      // Nunca por debajo del borde de arriba del pie ni de la pantalla (pantallas bajitas).
       const footer = document.querySelector('.pie');
       if (footer) py = Math.min(py, footer.getBoundingClientRect().top - 12 - robotPx / 2);
+      py = Math.min(py, innerHeight - 12 - robotPx / 2);
       placed.y = (1 - (2 * py) / innerHeight) * h;
       if (!wide) placed.x = ((2 * (box.left + box.width * 0.78)) / innerWidth - 1) * h * camera.aspect;
     }

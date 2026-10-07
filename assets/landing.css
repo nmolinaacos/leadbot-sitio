@@ -127,14 +127,22 @@ h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.02em; text-wrap: ba
 /* Acto 0: hero */
 /* Dos columnas: el mensaje a la izquierda y, a la derecha, conversaciones
    reales de los tres canales en abanico 3D (el robot va abajo a la derecha). */
-.hero { min-height: 100vh; min-height: 100svh; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: center; gap: clamp(24px, 4vw, 64px); padding-block: 110px 80px; }
-.titular { max-width: 11ch; font-size: clamp(46px, 6.6vw, 104px); line-height: 0.98; letter-spacing: -0.035em; font-weight: 600; }
-.hero .bajada { max-width: 470px; }
-.hero-tarjetas { position: relative; height: 330px; align-self: start; margin-top: 14vh; margin-right: 40px; perspective: 1200px; translate: -4% 0; }
-/* Abanico quieto (sin animaciones); con animaciones lo arma landing.js. */
-.hero-tarjetas .t-wa { transform: translate(-50%, 34px) rotate(-6deg); }
-.hero-tarjetas .t-ms { transform: translate(50%, 34px) rotate(6deg); }
-.hero-tarjetas .t-ig { transform: translateY(-10px); }
+.hero { min-height: 100vh; min-height: 100svh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: clamp(24px, 4vw, 64px); padding-block: 110px 80px; }
+.titular { max-width: 12ch; font-size: clamp(48px, 7.6vw, 136px); line-height: 0.96; letter-spacing: -0.035em; font-weight: 600; }
+.hero .bajada { max-width: 34ch; font-size: clamp(17px, 1.55vw, 23px); }
+/* Arriba en pantallas bajitas y centradas con el texto en las altas; el
+   robot queda anclado justo debajo (ver landing.js, DESKTOP). */
+.hero-tarjetas { --w: clamp(220px, 25vw, 380px); position: relative; height: min(30vw, 46vh); align-self: start; margin-top: max(1vh, calc(50vh - 380px)); perspective: 1400px; }
+.hero-tarjetas .tarjeta { width: var(--w); margin-left: calc(var(--w) / -2); padding: clamp(16px, 1.5vw, 26px); }
+.hero-tarjetas .tarjeta .canal { font-size: clamp(10px, 0.75vw, 12px); }
+.hero-tarjetas .tarjeta b { font-size: clamp(16px, 1.2vw, 20px); }
+.hero-tarjetas .tarjeta p { font-size: clamp(14px, 1vw, 17px); }
+.hero-tarjetas .estado { font-size: clamp(12px, 0.85vw, 14px); }
+/* Abanico quieto (sin animaciones); con animaciones lo arma landing.js
+   (si no, GSAP sumaría esta posición a la suya). */
+html:not(.anim) .hero-tarjetas .t-wa { transform: translate(-36%, 34px) rotate(-6deg); }
+html:not(.anim) .hero-tarjetas .t-ms { transform: translate(36%, 34px) rotate(6deg); }
+html:not(.anim) .hero-tarjetas .t-ig { transform: translateY(-10px); }
 .titular em { color: var(--text); background: linear-gradient(100deg, var(--accent-2), #fff 45%, var(--warm)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; padding-right: 0.06em; }
 .titular .palabra { display: inline-block; }
 .desliza { position: absolute; left: var(--gutter); bottom: 32px; display: flex; align-items: center; gap: 12px; font: 500 11px var(--mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
@@ -256,13 +264,13 @@ h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.02em; text-wrap: ba
   .hero { grid-template-columns: 1fr; align-items: start; gap: 20px; padding-block: 96px 210px; }
   .titular { font-size: clamp(38px, 11vw, 48px); }
   .hero .bajada { display: none; }
-  .hero-tarjetas { height: 236px; margin: 4px 0 0; translate: none; perspective: none; }
+  .hero-tarjetas { --w: 70vw; height: 236px; margin: 4px 0 0; perspective: none; }
   .hero-tarjetas .tarjeta { width: 70vw; margin-left: -35vw; padding: 12px 14px; background: rgba(13, 18, 33, 0.97); }
   .hero-tarjetas .tarjeta b { margin-top: 6px; font-size: 15px; }
   .hero-tarjetas .tarjeta p { margin: 0 0 8px; font-size: 13px; }
-  .hero-tarjetas .t-wa { transform: translate(6%, 0) rotate(1.5deg); }
-  .hero-tarjetas .t-ms { transform: translate(0, 44px) rotate(-1deg); }
-  .hero-tarjetas .t-ig { transform: translate(-6%, 88px) rotate(-1.5deg); }
+  html:not(.anim) .hero-tarjetas .t-wa { transform: translate(6%, 0) rotate(1.5deg); }
+  html:not(.anim) .hero-tarjetas .t-ms { transform: translate(0, 44px) rotate(-1deg); }
+  html:not(.anim) .hero-tarjetas .t-ig { transform: translate(-6%, 88px) rotate(-1.5deg); }
   .hero .bajada { margin-top: 16px; font-size: 15px; }
   .hero .acciones { margin-top: 24px; flex-wrap: nowrap; gap: 8px; }
   .hero .boton { min-height: 44px; padding: 0 16px; font-size: 14px; white-space: nowrap; }
