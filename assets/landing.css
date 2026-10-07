@@ -188,7 +188,10 @@ html:not(.anim) .hero-tarjetas .t-ms { transform: translate(36%, 170px) rotate(4
 .telefono-top small { color: var(--ok); font-size: 11px; }
 .avatar { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--warm)); }
 .chat { flex: 1; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; padding: 14px 12px; border-radius: 0 0 30px 30px; background: radial-gradient(120% 80% at 50% 0%, #0f1628, #070a13); }
-.msg { margin: 0; max-width: 84%; padding: 9px 12px; border-radius: 16px; font-size: 13.5px; line-height: 1.4; }
+/* Los mensajes nunca se encogen: cuando no caben, los viejos suben y se
+   desvanecen por arriba, como en un chat real (en el celular el teléfono es bajito). */
+.chat { -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 56px); mask-image: linear-gradient(to bottom, transparent 0, #000 56px); }
+.msg { flex-shrink: 0; margin: 0; max-width: 84%; padding: 9px 12px; border-radius: 16px; font-size: 13.5px; line-height: 1.4; }
 .msg time { display: inline-block; margin-left: 6px; font: 500 9.5px var(--mono); opacity: 0.6; }
 .msg.cliente { align-self: flex-start; background: #1a2236; border-bottom-left-radius: 6px; }
 .msg.bot { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 6px; }
