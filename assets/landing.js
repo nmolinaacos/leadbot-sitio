@@ -504,7 +504,7 @@ const DESKTOP = [
   [4.6, 1.05, -0.3, 0.62, 'abajo'],
   [-4.1, -1.2, 0, 0.72, 'derecha'],
   [5.0, 1.45, -0.5, 0.55, 'abajo'],
-  [4.7, 0.6, -0.3, 0.6, 'abajo'],
+  [-4.8, 0.5, -0.3, 0.6, 'abajo'],
   [0, -2.05, 0, 0.56, 'derecha', '.cierre .acciones'],
 ];
 const MOBILE = [
