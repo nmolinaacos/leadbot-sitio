@@ -504,15 +504,38 @@ function makeRobot() {
   add(head, new THREE.TubeGeometry(edge(0.797), 260, 0.008, 8, true), headMat);
   add(head, new THREE.TubeGeometry(edge(0.799), 260, 0.005, 6, true), new THREE.MeshBasicMaterial({ color: 0x8fcfff, toneMapped: false }));
 
-  // Ojos: óvalos verticales celestes con borde azul más oscuro y un resplandor
-  // suave; párpado negro como el visor.
+  // Ojos: óvalos verticales grandes. Cada uno es una lente de luz un poco
+  // abombada: celeste muy claro en el centro que se va volviendo cian hacia
+  // el borde, un aro azul fino, un brillo suave alrededor sobre el visor y un
+  // vidrio encima con su reflejo. El párpado es negro como el visor.
   const eyeAt = (x, y) => {
     const z = VR * HS[2] * Math.sqrt(Math.max(0, 1 - (x / (VR * HS[0])) ** 2 - (y / (VR * HS[1])) ** 2));
     return new THREE.Vector3(x, y, z + 0.004);
   };
-  const eyeRim = new THREE.MeshBasicMaterial({ color: 0x2c7cf0, toneMapped: false });
+  const radial = (stops, size = 256) => {
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const g = c.getContext('2d');
+    const grad = g.createRadialGradient(size * 0.47, size * 0.44, 0, size / 2, size / 2, size / 2);
+    stops.forEach(([o, col]) => grad.addColorStop(o, col));
+    g.fillStyle = grad;
+    g.fillRect(0, 0, size, size);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  };
+  // La luz del ojo (destella con los mensajes: es ballMaterial).
+  ballMaterial.color.set(0xffffff);
+  ballMaterial.emissive.set(0xffffff);
+  ballMaterial.emissiveMap = radial([[0, '#f2fdff'], [0.35, '#c4f2ff'], [0.75, '#7fdcff'], [1, '#4cc6ff']]);
+  ballMaterial.map = ballMaterial.emissiveMap;
+  ballMaterial.emissiveIntensity = 1.1;
+  ballMaterial.needsUpdate = true;
+  const eyeRim = new THREE.MeshBasicMaterial({ color: 0x2f86f5, toneMapped: false });
+  const eyeGlow = new THREE.MeshBasicMaterial({ map: radial([[0, 'rgba(90,200,255,0.55)'], [0.62, 'rgba(70,180,255,0.35)'], [0.8, 'rgba(50,150,255,0.12)'], [1, 'rgba(40,130,255,0)']]), transparent: true, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending });
+  const eyeGlass = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.03, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.02, transparent: true, opacity: 0.18, envMapIntensity: 2.5, depthWrite: false });
   const eyes = [-1, 1].map((side) => {
-    const p = eyeAt(side * 0.27, -0.03);
+    const p = eyeAt(side * 0.275, -0.04);
     const eye = new THREE.Group();
     eye.position.copy(p);
     eye.lookAt(p.clone().multiply(new THREE.Vector3(1 / HS[0] ** 2, 1 / HS[1] ** 2, 1 / HS[2] ** 2)).normalize().add(p));
@@ -520,10 +543,16 @@ function makeRobot() {
     const oval = new THREE.Group();
     oval.scale.set(0.8, 1, 1);
     eye.add(oval);
-    add(oval, new THREE.CircleGeometry(0.15, 64), eyeRim, [0, 0, 0.003]);
-    add(oval, new THREE.CylinderGeometry(0.128, 0.128, 0.012, 64), ballMaterial, [0, 0, 0.008], [Math.PI / 2, 0, 0]);
-    const lid = add(eye, new THREE.SphereGeometry(0.155, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), visorMat);
-    lid.scale.set(0.82, 1, 0.25);
+    add(oval, new THREE.CircleGeometry(0.29, 64), eyeGlow, [0, 0, 0.001]);
+    add(oval, new THREE.CircleGeometry(0.19, 64), eyeRim, [0, 0, 0.004]);
+    const lensEye = add(oval, new THREE.SphereGeometry(0.175, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2), ballMaterial, [0, 0, 0.005], [Math.PI / 2, 0, 0]);
+    lensEye.scale.y = 0.22; // casi plana, un poco abombada
+    const glass = add(oval, new THREE.SphereGeometry(0.186, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2), eyeGlass, [0, 0, 0.006], [Math.PI / 2, 0, 0]);
+    glass.scale.y = 0.3;
+    // Reflejo: un arco blanco suave arriba a un lado.
+    add(oval, new THREE.TorusGeometry(0.13, 0.012, 8, 40, Math.PI * 0.35), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, toneMapped: false }), [0, 0, 0.05], [0, 0, Math.PI * 0.55]);
+    const lid = add(eye, new THREE.SphereGeometry(0.2, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), visorMat);
+    lid.scale.set(0.82, 1, 0.35);
     lid.rotation.x = -Math.PI / 2;
     eye.userData = { lid };
     return eye;
@@ -1175,7 +1204,7 @@ function setupScene(canvas) {
     });
     const working = k === 2 ? 1 - flight : 0;
     flash = Math.max(0, flash - dt * 2.5);
-    robot.ballMaterial.emissiveIntensity = 1.1 + flash * 1.6 + working * (0.4 + Math.sin(t * 10) * 0.4);
+    robot.ballMaterial.emissiveIntensity = 1.0 + flash * 0.7 + working * (0.15 + Math.sin(t * 10) * 0.15);
     robot.chestMaterial.emissiveIntensity = 1 + Math.sin(t * 3) * 0.35 + working * 0.8;
     robot.ring.scale.setScalar(1 + Math.sin(t * 4) * 0.06 + arc * 0.25);
     robot.ring.material.opacity = 0.55 + Math.sin(t * 4) * 0.15 + arc * 0.3;
