@@ -40,7 +40,7 @@ function scrollToY(y, duration = 1.4) {
 // completo (en los actos fijados, cuando terminó cada paso de su historia).
 // Al dejar de deslizar, la página aterriza en el momento más cercano; los
 // puntos del costado y el botón "Sigamos" del robot llevan de uno a otro.
-const ACT_NAMES = ['Inicio', 'La noche', 'La respuesta', 'Qué hace', 'Tú decides', 'Hablemos'];
+const ACT_NAMES = ['Inicio', 'La noche', 'La respuesta', 'Qué hace', 'Tú decides', 'Planes', 'Hablemos'];
 
 function setupNavigation(pinned) {
   const maxScroll = () => document.documentElement.scrollHeight - innerHeight;
@@ -55,6 +55,7 @@ function setupNavigation(pinned) {
       [at(pinned.reply, 0.36), at(pinned.reply, 0.64), at(pinned.reply, 0.9)],
       [top('#funciones') - 24],
       [frase.top + scrollY + frase.height / 2 - innerHeight / 2],
+      [top('#planes') - 24],
       [maxScroll()],
     ].map((ys) => ys.map((y) => Math.round(Math.min(Math.max(0, y), maxScroll()))));
   };
@@ -89,7 +90,7 @@ function setupNavigation(pinned) {
   });
 
   // Links del menú: al primer momento de su acto.
-  const actOf = { '#inicio': 0, '#noche': 1, '#respuesta': 2, '#funciones': 3, '#contacto': 5 };
+  const actOf = { '#inicio': 0, '#noche': 1, '#respuesta': 2, '#funciones': 3, '#planes': 5, '#contacto': 6 };
   document.querySelectorAll('a[href^="#"]').forEach((link) => {
     const index = actOf[link.getAttribute('href')];
     if (index === undefined) return;
@@ -115,7 +116,7 @@ function setupNavigation(pinned) {
   let active = -1;
   let green = null;
   // El acto activo es la última sección cuyo comienzo ya pasó la mitad de la pantalla.
-  const sections = ['#inicio', '#noche', '#respuesta', '#funciones', '.frase', '#contacto'].map((sel) => document.querySelector(sel));
+  const sections = ['#inicio', '#noche', '#respuesta', '#funciones', '.frase', '#planes', '#contacto'].map((sel) => document.querySelector(sel));
   const update = () => {
     let current = 0;
     sections.forEach((section, i) => {
@@ -285,6 +286,24 @@ function setupReply() {
   tl.to('.telefono', { rotateY: 6, rotateX: 0, duration: 0.76, ease: 'none' }, 0.18)
     .to('.respuesta .pin', { opacity: 0, y: -40, duration: 0.08 }, 0.94);
   return tl.scrollTrigger;
+}
+
+// ── Planes: mensual o anual, y las tarjetas entran como las funciones ──
+function setupPlans() {
+  const toggle = document.querySelector('.periodo');
+  if (toggle) {
+    toggle.addEventListener('click', (event) => {
+      const button = event.target.closest('button');
+      if (!button) return;
+      const period = button.dataset.periodo;
+      toggle.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
+      document.querySelectorAll('.planes [data-mensual]').forEach((el) => (el.textContent = el.dataset[period]));
+    });
+  }
+  ScrollTrigger.batch('.plan', {
+    start: 'top 90%',
+    onEnter: (batch) => gsap.fromTo(batch, { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 1, ease: 'expo.out', stagger: 0.1 }),
+  });
 }
 
 // ── Acto 3: qué hace (aparecen y se inclinan con el mouse) ───────────
@@ -499,6 +518,7 @@ const MESSAGES = [
   'Laura quiere la Nova en negro. Ya le mandé la foto, el precio y el catálogo. ⚡',
   'También recupero carritos, aviso cuando llega lo agotado y te cuento qué anuncio vende.',
   'Y si alguien pide hablar con una persona, te aviso al instante. 🙋',
+  'Pruébame 14 días gratis, sin tarjeta. Si te gusto, eliges tu plan. 😉',
   '¿Me pones a vender esta noche? Escríbenos 👇',
 ];
 
@@ -511,6 +531,7 @@ const DESKTOP = [
   [4.6, 1.05, -0.3, 0.62, 'abajo'],
   [5.0, 1.45, -0.5, 0.55, 'abajo'],
   [-4.8, 0.5, -0.3, 0.6, 'abajo'],
+  [5.0, 1.45, -0.5, 0.55, 'abajo'],
   [0, -2.05, 0, 0.56, 'derecha', '.cierre .acciones'],
 ];
 const MOBILE = [
@@ -518,6 +539,7 @@ const MOBILE = [
   [0.95, -2.25, 0, 0.42, 'izquierda'],
   [1.1, 2.4, 0, 0.32, 'izquierda'],
   [1.15, 2.5, 0, 0.3, 'izquierda'],
+  [1.05, -2.25, 0, 0.4, 'izquierda'],
   [1.05, -2.25, 0, 0.4, 'izquierda'],
   [0.9, -2.3, 0, 0.42, 'izquierda', '.cierre .acciones'],
 ];
@@ -935,6 +957,7 @@ if (gsap && ScrollTrigger && !reduce) {
   setupHero();
   const pinned = { night: setupNight(), reply: setupReply() };
   setupFeatures();
+  setupPlans();
   setupPhrase();
   setupClosing();
   scrollState = setupStateAnchors();

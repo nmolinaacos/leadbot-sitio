@@ -247,6 +247,36 @@ html:not(.anim) .hero-tarjetas .t-ms { transform: translate(36%, 170px) rotate(4
 .tile p { margin: 8px 0 0; color: var(--muted); font-size: 15.5px; }
 
 /* Acto 4: la frase */
+/* Planes: tres columnas; la del medio resaltada. */
+.planes { padding-block: clamp(100px, 16vh, 180px); max-width: 1240px; margin-inline: auto; }
+.planes-cabeza { display: flex; flex-direction: column; align-items: flex-start; gap: 24px; margin-bottom: clamp(36px, 5vh, 60px); }
+.planes-titulo { margin: 0; font-size: clamp(36px, 5vw, 72px); line-height: 1.04; letter-spacing: -0.03em; max-width: 15ch; }
+.periodo { display: inline-flex; padding: 4px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.03); }
+.periodo button { min-height: 40px; padding: 0 18px; border: 0; border-radius: 999px; background: none; color: var(--muted); font: 600 14px var(--body); cursor: pointer; transition: background 0.2s, color 0.2s; }
+.periodo button small { margin-left: 4px; font: 500 11px var(--mono); color: var(--warm); }
+.periodo button[aria-pressed="true"] { background: rgba(255, 255, 255, 0.1); color: var(--text); }
+.planes-rejilla { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-items: stretch; }
+.plan { position: relative; display: flex; flex-direction: column; padding: 30px 28px; border-radius: 24px; background: var(--panel); border: 1px solid var(--line); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.plan.destacado { border-color: rgba(142, 170, 255, 0.45); background: linear-gradient(180deg, rgba(74, 120, 255, 0.16), rgba(12, 17, 32, 0.88) 45%); box-shadow: 0 30px 80px -40px rgba(74, 120, 255, 0.8); }
+.plan-sello { position: absolute; top: -12px; left: 28px; padding: 5px 12px; border-radius: 999px; background: var(--warm); color: #1a1205; font: 700 11px/1 var(--body); letter-spacing: 0.06em; text-transform: uppercase; }
+.plan h3 { margin: 0; font-size: 22px; }
+.plan-desc { margin: 6px 0 0; color: var(--muted); font-size: 15px; }
+.plan-precio { display: flex; align-items: baseline; gap: 8px; margin: 22px 0 0; }
+.plan-precio b { font: 400 clamp(40px, 3.6vw, 52px)/1 var(--display); letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.plan-precio span { color: var(--muted); font-size: 14px; }
+.plan-nota { margin: 6px 0 0; min-height: 1.4em; color: var(--muted); font: 500 12px var(--mono); }
+.plan-cupo { margin: 20px 0 0; padding: 12px 14px; border-radius: 12px; background: rgba(255, 255, 255, 0.04); font-size: 14.5px; color: var(--muted); }
+.plan-cupo b { color: var(--text); font-variant-numeric: tabular-nums; }
+.plan ul { list-style: none; margin: 20px 0 28px; padding: 0; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+.plan li { display: grid; grid-template-columns: 16px 1fr; gap: 10px; font-size: 15px; line-height: 1.45; }
+.plan li svg { width: 16px; height: 16px; margin-top: 3px; fill: none; stroke: var(--ok); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.plan .boton { width: 100%; }
+.planes-notas { list-style: none; margin: 32px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px 28px; color: var(--muted); font-size: 14px; }
+.planes-notas b { color: var(--text); }
+@media (max-width: 980px) { .planes-rejilla { grid-template-columns: 1fr; max-width: 520px; } }
+/* En pantallas anchas el robot y su globo viven a la derecha: los planes dejan ese carril libre. */
+@media (min-width: 981px) { .planes { max-width: 1560px; padding-right: calc(var(--gutter) + clamp(200px, 22vw, 380px)); } }
+
 .frase { padding-block: clamp(120px, 24vh, 260px); }
 .frase-texto { margin: 0 auto; max-width: 20ch; font-family: var(--display); font-size: clamp(40px, 6.4vw, 104px); line-height: 1.04; letter-spacing: -0.02em; text-align: center; }
 .frase-texto .palabra { display: inline-block; }
@@ -303,4 +333,6 @@ html:not(.anim) .hero-tarjetas .t-ms { transform: translate(36%, 170px) rotate(4
   .avisos li:nth-child(3) { bottom: 26%; left: 6%; }
   .dialogo { max-width: calc(100vw - 150px); }
   .cierre { padding-bottom: 210px; }
+  .planes { padding-bottom: 190px; }
+  .periodo button { padding: 0 14px; }
 }

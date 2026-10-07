@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
   <link rel="stylesheet" href="assets/vendor/lenis/lenis.css">
-  <link rel="stylesheet" href="assets/landing.css?v=202610062345">
+  <link rel="stylesheet" href="assets/landing.css?v=202610062353">
   <script>document.documentElement.classList.add('js');</script>
   <script type="importmap">
     { "imports": { "three": "./assets/vendor/three/three.module.min.js", "three/addons/": "./assets/vendor/three/addons/" } }
@@ -34,6 +34,7 @@
     <nav aria-label="Secciones">
       <a href="#respuesta">Cómo funciona</a>
       <a href="#funciones">Qué hace</a>
+      <a href="#planes">Planes</a>
       <a class="nav-cta" href="#contacto">Hablemos</a>
     </nav>
   </header>
@@ -129,8 +130,54 @@
       <p class="frase-texto" data-resaltar>El bot vende por ti a las once de la noche. Tú decides en qué momento entra una persona.</p>
     </section>
 
-    <!-- Acto 5: contacto -->
-    <section class="acto cierre" id="contacto" data-estado="5">
+    <!-- Acto 5: planes -->
+    <section class="acto planes" id="planes" data-estado="5">
+      <div class="planes-cabeza">
+        <h2 class="planes-titulo">Un plan para <em>cada momento</em> de tu negocio</h2>
+        <div class="periodo" role="group" aria-label="Forma de pago">
+          <button type="button" data-periodo="mensual" aria-pressed="true">Mensual</button>
+          <button type="button" data-periodo="anual" aria-pressed="false">Anual <small>2 meses gratis</small></button>
+        </div>
+      </div>
+      <div class="planes-rejilla">
+        <article class="plan" id="plan-chat">
+          <h3>Chat</h3>
+          <p class="plan-desc">Para empezar a vender por chat.</p>
+          <p class="plan-precio"><b data-mensual="$119.000" data-anual="$99.000">$119.000</b><span>al mes</span></p>
+          <p class="plan-nota" data-mensual="Pago mes a mes" data-anual="Pagas $1.188.000 al año">Pago mes a mes</p>
+          <p class="plan-cupo"><b>800</b> conversaciones al mes con el bot</p>
+          <ul><li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>WhatsApp, Instagram y Messenger en un solo tablero</li><li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>Bot con IA que conoce tu catálogo, precios y existencias</li><li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>Fotos por color y catálogo en PDF automático</li><li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>Toma pedidos y calcula el envío por ciudad</li><li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>2 personas de tu equipo</li></ul>
+          <a class="boton fantasma" href="https://wa.me/573233272083?text=Hola%2C%20me%20interesa%20el%20plan%20Chat%20de%20Leadbot" target="_blank" rel="noopener">Empezar con Chat</a>
+        </article>
+        <article class="plan destacado" id="plan-voz">
+          <span class="plan-sello">El más elegido</span><h3>Chat + Voz</h3>
+          <p class="plan-desc">Para el comercio que ya vende todos los días.</p>
+          <p class="plan-precio"><b data-mensual="$219.000" data-anual="$183.000">$219.000</b><span>al mes</span></p>
+          <p class="plan-nota" data-mensual="Pago mes a mes" data-anual="Pagas $2.196.000 al año">Pago mes a mes</p>
+          <p class="plan-cupo"><b>2.000</b> conversaciones al mes con el bot</p>
+          <ul><li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>Todo lo del plan Chat</li><li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>Entiende las notas de voz de tus clientes</li><li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>Recupera pedidos a medias y avisa cuando llega lo agotado</li><li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>Campañas y recordatorios por WhatsApp</li><li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>Qué anuncio te trae cada venta</li><li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>5 personas de tu equipo</li></ul>
+          <a class="boton primario" href="https://wa.me/573233272083?text=Hola%2C%20me%20interesa%20el%20plan%20Chat%20%2B%20Voz%20de%20Leadbot" target="_blank" rel="noopener">Empezar con Chat + Voz</a>
+        </article>
+        <article class="plan" id="plan-llave">
+          <h3>Llave en mano</h3>
+          <p class="plan-desc">Nosotros lo dejamos vendiendo por ti.</p>
+          <p class="plan-precio"><b data-mensual="$449.000" data-anual="$374.000">$449.000</b><span>al mes</span></p>
+          <p class="plan-nota" data-mensual="Pago mes a mes" data-anual="Pagas $4.488.000 al año">Pago mes a mes</p>
+          <p class="plan-cupo"><b>5.000</b> conversaciones al mes con el bot</p>
+          <ul><li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>Todo lo del plan Chat + Voz</li><li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>Cargamos tu catálogo y configuramos el bot con tu forma de hablar</li><li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>Conectamos tus canales contigo, sin pasos técnicos</li><li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>Revisamos tus conversaciones cada mes para mejorar el bot</li><li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>Soporte por WhatsApp el mismo día</li><li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>Personas ilimitadas</li></ul>
+          <a class="boton fantasma" href="https://wa.me/573233272083?text=Hola%2C%20me%20interesa%20el%20plan%20Llave%20en%20mano%20de%20Leadbot" target="_blank" rel="noopener">Empezar con Llave en mano</a>
+        </article>
+      </div>
+      <ul class="planes-notas">
+        <li><b>14 días de prueba gratis.</b> Sin tarjeta y sin permanencia: cancelas cuando quieras.</li>
+        <li><b>¿Qué es una conversación?</b> Un cliente que le escribe al bot en un mismo día, sin importar cuántos mensajes se envíen.</li>
+        <li><b>¿Y si me paso?</b> El bot no se detiene: cada 100 conversaciones extra cuestan $15.000.</li>
+        <li><b>Mensajes de WhatsApp.</b> Responder a tus clientes no tiene costo. Las campañas y recordatorios usan plantillas que Meta cobra aparte, directo a tu cuenta.</li>
+      </ul>
+    </section>
+
+    <!-- Acto 6: contacto -->
+    <section class="acto cierre" id="contacto" data-estado="6">
       <p class="kicker">Acceso por invitación</p>
       <h2 class="cierre-titulo">Ponlo a vender <em>esta noche.</em></h2>
       <p class="bajada">Estamos sumando comercios en Colombia. Escríbenos y te mostramos Leadbot con tus propios productos.</p>
@@ -158,6 +205,6 @@
   <script src="assets/vendor/lenis/lenis.min.js"></script>
   <script src="assets/vendor/gsap/gsap.min.js"></script>
   <script src="assets/vendor/gsap/ScrollTrigger.min.js"></script>
-  <script type="module" src="assets/landing.js?v=202610062345"></script>
+  <script type="module" src="assets/landing.js?v=202610062353"></script>
 </body>
 </html>
