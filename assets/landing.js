@@ -383,7 +383,9 @@ const MESSAGES = [
   '¿Me pones a vender esta noche? Escríbenos 👇',
 ];
 
-// Dónde está el robot en cada acto: [x, y, z, escala, lado del globo].
+// Dónde está el robot en cada acto: [x, y, z, escala, lado del globo,
+// ancla]. Con ancla (un selector), el robot se ubica justo debajo de ese
+// elemento y se mueve con la página (el cierre: no cae sobre el pie).
 const DESKTOP = [
   [3.5, -0.2, 0, 1, 'arriba'],
   [-4.5, -1.0, 0, 0.8, 'arriba'],
@@ -391,7 +393,7 @@ const DESKTOP = [
   [-4.1, -1.2, 0, 0.72, 'derecha'],
   [5.0, 1.45, -0.5, 0.55, 'abajo'],
   [4.7, 0.6, -0.3, 0.6, 'abajo'],
-  [0, -2.05, 0, 0.56, 'derecha'],
+  [0, -2.05, 0, 0.56, 'derecha', '.cierre .acciones'],
 ];
 const MOBILE = [
   [0.95, -2.2, 0, 0.42, 'izquierda'],
@@ -400,7 +402,7 @@ const MOBILE = [
   [0.95, -2.3, 0, 0.42, 'izquierda'],
   [1.15, 2.5, 0, 0.3, 'izquierda'],
   [1.05, -2.25, 0, 0.4, 'izquierda'],
-  [0.9, -2.3, 0, 0.42, 'izquierda'],
+  [0.9, -2.3, 0, 0.42, 'izquierda', '.cierre .acciones'],
 ];
 
 function setupScene(canvas) {
@@ -475,10 +477,23 @@ function setupScene(canvas) {
     pointer.y = event.clientY / innerHeight - 0.5;
   });
 
+  // Mitad del alto visible en el plano z = 0 (la cámara está en z = 10).
+  const halfHeight = () => Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.position.z;
   const pose = (k) => {
     const wide = camera.aspect >= 1;
-    const [x, y, z, s, side] = (wide ? DESKTOP : MOBILE)[k];
-    return { x: x * (wide ? Math.min(1, camera.aspect / 1.8) : 1), y, z, s, side };
+    const [x, y, z, s, side, anchor] = (wide ? DESKTOP : MOBILE)[k];
+    const placed = { x: x * (wide ? Math.min(1, camera.aspect / 1.8) : 1), y, z, s, side };
+    const element = anchor && document.querySelector(anchor);
+    if (element) {
+      // Debajo del elemento: el alto del robot en pantalla es ~2,7 × escala.
+      const box = element.getBoundingClientRect();
+      const h = halfHeight();
+      const robotPx = ((2.7 * s) / (2 * h)) * innerHeight;
+      const py = box.bottom + 24 + robotPx / 2;
+      placed.y = (1 - (2 * py) / innerHeight) * h;
+      if (!wide) placed.x = ((2 * (box.left + box.width * 0.78)) / innerWidth - 1) * h * camera.aspect;
+    }
+    return placed;
   };
 
   // Lo que hacen los brazos en cada acto: [izquierdo x, izquierdo z, derecho x, derecho z].
@@ -564,8 +579,16 @@ function setupScene(canvas) {
     const clampedLeft = Math.min(Math.max(12, left), innerWidth - w - 12);
     const clampedTop = Math.min(Math.max(70, top), innerHeight - h - 12);
     // La cola del globo sigue apuntando al robot aunque el globo se corra.
-    if (side === 'arriba' || side === 'abajo') dialog.style.setProperty('--cola', `${Math.min(Math.max(18, x - clampedLeft), w - 18)}px`);
-    else dialog.style.setProperty('--cola', `${Math.min(Math.max(16, y - radius * 0.35 - clampedTop), h - 16)}px`);
+    // La caja crece desde la cola (transform-origin), que apunta al robot.
+    if (side === 'arriba' || side === 'abajo') {
+      const cola = Math.min(Math.max(22, x - clampedLeft), w - 22);
+      dialog.style.setProperty('--cola', `${cola}px`);
+      dialog.style.setProperty('--origen', `${cola}px ${side === 'arriba' ? '100%' : '0'}`);
+    } else {
+      const cola = Math.min(Math.max(20, y - radius * 0.35 - clampedTop), h - 20);
+      dialog.style.setProperty('--cola', `${cola}px`);
+      dialog.style.setProperty('--origen', `${side === 'izquierda' ? '100%' : '0'} ${cola}px`);
+    }
     dialog.style.transform = `translate3d(${Math.round(clampedLeft)}px, ${Math.round(clampedTop)}px, 0)`;
   }
 
