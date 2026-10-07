@@ -587,57 +587,115 @@ function makeRobot() {
   [0.08, 0.01, -0.06].forEach((y, i) => add(rig, new THREE.CylinderGeometry(0.15 + i * 0.015, 0.16 + i * 0.015, 0.06, seg), i === 1 ? metal : darkMetal, [0, y, 0]));
 
   // ── Torso (como la referencia): una coraza en forma de escudo, gris claro
-  // satinado; escote hundido con piezas oscuras y luz; placa del frente con
-  // líneas de ensamble en U; dos franjas de luz que bajan y doblan hacia
-  // adentro; ranuras en diagonal; puertos de los hombros a los lados; filo
-  // metálico abajo, junta oscura y pelvis con luz.
-  const shellMat = new THREE.MeshPhysicalMaterial({ color: 0xc6ccd4, roughness: 0.34, metalness: 0.08, clearcoat: 0.5, clearcoatRoughness: 0.2, sheen: 0.2, sheenColor: 0xdfe8ff, envMapIntensity: 1.0 });
+  // satinado, TALLADA: las líneas de ensamble y las ranuras son hendiduras
+  // reales en la malla, las franjas azules son canales con neón en el fondo
+  // y el escote es un hueco con paredes. A los lados, los puertos de los
+  // hombros; abajo, filo metálico, junta oscura y pelvis con luz.
+  const shellMat = new THREE.MeshPhysicalMaterial({ color: 0xc6ccd4, roughness: 0.34, metalness: 0.08, clearcoat: 0.5, clearcoatRoughness: 0.2, sheen: 0.2, sheenColor: 0xdfe8ff, envMapIntensity: 1.0, vertexColors: true });
   const DEPTH = 0.74; // el frente es más plano que los lados
-  const torsoProfile = [[0, -0.9], [0.28, -0.885], [0.43, -0.82], [0.53, -0.68], [0.59, -0.48], [0.6, -0.3], [0.57, -0.17], [0.47, -0.09], [0.28, -0.055], [0, -0.05]];
-  const torso = add(rig, lathe(torsoProfile, 60), shellMat);
-  torso.scale.z = DEPTH;
+  const torsoProfile = new THREE.SplineCurve([[0, -0.9], [0.28, -0.885], [0.43, -0.82], [0.53, -0.68], [0.59, -0.48], [0.6, -0.3], [0.57, -0.17], [0.47, -0.09], [0.28, -0.055], [0, -0.05]].map(([x, y]) => new THREE.Vector2(x, y))).getPoints(modest ? 160 : 300);
   const torsoR = (y) => {
     for (let i = 0; i < torsoProfile.length - 1; i++) {
-      const [r0, y0] = torsoProfile[i], [r1, y1] = torsoProfile[i + 1];
-      if (y >= y0 && y <= y1) return r0 + ((y - y0) / (y1 - y0)) * (r1 - r0);
+      const a = torsoProfile[i], b = torsoProfile[i + 1];
+      if (y >= a.y && y <= b.y) return a.x + ((y - a.y) / (b.y - a.y || 1)) * (b.x - a.x);
     }
     return 0.3;
   };
-  // Punto sobre la superficie del frente del torso.
   const onTorso = (x, y, lift = 0) => {
     const r = torsoR(y);
     const z = DEPTH * Math.sqrt(Math.max(0, r * r - x * x));
     return new THREE.Vector3(x, y, z + lift);
   };
-  const seam = new THREE.MeshStandardMaterial({ color: 0x7d8693, roughness: 0.5, metalness: 0.3 });
-  // Escote: hueco en trapecio con piezas oscuras y una luz cian adentro.
-  const notch = new THREE.Shape();
-  notch.moveTo(-0.2, 0); notch.lineTo(0.2, 0); notch.lineTo(0.12, -0.17); notch.lineTo(-0.12, -0.17); notch.closePath();
-  const neckHole = add(rig, new THREE.ExtrudeGeometry(notch, { depth: 0.06, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 4 }), darkMetal);
-  const nh = onTorso(0, -0.16);
-  neckHole.position.set(0, -0.08, nh.z - 0.085);
-  neckHole.rotation.x = -0.2;
-  // Piezas oscuras y luz dentro del escote.
-  add(rig, new THREE.BoxGeometry(0.11, 0.045, 0.03), metal, [0, -0.15, nh.z - 0.035], [-0.2, 0, 0]);
-  [-1, 1].forEach((side) => add(rig, new THREE.CylinderGeometry(0.02, 0.02, 0.08, 12), metal, [side * 0.085, -0.15, nh.z - 0.04], [-0.2, 0, 0]));
-  add(rig, new THREE.BoxGeometry(0.15, 0.014, 0.01), chestMaterial, [0, -0.2, nh.z - 0.03], [-0.2, 0, 0]);
-  // Borde del escote (filo claro).
-  add(rig, tube([[-0.22, -0.07], [-0.14, -0.25], [0.14, -0.25], [0.22, -0.07]].map(([x, y]) => onTorso(x, y, 0.004)), 0.009), seam);
-  // Placa del frente: línea de ensamble en U, de los hombros al centro de abajo.
-  [-1, 1].forEach((side) => {
-    const u = [[0.2, -0.08], [0.4, -0.16], [0.47, -0.34], [0.43, -0.55], [0.3, -0.7], [0.12, -0.77], [0.0, -0.785]];
-    add(rig, tube(u.map(([x, y]) => onTorso(side * x, y, 0.003)), 0.006), seam);
-    // Franja de luz: baja casi vertical y al final dobla hacia adentro.
-    const strip = [[0.33, -0.2], [0.355, -0.32], [0.35, -0.46], [0.31, -0.57], [0.24, -0.62], [0.15, -0.64]];
-    add(rig, tube(strip.map(([x, y]) => onTorso(side * x, y, 0.006)), 0.017), chestMaterial);
-    add(rig, tube(strip.map(([x, y]) => onTorso(side * x, y, 0.002)), 0.03), glowSoft);
-    // Tres ranuras cortas en diagonal junto a la franja.
-    [0, 1, 2].forEach((i) => {
-      const a = onTorso(side * (0.2 + i * 0.035), -0.3 - i * 0.012, 0.002);
-      const b = onTorso(side * (0.23 + i * 0.035), -0.42 - i * 0.012, 0.002);
-      add(rig, tube([a, a.clone().lerp(b, 0.5), b], 0.0045), darkMetal);
-    });
+  // Recorridos en el frente (x, y). Simétricos a ambos lados.
+  const mirror = (pts) => [pts, pts.map(([x, y]) => [-x, y])];
+  const U = [[0.2, -0.08], [0.4, -0.16], [0.47, -0.34], [0.43, -0.55], [0.3, -0.7], [0.12, -0.77], [0.0, -0.785]];
+  const STRIP = [[0.33, -0.2], [0.355, -0.32], [0.35, -0.46], [0.31, -0.57], [0.24, -0.62], [0.15, -0.64]];
+  const VENTS = [0, 1, 2].map((i) => [[0.2 + i * 0.035, -0.3 - i * 0.012], [0.23 + i * 0.035, -0.42 - i * 0.012]]);
+  const NOTCH = [[-0.2, -0.062], [0.2, -0.062], [0.12, -0.235], [-0.12, -0.235]];
+  const grooves = [
+    ...mirror(U).map((p) => ({ p, w: 0.026, d: 0.014, dark: 0.45 })),
+    ...mirror(STRIP).map((p) => ({ p, w: 0.052, d: 0.026, dark: 0.25 })),
+    ...VENTS.flatMap((v) => mirror(v)).map((p) => ({ p, w: 0.021, d: 0.012, dark: 0.5 })),
+    // Borde del escote: un filo hundido alrededor del hueco.
+    { p: [...NOTCH, NOTCH[0]], w: 0.02, d: 0.012, dark: 0.3 },
+  ];
+  // Distancia de un punto a un recorrido (polilínea suavizada).
+  const smoothPath = (pts) => new THREE.SplineCurve(pts.map(([x, y]) => new THREE.Vector2(x, y))).getPoints(Math.max(8, pts.length * 10));
+  grooves.forEach((g) => {
+    g.pts = g.p.length > 2 && g !== grooves[grooves.length - 1] ? smoothPath(g.p) : g.p.map(([x, y]) => new THREE.Vector2(x, y));
+    // Caja del recorrido: los vértices lejos ni se miden.
+    g.box = g.pts.reduce((b, q) => [Math.min(b[0], q.x), Math.min(b[1], q.y), Math.max(b[2], q.x), Math.max(b[3], q.y)], [Infinity, Infinity, -Infinity, -Infinity]).map((v, i) => v + (i < 2 ? -g.w : g.w));
   });
+  const distTo = (pts, x, y) => {
+    let best = Infinity;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      const vx = b.x - a.x, vy = b.y - a.y;
+      const t = Math.max(0, Math.min(1, ((x - a.x) * vx + (y - a.y) * vy) / (vx * vx + vy * vy || 1)));
+      const dx = a.x + vx * t - x, dy = a.y + vy * t - y;
+      best = Math.min(best, dx * dx + dy * dy);
+    }
+    return Math.sqrt(best);
+  };
+  const insideNotch = (x, y) => {
+    let inside = false;
+    for (let i = 0, j = NOTCH.length - 1; i < NOTCH.length; j = i++) {
+      const [xi, yi] = NOTCH[i], [xj, yj] = NOTCH[j];
+      if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  };
+  const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  // El frente (donde va el tallado) con muchos más vértices que la espalda.
+  const FRONT = 1.7;
+  const torsoGeo = new THREE.LatheGeometry(torsoProfile, modest ? 420 : 760, -FRONT, FRONT * 2);
+  const torsoBack = new THREE.LatheGeometry(torsoProfile, 90, FRONT, Math.PI * 2 - FRONT * 2);
+  {
+    const pos = torsoGeo.attributes.position;
+    const colors = new Float32Array(pos.count * 3);
+    const v = new THREE.Vector3();
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i);
+      let push = 0, shade = 1;
+      if (v.z > 0.02) {
+        for (const g of grooves) {
+          if (v.x < g.box[0] || v.y < g.box[1] || v.x > g.box[2] || v.y > g.box[3]) continue;
+          const d = distTo(g.pts, v.x, v.y);
+          if (d < g.w / 2) {
+            // Canal de perfil redondeado.
+            const k = Math.pow(Math.cos((d / (g.w / 2)) * Math.PI / 2), 0.7);
+            if (g.d * k > push) { push = g.d * k; shade = 1 - (1 - g.dark) * k; }
+          }
+        }
+        // Escote: hueco profundo con paredes.
+        if (v.y > -0.25 && Math.abs(v.x) < 0.21 && insideNotch(v.x, v.y)) {
+          const edge = Math.min(...NOTCH.map((a, j) => distTo([new THREE.Vector2(...a), new THREE.Vector2(...NOTCH[(j + 1) % NOTCH.length])], v.x, v.y)));
+          const k = sstep(0.004, 0.02, edge);
+          if (0.09 * k > push) { push = 0.09 * k; shade = 1 - 0.8 * k; }
+        }
+      }
+      if (push > 0) {
+        const r = Math.hypot(v.x, v.z) || 1;
+        // Hacia adentro (en el sistema del torno; el frente se aplana después).
+        v.x -= (v.x / r) * push;
+        v.z -= (v.z / r) * (push / DEPTH);
+        pos.setXYZ(i, v.x, v.y, v.z);
+      }
+      colors[i * 3] = colors[i * 3 + 1] = colors[i * 3 + 2] = shade;
+    }
+    torsoGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    torsoGeo.computeVertexNormals();
+  }
+  const torso = add(rig, torsoGeo, shellMat);
+  torso.scale.z = DEPTH;
+  add(rig, torsoBack, Object.assign(shellMat.clone(), { vertexColors: false })).scale.z = DEPTH;
+  // Neón azul en el fondo de los canales de las franjas.
+  for (const p of mirror(STRIP)) add(rig, tube(p.map(([x, y]) => onTorso(x, y, -0.018)), 0.02), glow);
+  // Piezas oscuras y luz en el fondo del escote.
+  const nh = onTorso(0, -0.15);
+  add(rig, new THREE.BoxGeometry(0.12, 0.05, 0.03), metal, [0, -0.15, nh.z - 0.075], [-0.2, 0, 0]);
+  [-1, 1].forEach((side) => add(rig, new THREE.CylinderGeometry(0.022, 0.022, 0.09, 12), metal, [side * 0.075, -0.15, nh.z - 0.08], [-0.2, 0, 0]));
+  add(rig, new THREE.BoxGeometry(0.14, 0.014, 0.012), chestMaterial, [0, -0.2, nh.z - 0.07], [-0.2, 0, 0]);
   // Puertos de los hombros: aro oscuro hundido con un arco de luz cian abajo.
   [-1, 1].forEach((side) => {
     const port = new THREE.Group();
@@ -651,7 +709,7 @@ function makeRobot() {
   // Filo metálico abajo, junta oscura y pelvis clara con luz al costado.
   add(rig, new THREE.TorusGeometry(0.3, 0.03, 12, seg), metal, [0, -0.875, 0], [Math.PI / 2, 0, 0]).scale.set(1, DEPTH, 1);
   add(rig, new THREE.CylinderGeometry(0.24, 0.26, 0.08, seg), darkMetal, [0, -0.92, 0]).scale.set(1, 1, 0.85);
-  const pelvis = add(rig, lathe([[0, -1.03], [0.22, -1.02], [0.33, -0.98], [0.35, -0.94], [0.3, -0.92], [0, -0.92]]), shellMat);
+  const pelvis = add(rig, lathe([[0, -1.03], [0.22, -1.02], [0.33, -0.98], [0.35, -0.94], [0.3, -0.92], [0, -0.92]]), Object.assign(shellMat.clone(), { vertexColors: false }));
   pelvis.scale.z = 0.8;
   [-1, 1].forEach((side) => add(rig, new THREE.CapsuleGeometry(0.012, 0.06, 4, 8), chestMaterial, [side * 0.32, -0.97, 0.12], [0, 0, Math.PI / 2 + side * 0.2]));
 
