@@ -586,37 +586,80 @@ function makeRobot() {
   // ── Cuello de anillos oscuros.
   [0.08, 0.01, -0.06].forEach((y, i) => add(rig, new THREE.CylinderGeometry(0.15 + i * 0.015, 0.16 + i * 0.015, 0.06, seg), i === 1 ? metal : darkMetal, [0, y, 0]));
 
-  // ── Torso: pecho blanco, placa gris y líneas de luz.
-  const chestProfile = [[0, -0.6], [0.32, -0.59], [0.43, -0.47], [0.51, -0.28], [0.5, -0.14], [0.36, -0.09], [0, -0.08]];
-  const chest = add(rig, lathe(chestProfile), white);
-  chest.scale.z = 0.78;
-  const chestZ = (x, y) => {
-    // Radio del torso a esa altura (interpolado) → profundidad del frente.
-    let r = 0.5;
-    for (let i = 0; i < chestProfile.length - 1; i++) {
-      const [r0, y0] = chestProfile[i], [r1, y1] = chestProfile[i + 1];
-      if (y >= y0 && y <= y1) r = r0 + ((y - y0) / (y1 - y0)) * (r1 - r0);
+  // ── Torso (como la referencia): una coraza en forma de escudo, gris claro
+  // satinado; escote hundido con piezas oscuras y luz; placa del frente con
+  // líneas de ensamble en U; dos franjas de luz que bajan y doblan hacia
+  // adentro; ranuras en diagonal; puertos de los hombros a los lados; filo
+  // metálico abajo, junta oscura y pelvis con luz.
+  const shellMat = new THREE.MeshPhysicalMaterial({ color: 0xc6ccd4, roughness: 0.34, metalness: 0.08, clearcoat: 0.5, clearcoatRoughness: 0.2, sheen: 0.2, sheenColor: 0xdfe8ff, envMapIntensity: 1.0 });
+  const DEPTH = 0.74; // el frente es más plano que los lados
+  const torsoProfile = [[0, -0.9], [0.28, -0.885], [0.43, -0.82], [0.53, -0.68], [0.59, -0.48], [0.6, -0.3], [0.57, -0.17], [0.47, -0.09], [0.28, -0.055], [0, -0.05]];
+  const torso = add(rig, lathe(torsoProfile, 60), shellMat);
+  torso.scale.z = DEPTH;
+  const torsoR = (y) => {
+    for (let i = 0; i < torsoProfile.length - 1; i++) {
+      const [r0, y0] = torsoProfile[i], [r1, y1] = torsoProfile[i + 1];
+      if (y >= y0 && y <= y1) return r0 + ((y - y0) / (y1 - y0)) * (r1 - r0);
     }
-    return 0.78 * Math.sqrt(Math.max(0, r * r - x * x));
+    return 0.3;
   };
-  // Placa del cuello (gris) y líneas de luz en el pecho, como en la referencia.
-  add(rig, new THREE.BoxGeometry(0.2, 0.08, 0.05), metal, [0, -0.13, chestZ(0, -0.13) - 0.005], [-0.25, 0, 0]);
+  // Punto sobre la superficie del frente del torso.
+  const onTorso = (x, y, lift = 0) => {
+    const r = torsoR(y);
+    const z = DEPTH * Math.sqrt(Math.max(0, r * r - x * x));
+    return new THREE.Vector3(x, y, z + lift);
+  };
+  const seam = new THREE.MeshStandardMaterial({ color: 0x7d8693, roughness: 0.5, metalness: 0.3 });
+  // Escote: hueco en trapecio con piezas oscuras y una luz cian adentro.
+  const notch = new THREE.Shape();
+  notch.moveTo(-0.2, 0); notch.lineTo(0.2, 0); notch.lineTo(0.12, -0.17); notch.lineTo(-0.12, -0.17); notch.closePath();
+  const neckHole = add(rig, new THREE.ExtrudeGeometry(notch, { depth: 0.06, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 4 }), darkMetal);
+  const nh = onTorso(0, -0.16);
+  neckHole.position.set(0, -0.08, nh.z - 0.085);
+  neckHole.rotation.x = -0.2;
+  // Piezas oscuras y luz dentro del escote.
+  add(rig, new THREE.BoxGeometry(0.11, 0.045, 0.03), metal, [0, -0.15, nh.z - 0.035], [-0.2, 0, 0]);
+  [-1, 1].forEach((side) => add(rig, new THREE.CylinderGeometry(0.02, 0.02, 0.08, 12), metal, [side * 0.085, -0.15, nh.z - 0.04], [-0.2, 0, 0]));
+  add(rig, new THREE.BoxGeometry(0.15, 0.014, 0.01), chestMaterial, [0, -0.2, nh.z - 0.03], [-0.2, 0, 0]);
+  // Borde del escote (filo claro).
+  add(rig, tube([[-0.22, -0.07], [-0.14, -0.25], [0.14, -0.25], [0.22, -0.07]].map(([x, y]) => onTorso(x, y, 0.004)), 0.009), seam);
+  // Placa del frente: línea de ensamble en U, de los hombros al centro de abajo.
   [-1, 1].forEach((side) => {
-    const pts = [[0.3, -0.16], [0.22, -0.26], [0.12, -0.35], [0.06, -0.44]].map(([x, y]) => new THREE.Vector3(side * x, y, chestZ(x, y) + 0.004));
-    add(rig, tube(pts, 0.012), chestMaterial);
+    const u = [[0.2, -0.08], [0.4, -0.16], [0.47, -0.34], [0.43, -0.55], [0.3, -0.7], [0.12, -0.77], [0.0, -0.785]];
+    add(rig, tube(u.map(([x, y]) => onTorso(side * x, y, 0.003)), 0.006), seam);
+    // Franja de luz: baja casi vertical y al final dobla hacia adentro.
+    const strip = [[0.33, -0.2], [0.355, -0.32], [0.35, -0.46], [0.31, -0.57], [0.24, -0.62], [0.15, -0.64]];
+    add(rig, tube(strip.map(([x, y]) => onTorso(side * x, y, 0.006)), 0.017), chestMaterial);
+    add(rig, tube(strip.map(([x, y]) => onTorso(side * x, y, 0.002)), 0.03), glowSoft);
+    // Tres ranuras cortas en diagonal junto a la franja.
+    [0, 1, 2].forEach((i) => {
+      const a = onTorso(side * (0.2 + i * 0.035), -0.3 - i * 0.012, 0.002);
+      const b = onTorso(side * (0.23 + i * 0.035), -0.42 - i * 0.012, 0.002);
+      add(rig, tube([a, a.clone().lerp(b, 0.5), b], 0.0045), darkMetal);
+    });
   });
-  // Abdomen de metal por segmentos y cadera blanca.
-  const belly = add(rig, lathe([[0, -0.86], [0.27, -0.85], [0.3, -0.75], [0.29, -0.63], [0.25, -0.58], [0, -0.58]]), metal);
-  belly.scale.z = 0.82;
-  [-0.64, -0.71, -0.78].forEach((y) => add(rig, new THREE.TorusGeometry(0.295, 0.016, 8, seg), darkMetal, [0, y, 0], [Math.PI / 2, 0, 0]).scale.set(1, 0.82, 1));
-  const hips = add(rig, lathe([[0, -1.0], [0.24, -0.99], [0.35, -0.93], [0.36, -0.86], [0, -0.85]]), white);
-  hips.scale.z = 0.8;
+  // Puertos de los hombros: aro oscuro hundido con un arco de luz cian abajo.
+  [-1, 1].forEach((side) => {
+    const port = new THREE.Group();
+    port.position.set(side * 0.565, -0.27, 0.02);
+    port.rotation.y = (side * Math.PI) / 2;
+    rig.add(port);
+    add(port, new THREE.CylinderGeometry(0.2, 0.2, 0.06, seg), black, [0, 0, 0], [Math.PI / 2, 0, 0]);
+    add(port, new THREE.TorusGeometry(0.2, 0.035, 14, seg), darkMetal, [0, 0, 0.02]);
+    add(port, new THREE.TorusGeometry(0.155, 0.014, 10, seg, Math.PI * 0.75), chestMaterial, [0, 0, 0.03], [0, 0, Math.PI * 1.125]);
+  });
+  // Filo metálico abajo, junta oscura y pelvis clara con luz al costado.
+  add(rig, new THREE.TorusGeometry(0.3, 0.03, 12, seg), metal, [0, -0.875, 0], [Math.PI / 2, 0, 0]).scale.set(1, DEPTH, 1);
+  add(rig, new THREE.CylinderGeometry(0.24, 0.26, 0.08, seg), darkMetal, [0, -0.92, 0]).scale.set(1, 1, 0.85);
+  const pelvis = add(rig, lathe([[0, -1.03], [0.22, -1.02], [0.33, -0.98], [0.35, -0.94], [0.3, -0.92], [0, -0.92]]), shellMat);
+  pelvis.scale.z = 0.8;
+  [-1, 1].forEach((side) => add(rig, new THREE.CapsuleGeometry(0.012, 0.06, 4, 8), chestMaterial, [side * 0.32, -0.97, 0.12], [0, 0, Math.PI / 2 + side * 0.2]));
 
   // ── Brazos: hombrera blanca con luz, brazo gris, codo, antebrazo blindado y mano.
   const HAND = -0.8;
   const arms = [-1, 1].map((side) => {
     const pivot = new THREE.Group();
-    pivot.position.set(side * 0.6, -0.2, 0);
+    pivot.position.set(side * 0.72, -0.22, 0);
     const pad = add(pivot, new THREE.SphereGeometry(0.215, seg, seg / 2), white, [side * 0.03, 0.02, 0]);
     pad.scale.set(1.08, 0.95, 1);
     add(pivot, tube([[0.12, 0.14], [0.17, 0.04], [0.16, -0.08]].map(([a, b]) => new THREE.Vector3(side * (0.03 + a * 0.5), b, 0.18)), 0.01), chestMaterial);
