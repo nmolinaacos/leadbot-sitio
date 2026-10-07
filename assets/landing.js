@@ -1227,6 +1227,10 @@ function setupScene(canvas) {
     robot.ring.material.opacity = 0.55 + Math.sin(t * 4) * 0.15 + arc * 0.3;
 
     if (portrait !== null) {
+      // De pie, en reposo y sin objetos (como la imagen de referencia).
+      robot.arms[0].rotation.set(0.08, 0, -0.22);
+      robot.arms[1].rotation.set(-0.1, 0, 0.3);
+      robot.mug.scale.setScalar(0.001);
       root.position.set(0, 0, 0);
       root.scale.setScalar(root.userData.base * portraitScale);
       robot.rig.rotation.set(0.05, portrait, 0);
@@ -1237,7 +1241,7 @@ function setupScene(canvas) {
     robot.ring.getWorldPosition(ringWorld);
 
     // Cada acto con su objeto; aparecen y se guardan al cambiar de acto.
-    const weights = Array.from({ length: LAST + 1 }, (_, s) => (k === s ? 1 - mix : 0) + (next === s && next !== k ? mix : 0));
+    const weights = Array.from({ length: LAST + 1 }, (_, s) => (portrait !== null ? 0 : (k === s ? 1 - mix : 0) + (next === s && next !== k ? mix : 0)));
     updateProps(weights, t);
     // Le llega un mensaje al celular: la antena destella.
     if (weights[0] + weights[2] > 0.5 && Math.floor(t / 2.4) !== lastPing) {
