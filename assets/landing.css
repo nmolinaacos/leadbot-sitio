@@ -140,9 +140,11 @@ h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.02em; text-wrap: ba
 .hero-tarjetas .estado { font-size: clamp(12px, 0.85vw, 14px); }
 /* Abanico quieto (sin animaciones); con animaciones lo arma landing.js
    (si no, GSAP sumaría esta posición a la suya). */
-html:not(.anim) .hero-tarjetas .t-wa { transform: translate(-36%, 34px) rotate(-6deg); }
-html:not(.anim) .hero-tarjetas .t-ms { transform: translate(36%, 34px) rotate(6deg); }
-html:not(.anim) .hero-tarjetas .t-ig { transform: translateY(-10px); }
+/* Escalera: WhatsApp arriba, Instagram encima de su mitad, Messenger encima de la de Instagram. */
+.hero-tarjetas .t-wa { z-index: 1; } .hero-tarjetas .t-ig { z-index: 2; } .hero-tarjetas .t-ms { z-index: 3; }
+html:not(.anim) .hero-tarjetas .t-wa { transform: translate(-36%, 0) rotate(-4deg); }
+html:not(.anim) .hero-tarjetas .t-ig { transform: translateY(85px); }
+html:not(.anim) .hero-tarjetas .t-ms { transform: translate(36%, 170px) rotate(4deg); }
 .titular em { color: var(--text); background: linear-gradient(100deg, var(--accent-2), #fff 45%, var(--warm)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; padding-right: 0.06em; }
 .titular .palabra { display: inline-block; }
 .desliza { position: absolute; left: var(--gutter); bottom: 32px; display: flex; align-items: center; gap: 12px; font: 500 11px var(--mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
@@ -269,8 +271,8 @@ html:not(.anim) .hero-tarjetas .t-ig { transform: translateY(-10px); }
   .hero-tarjetas .tarjeta b { margin-top: 6px; font-size: 15px; }
   .hero-tarjetas .tarjeta p { margin: 0 0 8px; font-size: 13px; }
   html:not(.anim) .hero-tarjetas .t-wa { transform: translate(6%, 0) rotate(1.5deg); }
-  html:not(.anim) .hero-tarjetas .t-ms { transform: translate(0, 44px) rotate(-1deg); }
-  html:not(.anim) .hero-tarjetas .t-ig { transform: translate(-6%, 88px) rotate(-1.5deg); }
+  html:not(.anim) .hero-tarjetas .t-ig { transform: translate(0, 44px) rotate(-1deg); }
+  html:not(.anim) .hero-tarjetas .t-ms { transform: translate(-6%, 88px) rotate(-1.5deg); }
   .hero .bajada { margin-top: 16px; font-size: 15px; }
   .hero .acciones { margin-top: 24px; flex-wrap: nowrap; gap: 8px; }
   .hero .boton { min-height: 44px; padding: 0 16px; font-size: 14px; white-space: nowrap; }

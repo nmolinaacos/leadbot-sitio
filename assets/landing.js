@@ -188,12 +188,17 @@ function setupHero() {
   const mobile = innerWidth < 760;
   // Cuánto se abre el abanico: lo que permita la columna, para que las tres
   // quepan en su mitad sin montarse sobre el texto ni salirse de la pantalla.
-  const column = document.querySelector('.hero-tarjetas').clientWidth;
-  const card = document.querySelector('.hero-tarjetas .tarjeta').offsetWidth;
+  const stack = document.querySelector('.hero-tarjetas');
+  const column = stack.clientWidth;
+  const card = stack.querySelector('.tarjeta').offsetWidth;
   const spread = Math.round(Math.min(58, Math.max(26, ((column - card) / 2 / card) * 100 * 0.92)));
+  // En escalera: cada tarjeta baja media tarjeta y queda encima de la anterior,
+  // así se lee la red social de las tres. La caja crece para contenerlas.
+  const step = Math.round(Math.max(...[...stack.querySelectorAll('.tarjeta')].map((c) => c.offsetHeight)) / 2);
+  if (!mobile) stack.style.height = `${step * 4 + 24}px`;
   const fan = mobile
-    ? { '.t-wa': { xPercent: 6, y: 0, rotateZ: 1.5, rotateY: 0, z: 0 }, '.t-ms': { xPercent: 0, y: 44, rotateZ: -1, rotateY: 0, z: 0 }, '.t-ig': { xPercent: -6, y: 88, rotateZ: -1.5, rotateY: 0, z: 0 } }
-    : { '.t-wa': { xPercent: -spread, y: 34, rotateZ: -6, rotateY: 12, z: 0 }, '.t-ms': { xPercent: spread, y: 34, rotateZ: 6, rotateY: -12, z: 0 }, '.t-ig': { xPercent: 0, y: -14, rotateZ: 0, rotateY: 0, z: 60 } };
+    ? { '.t-wa': { xPercent: 6, y: 0, rotateZ: 1.5, rotateY: 0, z: 0 }, '.t-ig': { xPercent: 0, y: 44, rotateZ: -1, rotateY: 0, z: 0 }, '.t-ms': { xPercent: -6, y: 88, rotateZ: -1.5, rotateY: 0, z: 0 } }
+    : { '.t-wa': { xPercent: -spread, y: 0, rotateZ: -4, rotateY: 10, z: 0 }, '.t-ig': { xPercent: 0, y: step, rotateZ: 0, rotateY: 0, z: 0 }, '.t-ms': { xPercent: spread, y: step * 2, rotateZ: 4, rotateY: -10, z: 0 } };
   Object.entries(fan).forEach(([selector, end], i) => {
     tl.fromTo(`.hero-tarjetas ${selector}`, { opacity: 0, z: -700, xPercent: end.xPercent * 2.4, y: end.y + 80, rotateY: end.rotateY * 4, rotateX: -40 },
       { opacity: 1, ...end, rotateX: 0, duration: 1.4, ease: 'expo.out' }, 0.55 + i * 0.12);
