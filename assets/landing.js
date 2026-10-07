@@ -591,7 +591,7 @@ function makeRobot() {
   // reales en la malla, las franjas azules son canales con neón en el fondo
   // y el escote es un hueco con paredes. A los lados, los puertos de los
   // hombros; abajo, filo metálico, junta oscura y pelvis con luz.
-  const shellMat = new THREE.MeshPhysicalMaterial({ color: 0xc6ccd4, roughness: 0.34, metalness: 0.08, clearcoat: 0.5, clearcoatRoughness: 0.2, sheen: 0.2, sheenColor: 0xdfe8ff, envMapIntensity: 1.0, vertexColors: true });
+  const shellMat = new THREE.MeshPhysicalMaterial({ color: 0xc3c9d1, roughness: 0.27, metalness: 0.3, clearcoat: 0.75, clearcoatRoughness: 0.12, sheen: 0.15, sheenColor: 0xdfe8ff, envMapIntensity: 1.45, vertexColors: true });
   const DEPTH = 0.74; // el frente es más plano que los lados
   const torsoProfile = new THREE.SplineCurve([[0, -0.9], [0.28, -0.885], [0.43, -0.82], [0.53, -0.68], [0.59, -0.48], [0.6, -0.3], [0.57, -0.17], [0.47, -0.09], [0.28, -0.055], [0, -0.05]].map(([x, y]) => new THREE.Vector2(x, y))).getPoints(modest ? 160 : 300);
   const torsoR = (y) => {
@@ -610,11 +610,16 @@ function makeRobot() {
   const mirror = (pts) => [pts, pts.map(([x, y]) => [-x, y])];
   const U = [[0.2, -0.08], [0.4, -0.16], [0.47, -0.34], [0.43, -0.55], [0.3, -0.7], [0.12, -0.77], [0.0, -0.785]];
   const STRIP = [[0.33, -0.2], [0.355, -0.32], [0.35, -0.46], [0.31, -0.57], [0.24, -0.62], [0.15, -0.64]];
+  // Líneas de ensamble extra a los costados del pecho y una banda baja.
+  const SIDE = [[0.47, -0.1], [0.55, -0.24], [0.565, -0.4], [0.52, -0.58], [0.43, -0.72]];
+  const LOW = [[0.28, -0.8], [0.14, -0.835], [0, -0.845]];
   const VENTS = [0, 1, 2].map((i) => [[0.2 + i * 0.035, -0.3 - i * 0.012], [0.23 + i * 0.035, -0.42 - i * 0.012]]);
   const NOTCH = [[-0.2, -0.062], [0.2, -0.062], [0.12, -0.235], [-0.12, -0.235]];
   const grooves = [
     ...mirror(U).map((p) => ({ p, w: 0.026, d: 0.014, dark: 0.45 })),
-    ...mirror(STRIP).map((p) => ({ p, w: 0.052, d: 0.026, dark: 0.25 })),
+    ...mirror(STRIP).map((p) => ({ p, w: 0.066, d: 0.032, dark: 0.25 })),
+    ...mirror(SIDE).map((p) => ({ p, w: 0.02, d: 0.011, dark: 0.5 })),
+    ...mirror(LOW).map((p) => ({ p, w: 0.02, d: 0.01, dark: 0.55 })),
     ...VENTS.flatMap((v) => mirror(v)).map((p) => ({ p, w: 0.021, d: 0.012, dark: 0.5 })),
     // Borde del escote: un filo hundido alrededor del hueco.
     { p: [...NOTCH, NOTCH[0]], w: 0.02, d: 0.012, dark: 0.3 },
@@ -690,21 +695,46 @@ function makeRobot() {
   torso.scale.z = DEPTH;
   add(rig, torsoBack, Object.assign(shellMat.clone(), { vertexColors: false })).scale.z = DEPTH;
   // Neón azul en el fondo de los canales de las franjas.
-  for (const p of mirror(STRIP)) add(rig, tube(p.map(([x, y]) => onTorso(x, y, -0.018)), 0.02), glow);
+  const halo = new THREE.MeshBasicMaterial({ color: 0x1fb4ff, toneMapped: false, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false });
+  for (const p of mirror(STRIP)) {
+    add(rig, tube(p.map(([x, y]) => onTorso(x, y, -0.02)), 0.026), glow);
+    // Halo: la luz se derrama un poco sobre los bordes del canal.
+    add(rig, tube(p.map(([x, y]) => onTorso(x, y, 0.006)), 0.05), halo);
+    add(rig, tube(p.map(([x, y]) => onTorso(x, y, 0.01)), 0.085), Object.assign(halo.clone(), { opacity: 0.1 }));
+  }
   // Piezas oscuras y luz en el fondo del escote.
   const nh = onTorso(0, -0.15);
-  add(rig, new THREE.BoxGeometry(0.12, 0.05, 0.03), metal, [0, -0.15, nh.z - 0.075], [-0.2, 0, 0]);
-  [-1, 1].forEach((side) => add(rig, new THREE.CylinderGeometry(0.022, 0.022, 0.09, 12), metal, [side * 0.075, -0.15, nh.z - 0.08], [-0.2, 0, 0]));
-  add(rig, new THREE.BoxGeometry(0.14, 0.014, 0.012), chestMaterial, [0, -0.2, nh.z - 0.07], [-0.2, 0, 0]);
+  const inner = new THREE.Group();
+  inner.position.set(0, -0.148, nh.z - 0.078);
+  inner.rotation.x = -0.2;
+  rig.add(inner);
+  // Fondo oscuro con costillas, un conector redondo con anillo, tubos y luces.
+  add(inner, new THREE.BoxGeometry(0.3, 0.16, 0.01), darkMetal, [0, 0, -0.012]);
+  [-0.1, -0.06, 0.06, 0.1].forEach((x) => add(inner, new THREE.BoxGeometry(0.012, 0.12, 0.02), metal, [x, 0, 0]));
+  add(inner, new THREE.CylinderGeometry(0.042, 0.042, 0.03, 32), metal, [0, 0.01, 0.01], [Math.PI / 2, 0, 0]);
+  add(inner, new THREE.TorusGeometry(0.042, 0.008, 10, 32), chestMaterial, [0, 0.01, 0.027]);
+  add(inner, new THREE.CylinderGeometry(0.018, 0.018, 0.03, 20), darkMetal, [0, 0.01, 0.03], [Math.PI / 2, 0, 0]);
+  add(inner, new THREE.CylinderGeometry(0.01, 0.01, 0.22, 12), metal, [0, -0.055, 0.008], [0, 0, Math.PI / 2]);
+  add(inner, new THREE.CylinderGeometry(0.008, 0.008, 0.18, 12), darkMetal, [0, 0.06, 0.006], [0, 0, Math.PI / 2]);
+  [-1, 1].forEach((side) => add(inner, new THREE.SphereGeometry(0.009, 10, 8), glow, [side * 0.08, 0.05, 0.016]));
+  add(inner, new THREE.BoxGeometry(0.15, 0.012, 0.01), glow, [0, -0.07, 0.014]);
   // Puertos de los hombros: aro oscuro hundido con un arco de luz cian abajo.
   [-1, 1].forEach((side) => {
     const port = new THREE.Group();
-    port.position.set(side * 0.565, -0.27, 0.02);
+    port.position.set(side * 0.575, -0.28, 0.03);
     port.rotation.y = (side * Math.PI) / 2;
     rig.add(port);
-    add(port, new THREE.CylinderGeometry(0.2, 0.2, 0.06, seg), black, [0, 0, 0], [Math.PI / 2, 0, 0]);
-    add(port, new THREE.TorusGeometry(0.2, 0.035, 14, seg), darkMetal, [0, 0, 0.02]);
-    add(port, new THREE.TorusGeometry(0.155, 0.014, 10, seg, Math.PI * 0.75), chestMaterial, [0, 0, 0.03], [0, 0, Math.PI * 1.125]);
+    // Hueco profundo, aro grueso, rotor con tornillos y un arco de luz largo.
+    add(port, new THREE.CylinderGeometry(0.25, 0.25, 0.08, seg), black, [0, 0, -0.01], [Math.PI / 2, 0, 0]);
+    add(port, new THREE.TorusGeometry(0.25, 0.045, 16, seg), darkMetal, [0, 0, 0.025]);
+    add(port, new THREE.TorusGeometry(0.205, 0.012, 10, seg), metal, [0, 0, 0.03]);
+    add(port, new THREE.CylinderGeometry(0.12, 0.12, 0.04, seg), darkMetal, [0, 0, 0.02], [Math.PI / 2, 0, 0]);
+    for (let b = 0; b < 6; b++) {
+      const a = (b / 6) * Math.PI * 2;
+      add(port, new THREE.CylinderGeometry(0.012, 0.012, 0.02, 10), metal, [Math.cos(a) * 0.09, Math.sin(a) * 0.09, 0.045], [Math.PI / 2, 0, 0]);
+    }
+    add(port, new THREE.TorusGeometry(0.175, 0.016, 10, seg, Math.PI * 1.05), glow, [0, 0, 0.035], [0, 0, Math.PI * 0.975]);
+    add(port, new THREE.TorusGeometry(0.175, 0.04, 10, seg, Math.PI * 1.05), halo, [0, 0, 0.04], [0, 0, Math.PI * 0.975]);
   });
   // Filo metálico abajo, junta oscura y pelvis clara con luz al costado.
   add(rig, new THREE.TorusGeometry(0.3, 0.03, 12, seg), metal, [0, -0.875, 0], [Math.PI / 2, 0, 0]).scale.set(1, DEPTH, 1);
