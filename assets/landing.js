@@ -489,7 +489,10 @@ function setupScene(canvas) {
       const box = element.getBoundingClientRect();
       const h = halfHeight();
       const robotPx = ((2.7 * s) / (2 * h)) * innerHeight;
-      const py = box.bottom + 24 + robotPx / 2;
+      let py = box.bottom + 24 + robotPx / 2;
+      // Nunca por debajo del borde de arriba del pie (pantallas bajitas).
+      const footer = document.querySelector('.pie');
+      if (footer) py = Math.min(py, footer.getBoundingClientRect().top - 12 - robotPx / 2);
       placed.y = (1 - (2 * py) / innerHeight) * h;
       if (!wide) placed.x = ((2 * (box.left + box.width * 0.78)) / innerWidth - 1) * h * camera.aspect;
     }
