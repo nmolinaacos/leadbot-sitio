@@ -1,15 +1,13 @@
 // Leadbot: la historia del inicio contada con el scroll.
 // - Lenis suaviza el scroll; GSAP + ScrollTrigger fijan cada acto y animan el DOM.
-// - Three.js dibuja un objeto 3D de redes sociales que baja con el scroll
-//   (canvas fijo, encima del texto, sin capturar el mouse). Cada acto tiene el
-//   suyo (data-estado 0..5): burbuja de chat · campana · robot (el bot) ·
-//   corazón · bolsa de compras · sello de confirmado. Entre un acto y otro el
-//   objeto se deshace en partículas que cruzan la pantalla por encima del
-//   texto, acercándose a la cámara, y se arman en el siguiente al otro lado.
+// - Three.js dibuja a Leadbot, un robot 3D que acompaña toda la página
+//   (canvas fijo, encima del texto, sin capturar el mouse). En cada acto
+//   (data-estado 0..6) se ubica a un lado, hace algo (saluda, toma café,
+//   escribe, hace malabares con los chats…) y le habla al visitante en un
+//   globo. Entre actos vuela por encima del texto hasta su nuevo lugar.
 // Con movimiento reducido o sin WebGL la página se ve completa y estática.
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { MeshSurfaceSampler } from 'three/addons/math/MeshSurfaceSampler.js';
 
 const { gsap, ScrollTrigger, Lenis } = window;
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -241,65 +239,17 @@ function setupStateAnchors() {
   };
 }
 
-// ── Objetos 3D ───────────────────────────────────────────────────────
+// ── Piezas del robot ─────────────────────────────────────────────────
 function glossy(color, extra = {}) {
-  return new THREE.MeshPhysicalMaterial({ color, roughness: 0.26, metalness: 0.05, clearcoat: 1, clearcoatRoughness: 0.12, transparent: true, ...extra });
+  return new THREE.MeshPhysicalMaterial({ color, roughness: 0.26, metalness: 0.05, clearcoat: 1, clearcoatRoughness: 0.12, ...extra });
 }
 
-// sizeRatio: qué tanto se ensancha el bisel (menos en formas con puntas
-// hacia adentro, como el corazón, para que no salgan picos).
-function extrude(shape, depth, bevel, sizeRatio = 0.85) {
-  const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel * sizeRatio, bevelSegments: 8, curveSegments: 32 });
+function extrude(shape, depth, bevel) {
+  const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel * 0.85, bevelSegments: 8, curveSegments: 32 });
   geometry.center();
   return geometry;
 }
 
-// Burbuja de chat con los tres puntos de "escribiendo".
-function makeBubble() {
-  const s = new THREE.Shape();
-  s.moveTo(-0.75, -0.95);
-  s.lineTo(-1.0, -1.5);
-  s.lineTo(-0.2, -0.95);
-  s.lineTo(0.75, -0.95);
-  s.quadraticCurveTo(1.3, -0.95, 1.3, -0.4);
-  s.lineTo(1.3, 0.4);
-  s.quadraticCurveTo(1.3, 0.95, 0.75, 0.95);
-  s.lineTo(-0.75, 0.95);
-  s.quadraticCurveTo(-1.3, 0.95, -1.3, 0.4);
-  s.lineTo(-1.3, -0.4);
-  s.quadraticCurveTo(-1.3, -0.95, -0.75, -0.95);
-  const group = new THREE.Group();
-  const body = new THREE.Mesh(extrude(s, 0.45, 0.2), glossy(0x4a78ff));
-  group.add(body);
-  const dot = glossy(0xffffff, { roughness: 0.2 });
-  [-0.55, 0, 0.55].forEach((x) => {
-    const d = new THREE.Mesh(new THREE.SphereGeometry(0.17, 32, 16), dot);
-    d.position.set(x, 0.18, 0.42);
-    group.add(d);
-  });
-  return { group, primary: body, color: new THREE.Color(0x6f95ff) };
-}
-
-// Campana de notificaciones con su globo rojo.
-function makeBell() {
-  const profile = [[0.001, -0.72], [1.02, -0.72], [1.0, -0.6], [0.78, -0.42], [0.64, -0.1], [0.58, 0.35], [0.48, 0.8], [0.3, 1.08], [0.001, 1.18]].map(([x, y]) => new THREE.Vector2(x, y));
-  const group = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.LatheGeometry(profile, 72), glossy(0xffb547));
-  group.add(body);
-  const knob = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.06, 16, 32), glossy(0xffb547));
-  knob.position.y = 1.3;
-  group.add(knob);
-  const clapper = new THREE.Mesh(new THREE.SphereGeometry(0.22, 32, 16), glossy(0xffd38a));
-  clapper.position.y = -0.86;
-  group.add(clapper);
-  const badge = new THREE.Mesh(new THREE.SphereGeometry(0.34, 32, 16), glossy(0xff4d5e));
-  badge.position.set(0.72, 0.78, 0.35);
-  group.add(badge);
-  group.rotation.z = 0.22;
-  return { group, primary: body, color: new THREE.Color(0xffb547) };
-}
-
-// Cabeza de robot: el bot de Leadbot, que responde.
 function roundedRect(w, h, r) {
   const s = new THREE.Shape();
   s.moveTo(-w / 2 + r, -h / 2);
@@ -314,107 +264,149 @@ function roundedRect(w, h, r) {
   return s;
 }
 
+// Globo de chat (los mensajes que le llegan al robot).
+function bubbleGeometry() {
+  const s = new THREE.Shape();
+  s.moveTo(-0.75, -0.95);
+  s.lineTo(-1.0, -1.5);
+  s.lineTo(-0.2, -0.95);
+  s.lineTo(0.75, -0.95);
+  s.quadraticCurveTo(1.3, -0.95, 1.3, -0.4);
+  s.lineTo(1.3, 0.4);
+  s.quadraticCurveTo(1.3, 0.95, 0.75, 0.95);
+  s.lineTo(-0.75, 0.95);
+  s.quadraticCurveTo(-1.3, 0.95, -1.3, 0.4);
+  s.lineTo(-1.3, -0.4);
+  s.quadraticCurveTo(-1.3, -0.95, -0.75, -0.95);
+  return extrude(s, 0.45, 0.2);
+}
+
+// Leadbot: cabeza con pantalla y ojos, antena, cuerpo, brazos que se mueven,
+// un anillo que lo hace flotar y una taza de café (solo de noche).
 function makeRobot() {
-  const group = new THREE.Group();
-  const head = new THREE.Mesh(extrude(roundedRect(2.3, 1.75, 0.55), 0.8, 0.28), glossy(0xe9eefc));
-  group.add(head);
+  const root = new THREE.Group();
+  const rig = new THREE.Group();
+  root.add(rig);
+  const white = glossy(0xeef2fc);
+  const blue = glossy(0x4a78ff);
+  const steel = glossy(0xb9c6ea);
+
+  const head = new THREE.Group();
+  head.position.y = 1.0;
+  rig.add(head);
+  head.add(new THREE.Mesh(extrude(roundedRect(2.3, 1.75, 0.55), 0.8, 0.28), white));
   const screen = new THREE.Mesh(extrude(roundedRect(1.75, 1.15, 0.38), 0.06, 0.05), glossy(0x0d1426, { roughness: 0.15 }));
   screen.position.z = 0.7;
-  group.add(screen);
-  const eye = glossy(0x6ff0ff, { emissive: 0x2bd8ff, emissiveIntensity: 1.4 });
-  [-0.42, 0.42].forEach((x) => {
-    const e = new THREE.Mesh(new THREE.CapsuleGeometry(0.13, 0.22, 6, 16), eye);
+  head.add(screen);
+  const eyeMaterial = glossy(0x6ff0ff, { emissive: 0x2bd8ff, emissiveIntensity: 1.4 });
+  const eyes = [-0.42, 0.42].map((x) => {
+    const e = new THREE.Mesh(new THREE.CapsuleGeometry(0.13, 0.22, 6, 16), eyeMaterial);
     e.position.set(x, 0.05, 0.8);
-    group.add(e);
+    e.userData.home = e.position.clone();
+    head.add(e);
+    return e;
   });
-  const ear = glossy(0x4a78ff);
   [-1.32, 1.32].forEach((x) => {
-    const e = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.3, 32), ear);
-    e.rotation.z = Math.PI / 2;
-    e.position.set(x, 0, 0);
-    group.add(e);
+    const ear = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.3, 32), blue);
+    ear.rotation.z = Math.PI / 2;
+    ear.position.x = x;
+    head.add(ear);
   });
-  const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.45, 16), glossy(0xb9c6ea));
-  stick.position.set(0, 1.12, 0);
-  group.add(stick);
-  const ball = new THREE.Mesh(new THREE.SphereGeometry(0.17, 32, 16), glossy(0xffb547, { emissive: 0xff8a00, emissiveIntensity: 0.4 }));
-  ball.position.set(0, 1.4, 0);
-  group.add(ball);
-  return { group, primary: head, color: new THREE.Color(0xc9d6ff) };
-}
+  const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.45, 16), steel);
+  stick.position.y = 1.12;
+  head.add(stick);
+  const ballMaterial = glossy(0xffb547, { emissive: 0xff8a00, emissiveIntensity: 0.4 });
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(0.17, 32, 16), ballMaterial);
+  ball.position.y = 1.4;
+  head.add(ball);
 
-// Corazón (me gusta): la curva clásica del corazón, suave en toda su forma.
-function makeHeart() {
-  const points = [];
-  for (let i = 0; i < 160; i++) {
-    const t = (i / 160) * Math.PI * 2;
-    const x = 16 * Math.pow(Math.sin(t), 3);
-    const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
-    points.push(new THREE.Vector2(x / 16, y / 16));
-  }
-  const group = new THREE.Group();
-  const body = new THREE.Mesh(extrude(new THREE.Shape(points), 0.45, 0.3, 0.3), glossy(0xff5c8a));
-  group.add(body);
-  return { group, primary: body, color: new THREE.Color(0xff6f98) };
-}
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 0.35, 32), steel);
+  neck.position.y = -0.05;
+  rig.add(neck);
+  const body = new THREE.Mesh(extrude(roundedRect(1.55, 1.15, 0.45), 0.75, 0.22), white);
+  body.position.y = -0.85;
+  rig.add(body);
+  const chestMaterial = glossy(0x4a78ff, { emissive: 0x2f6bff, emissiveIntensity: 0.6 });
+  const chest = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.06, 32), chestMaterial);
+  chest.rotation.x = Math.PI / 2;
+  chest.position.set(0, -0.78, 0.62);
+  rig.add(chest);
 
-// Bolsa de compras (la venta).
-function makeBag() {
-  const s = new THREE.Shape();
-  const w = 1.0, h = 1.05, r = 0.14;
-  s.moveTo(-w + r, -h);
-  s.lineTo(w - r, -h);
-  s.quadraticCurveTo(w, -h, w, -h + r);
-  s.lineTo(w * 0.9, h - r);
-  s.quadraticCurveTo(w * 0.9, h, w * 0.9 - r, h);
-  s.lineTo(-w * 0.9 + r, h);
-  s.quadraticCurveTo(-w * 0.9, h, -w * 0.9, h - r);
-  s.lineTo(-w, -h + r);
-  s.quadraticCurveTo(-w, -h, -w + r, -h);
-  const group = new THREE.Group();
-  const body = new THREE.Mesh(extrude(s, 0.7, 0.08), glossy(0x8e6bff));
-  group.add(body);
-  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.075, 16, 48, Math.PI), glossy(0xc9b8ff));
-  handle.position.set(0, 1.08, 0);
-  group.add(handle);
-  return { group, primary: body, color: new THREE.Color(0x9f82ff) };
-}
+  const arms = [-1, 1].map((side) => {
+    const pivot = new THREE.Group();
+    pivot.position.set(side * 1.02, -0.5, 0);
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.5, 8, 16), blue);
+    arm.position.y = -0.42;
+    pivot.add(arm);
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.19, 32, 16), white);
+    hand.position.y = -0.85;
+    pivot.add(hand);
+    rig.add(pivot);
+    return pivot;
+  });
 
-// Sello de "pedido confirmado".
-function makeSeal() {
-  const s = new THREE.Shape();
-  for (let i = 0; i <= 200; i++) {
-    const a = (i / 200) * Math.PI * 2;
-    const r = 1.2 + 0.08 * Math.cos(a * 14);
-    if (i === 0) s.moveTo(Math.cos(a) * r, Math.sin(a) * r);
-    else s.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-  }
-  const group = new THREE.Group();
-  const body = new THREE.Mesh(extrude(s, 0.3, 0.12), glossy(0x3fd68f));
-  group.add(body);
-  const check = new THREE.Shape([[-0.6, 0.02], [-0.42, 0.2], [-0.16, -0.06], [0.44, 0.54], [0.62, 0.36], [-0.16, -0.42]].map(([x, y]) => new THREE.Vector2(x, y)));
-  const mark = new THREE.Mesh(extrude(check, 0.12, 0.05), glossy(0xffffff));
-  mark.position.set(0, -0.04, 0.3);
-  group.add(mark);
-  return { group, primary: body, color: new THREE.Color(0x52e3a0) };
-}
+  // Taza de café en la mano izquierda (la noche: no duerme).
+  const mug = new THREE.Group();
+  const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.17, 0.36, 32), glossy(0xffb547));
+  mug.add(cup);
+  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.035, 12, 24), glossy(0xffb547));
+  handle.position.x = 0.22;
+  mug.add(handle);
+  const coffee = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.02, 32), glossy(0x4a2a12, { roughness: 0.4 }));
+  coffee.position.y = 0.17;
+  mug.add(coffee);
+  mug.position.set(0, -1.05, 0.12);
+  mug.scale.setScalar(0.001);
+  arms[0].add(mug);
 
-// Centra el objeto y lo deja de un tamaño parecido a los demás.
-function normalize(item) {
-  const box = new THREE.Box3().setFromObject(item.group);
-  const size = box.getSize(new THREE.Vector3());
-  const center = box.getCenter(new THREE.Vector3());
-  const holder = new THREE.Group();
-  item.group.position.sub(center);
-  holder.add(item.group);
-  holder.userData.base = 2.5 / Math.max(size.x, size.y, size.z);
-  item.holder = holder;
-  return item;
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.055, 16, 72), new THREE.MeshBasicMaterial({ color: 0x6ff0ff, transparent: true, opacity: 0.8 }));
+  ring.rotation.x = Math.PI / 2;
+  ring.position.y = -1.75;
+  rig.add(ring);
+
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(root);
+  rig.position.y = -(box.min.y + box.max.y) / 2;
+  root.userData.base = 2.7 / (box.max.y - box.min.y);
+  return { root, rig, head, eyes, ballMaterial, chestMaterial, arms, mug, ring };
 }
 
 // ── Escena ───────────────────────────────────────────────────────────
+// Lo que dice el robot en cada acto (mismo orden que data-estado).
+const MESSAGES = [
+  '¡Hola! Soy Leadbot 👋 Respondo los chats de tu negocio por ti.',
+  'Son las 11:47 p. m. Tú descansas… yo sigo despierto. ☕',
+  'Laura quiere la Nova en negro. Ya le mandé la foto, el precio y el catálogo. ⚡',
+  'WhatsApp, Instagram y Messenger: todo me llega aquí, y tú lo ves en un solo tablero.',
+  'También recupero carritos, aviso cuando llega lo agotado y te cuento qué anuncio vende.',
+  'Y si alguien pide hablar con una persona, te aviso al instante. 🙋',
+  '¿Me pones a vender esta noche? Escríbenos 👇',
+];
+
+// Dónde está el robot en cada acto: [x, y, z, escala, lado del globo].
+const DESKTOP = [
+  [3.5, -0.2, 0, 1, 'arriba'],
+  [-4.5, -1.0, 0, 0.8, 'arriba'],
+  [4.6, 1.05, -0.3, 0.62, 'abajo'],
+  [-4.1, -1.2, 0, 0.72, 'derecha'],
+  [5.0, 1.45, -0.5, 0.55, 'abajo'],
+  [4.7, 0.6, -0.3, 0.6, 'abajo'],
+  [0, -2.05, 0, 0.56, 'derecha'],
+];
+const MOBILE = [
+  [0.95, -2.2, 0, 0.42, 'izquierda'],
+  [0.95, -2.25, 0, 0.42, 'izquierda'],
+  [1.1, 2.4, 0, 0.32, 'izquierda'],
+  [0.95, -2.3, 0, 0.42, 'izquierda'],
+  [1.15, 2.5, 0, 0.3, 'izquierda'],
+  [1.05, -2.25, 0, 0.4, 'izquierda'],
+  [0.9, -2.3, 0, 0.42, 'izquierda'],
+];
+
 function setupScene(canvas) {
   const aura = document.querySelector('.aura');
+  const dialog = document.querySelector('.dialogo');
+  const dialogText = dialog?.querySelector('.dialogo-texto');
   let renderer;
   try {
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
@@ -423,9 +415,8 @@ function setupScene(canvas) {
   }
   renderer.setPixelRatio(Math.min(devicePixelRatio, modest ? 1.5 : 2));
   renderer.setClearColor(0x000000, 0);
-  // Neutral conserva la saturación de los colores (ACES los lavaba).
+  // Neutral conserva la saturación de los colores.
   renderer.toneMapping = THREE.NeutralToneMapping;
-  renderer.toneMappingExposure = 1;
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
@@ -439,53 +430,36 @@ function setupScene(canvas) {
   rim.position.set(-6, -2, -5);
   scene.add(key, rim);
 
-  const items = [makeBubble(), makeBell(), makeRobot(), makeHeart(), makeBag(), makeSeal()].map(normalize);
-  items.forEach((item) => {
-    item.holder.visible = false;
-    item.materials = [];
-    item.holder.traverse((o) => o.material && item.materials.push(o.material));
-    scene.add(item.holder);
-  });
-  const LAST = items.length - 1;
+  const robot = makeRobot();
+  scene.add(robot.root);
+  const LAST = MESSAGES.length - 1;
 
-  // Dónde descansa cada objeto: a un lado del texto de su acto.
-  const DESKTOP = [[3.3, 0.15, 0, 1], [-3.8, -0.2, 0, 0.85], [4.75, 1.55, -0.5, 0.7], [-4.4, -1.0, 0, 0.85], [5.3, 1.9, -0.6, 0.55], [0, -2.2, 0, 0.62]];
-  const MOBILE = [[0.7, -2.3, 0, 0.5], [0, -2.35, 0, 0.5], [1.2, 2.55, 0, 0.36], [0, -2.4, 0, 0.5], [1.25, 2.6, 0, 0.34], [0, -2.4, 0, 0.5]];
-  const pose = (k) => {
-    const wide = camera.aspect >= 1;
-    const [x, y, z, s] = (wide ? DESKTOP : MOBILE)[k];
-    return { x: x * (wide ? Math.min(1, camera.aspect / 1.8) : 1), y, z, s };
-  };
-
-  // Partículas: puntos tomados de la superficie de cada objeto.
-  const COUNT = modest ? 900 : 1800;
-  const samples = items.map((item) => {
-    item.holder.updateMatrixWorld(true);
-    const sampler = new MeshSurfaceSampler(item.primary).build();
-    const toHolder = new THREE.Matrix4().copy(item.primary.matrixWorld);
-    const out = new Float32Array(COUNT * 3);
-    const v = new THREE.Vector3();
-    for (let i = 0; i < COUNT; i++) {
-      sampler.sample(v);
-      v.applyMatrix4(toHolder);
-      out.set([v.x, v.y, v.z], i * 3);
-    }
-    return out;
+  // Chats que le llegan al robot (de noche y al responder) o con los que
+  // hace malabares (una bandeja): verde, rosado y azul, como los canales.
+  const geometry = bubbleGeometry();
+  const CHANNEL_COLORS = [0x3fd68f, 0xff7ab0, 0x69b4ff];
+  const CHATS = modest ? 4 : 6;
+  const chats = Array.from({ length: CHATS }, (_, i) => {
+    const mesh = new THREE.Mesh(geometry, glossy(CHANNEL_COLORS[i % 3], { transparent: true }));
+    mesh.scale.setScalar(0.001);
+    mesh.userData = { offset: i / CHATS, from: new THREE.Vector3(), seed: Math.random() };
+    scene.add(mesh);
+    return mesh;
   });
-  const jitter = new Float32Array(COUNT * 4);
-  for (let i = 0; i < COUNT; i++) jitter.set([Math.random(), Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1], i * 4);
-  const positions = new Float32Array(COUNT * 3);
-  const colors = new Float32Array(COUNT * 3);
-  const particleGeometry = new THREE.BufferGeometry();
-  particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3).setUsage(THREE.DynamicDrawUsage));
-  particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3).setUsage(THREE.DynamicDrawUsage));
-  const particleUniforms = { uAlpha: { value: 0 }, uSize: { value: modest ? 7 : 9 }, uPixelRatio: { value: renderer.getPixelRatio() } };
-  const particles = new THREE.Points(
-    particleGeometry,
-    new THREE.ShaderMaterial({ uniforms: particleUniforms, vertexShader: POINT_VERTEX, fragmentShader: POINT_FRAGMENT, transparent: true, depthWrite: false, vertexColors: true }),
-  );
-  particles.frustumCulled = false;
-  scene.add(particles);
+
+  // Estela de luz cuando vuela.
+  const TRAIL = 160;
+  const trailPositions = new Float32Array(TRAIL * 3);
+  const trailAlpha = new Float32Array(TRAIL);
+  const trailVelocity = new Float32Array(TRAIL * 3);
+  const trailGeometry = new THREE.BufferGeometry();
+  trailGeometry.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3).setUsage(THREE.DynamicDrawUsage));
+  trailGeometry.setAttribute('aAlpha', new THREE.BufferAttribute(trailAlpha, 1).setUsage(THREE.DynamicDrawUsage));
+  const trailUniforms = { uSize: { value: modest ? 7 : 9 }, uPixelRatio: { value: renderer.getPixelRatio() } };
+  const trail = new THREE.Points(trailGeometry, new THREE.ShaderMaterial({ uniforms: trailUniforms, vertexShader: TRAIL_VERTEX, fragmentShader: TRAIL_FRAGMENT, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  trail.frustumCulled = false;
+  scene.add(trail);
+  let trailNext = 0;
 
   const resize = () => {
     renderer.setSize(innerWidth, innerHeight, false);
@@ -501,36 +475,98 @@ function setupScene(canvas) {
     pointer.y = event.clientY / innerHeight - 0.5;
   });
 
+  const pose = (k) => {
+    const wide = camera.aspect >= 1;
+    const [x, y, z, s, side] = (wide ? DESKTOP : MOBILE)[k];
+    return { x: x * (wide ? Math.min(1, camera.aspect / 1.8) : 1), y, z, s, side };
+  };
+
+  // Lo que hacen los brazos en cada acto: [izquierdo x, izquierdo z, derecho x, derecho z].
+  // x negativo lleva la mano hacia adelante; z negativo abre el brazo
+  // izquierdo hacia afuera y z positivo, el derecho.
+  function armTargets(k, t) {
+    const idle = [Math.sin(t * 1.4) * 0.08, -0.18, Math.sin(t * 1.4 + 1) * 0.08, 0.18];
+    if (k === 0 || k === LAST) return [idle[0], idle[1], -0.2, 2.5 + Math.sin(t * 7) * 0.4]; // saluda
+    if (k === 1) return [-1.45 + Math.max(0, Math.sin(t * 0.9)) * -0.45, 0.35, idle[2], idle[3]]; // toma café
+    if (k === 2) return [-1.15 + Math.sin(t * 16) * 0.22, 0.12, -1.15 + Math.sin(t * 16 + Math.PI) * 0.22, -0.12]; // escribe
+    if (k === 3) return [Math.sin(t * 3) * 0.3, -0.9, Math.sin(t * 3 + Math.PI) * 0.3, 0.9]; // malabares
+    return idle;
+  }
+
   const clock = new THREE.Clock();
   const smooth = (x) => x * x * (3 - 2 * x);
   const easeInOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
-  const a = new THREE.Vector3();
-  const b = new THREE.Vector3();
-  const c = new THREE.Vector3();
-  const colorMix = new THREE.Color();
-  const screen = new THREE.Vector3();
+  const headWorld = new THREE.Vector3();
+  const ringWorld = new THREE.Vector3();
+  const screenPos = new THREE.Vector3();
+  const edgePos = new THREE.Vector3();
+  const tmp = new THREE.Vector3();
   let state = scrollState();
+  let blinkAt = 2;
+  let flash = 0;
 
-  // Coloca un objeto en su lugar de descanso, flotando y siguiendo al mouse.
-  function placeAt(k, t) {
-    const item = items[k];
-    const p = pose(k);
-    const h = item.holder;
-    h.position.set(p.x, p.y + Math.sin(t * 1.1 + k) * 0.08, p.z);
-    h.rotation.set(Math.sin(t * 0.5 + k) * 0.12 - pointer.y * 0.35, Math.sin(t * 0.6 + k * 2) * 0.45 + pointer.x * 0.6, 0);
-    h.scale.setScalar(h.userData.base * p.s);
-    h.updateMatrixWorld(true);
+  // El globo: aparece cuando el robot llega, primero "escribiendo" y luego
+  // el mensaje letra por letra. Se oculta mientras vuela.
+  let shown = -1;
+  let typingTimer = 0;
+  function say(k) {
+    if (!dialog || shown === k) return;
+    shown = k;
+    clearTimeout(typingTimer);
+    dialog.dataset.lado = pose(k).side;
+    dialog.classList.add('visible');
+    if (reduce) {
+      dialogText.textContent = MESSAGES[k];
+      return;
+    }
+    dialogText.innerHTML = '<span class="puntos"><i></i><i></i><i></i></span>';
+    const text = [...MESSAGES[k]];
+    let i = 0;
+    const type = () => {
+      if (shown !== k) return;
+      i += 1;
+      dialogText.innerHTML = '';
+      dialogText.append(text.slice(0, i).join(''));
+      if (i < text.length) {
+        dialogText.insertAdjacentHTML('beforeend', '<span class="cursor"></span>');
+        typingTimer = setTimeout(type, 26);
+      }
+    };
+    typingTimer = setTimeout(type, 650);
+  }
+  function hush() {
+    if (!dialog || shown === -1) return;
+    shown = -1;
+    clearTimeout(typingTimer);
+    dialog.classList.remove('visible');
   }
 
-  function setLook(k, opacity, grow) {
-    const h = items[k].holder;
-    h.visible = opacity > 0.01;
-    h.scale.multiplyScalar(grow);
-    h.updateMatrixWorld(true);
-    items[k].materials.forEach((m) => {
-      m.opacity = opacity;
-      m.depthWrite = opacity > 0.98;
-    });
+  function placeDialog(radius) {
+    if (!dialog || shown === -1) return;
+    const side = dialog.dataset.lado;
+    const w = dialog.offsetWidth;
+    const h = dialog.offsetHeight;
+    const x = (screenPos.x * 0.5 + 0.5) * innerWidth;
+    const y = (-screenPos.y * 0.5 + 0.5) * innerHeight;
+    let left = x - w / 2;
+    // Arriba, por encima de la antena (sale ~1,4 veces el ancho de la cabeza).
+    let top = y - radius * 1.5 - h - 6;
+    // Abajo, debajo de todo el cuerpo (los pies quedan ~2,4 veces el ancho de la cabeza).
+    if (side === 'abajo') top = y + radius * 2.4 + 8;
+    if (side === 'izquierda') {
+      left = x - radius * 0.8 - w - 12;
+      top = y - h / 2 - radius * 0.35;
+    }
+    if (side === 'derecha') {
+      left = x + radius * 0.8 + 12;
+      top = y - h / 2 - radius * 0.35;
+    }
+    const clampedLeft = Math.min(Math.max(12, left), innerWidth - w - 12);
+    const clampedTop = Math.min(Math.max(70, top), innerHeight - h - 12);
+    // La cola del globo sigue apuntando al robot aunque el globo se corra.
+    if (side === 'arriba' || side === 'abajo') dialog.style.setProperty('--cola', `${Math.min(Math.max(18, x - clampedLeft), w - 18)}px`);
+    else dialog.style.setProperty('--cola', `${Math.min(Math.max(16, y - radius * 0.35 - clampedTop), h - 16)}px`);
+    dialog.style.transform = `translate3d(${Math.round(clampedLeft)}px, ${Math.round(clampedTop)}px, 0)`;
   }
 
   function frame() {
@@ -540,65 +576,123 @@ function setupScene(canvas) {
     const k = Math.min(LAST, Math.max(0, Math.floor(state + 1e-4)));
     const next = Math.min(LAST, k + 1);
     const p = k === LAST ? 0 : THREE.MathUtils.clamp(state - k, 0, 1);
+    const e = easeInOut(p);
+    const flight = Math.sin(Math.PI * e); // 0 en reposo, 1 a mitad del vuelo
+    const A = pose(k);
+    const B = pose(next);
+    const direction = Math.sign(B.x - A.x) || 1;
 
-    items.forEach((item, i) => {
-      if (i !== k && i !== next) item.holder.visible = false;
+    // Posición: vuela en arco y pasa cerca de la cámara, por encima del texto.
+    const root = robot.root;
+    root.position.set(
+      THREE.MathUtils.lerp(A.x, B.x, e),
+      THREE.MathUtils.lerp(A.y, B.y, e) + flight * 0.9 + Math.sin(t * 1.6) * 0.07,
+      THREE.MathUtils.lerp(A.z, B.z, e) + flight * 3.2,
+    );
+    root.scale.setScalar(root.userData.base * THREE.MathUtils.lerp(A.s, B.s, e));
+    // Se inclina hacia donde va; quieto, mira un poco al mouse.
+    robot.rig.rotation.set(
+      flight * 0.15 - pointer.y * 0.15,
+      flight * direction * 0.55 + pointer.x * 0.35 * (1 - flight),
+      -flight * direction * 0.32 + Math.sin(t * 1.2) * 0.03,
+    );
+    robot.head.rotation.set(-pointer.y * 0.2, pointer.x * 0.4, Math.sin(t * 0.9) * 0.04);
+
+    // Brazos: mezcla el gesto del acto que deja con el del que llega.
+    const from = armTargets(k, t);
+    const to = armTargets(next, t);
+    const mix = smooth(THREE.MathUtils.clamp((p - 0.6) / 0.4, 0, 1));
+    // En vuelo los brazos se abren un poco hacia atrás.
+    const flying = [0.35, -0.5, 0.35, 0.5];
+    const lerp = (i) => THREE.MathUtils.lerp(from[i], to[i], mix) * (1 - flight * 0.6) + flying[i] * flight * 0.6;
+    robot.arms[0].rotation.set(lerp(0), 0, lerp(1));
+    robot.arms[1].rotation.set(lerp(2), 0, lerp(3));
+    const coffee = (k === 1 ? 1 - mix : 0) + (next === 1 ? mix : 0);
+    robot.mug.scale.setScalar(Math.max(0.001, coffee));
+
+    // Parpadea, mira al mouse; la antena y el pecho brillan cuando trabaja.
+    if (t > blinkAt) blinkAt = t + 2.5 + Math.random() * 3;
+    const blink = blinkAt - t < 0.13 ? 0.12 : 1;
+    robot.eyes.forEach((eye) => {
+      eye.scale.y = blink * (k === 1 && flight < 0.2 ? 1.25 : 1);
+      eye.position.x = eye.userData.home.x + pointer.x * 0.12;
+      eye.position.y = eye.userData.home.y - pointer.y * 0.08;
     });
-    placeAt(k, t);
-    if (p < 0.002) {
-      setLook(k, 1, 1);
-      if (next !== k) items[next].holder.visible = false;
-      particles.visible = false;
-    } else {
-      placeAt(next, t);
-      // Se deshace al empezar, viaja y se arma al final.
-      const dissolve = smooth(THREE.MathUtils.clamp(p / 0.16, 0, 1));
-      const assemble = smooth(THREE.MathUtils.clamp((p - 0.84) / 0.16, 0, 1));
-      const from = samples[k];
-      const to = samples[next];
-      const mA = items[k].holder.matrixWorld;
-      const mB = items[next].holder.matrixWorld;
-      const colA = items[k].color;
-      const colB = items[next].color;
-      for (let i = 0; i < COUNT; i++) {
-        const j = i * 4;
-        const local = easeInOut(THREE.MathUtils.clamp((p - 0.06 - jitter[j] * 0.22) / 0.7, 0, 1));
-        a.fromArray(from, i * 3).applyMatrix4(mA);
-        b.fromArray(to, i * 3).applyMatrix4(mB);
-        // El punto de control pasa cerca de la cámara: las partículas cruzan
-        // por encima del texto, más grandes, antes de llegar al otro lado.
-        c.addVectors(a, b).multiplyScalar(0.5);
-        c.x += jitter[j + 1] * 1.8;
-        c.y += 0.8 + jitter[j + 2] * 1.6;
-        c.z += 5 + jitter[j + 3] * 1.4;
-        const u = 1 - local;
-        positions[i * 3] = u * u * a.x + 2 * u * local * c.x + local * local * b.x;
-        positions[i * 3 + 1] = u * u * a.y + 2 * u * local * c.y + local * local * b.y;
-        positions[i * 3 + 2] = u * u * a.z + 2 * u * local * c.z + local * local * b.z;
-        colorMix.copy(colA).lerp(colB, local);
-        colors[i * 3] = colorMix.r;
-        colors[i * 3 + 1] = colorMix.g;
-        colors[i * 3 + 2] = colorMix.b;
-      }
-      particleGeometry.attributes.position.needsUpdate = true;
-      particleGeometry.attributes.color.needsUpdate = true;
-      particles.visible = true;
-      particleUniforms.uAlpha.value = Math.min(dissolve, 1 - assemble);
-      placeAt(k, t);
-      setLook(k, 1 - dissolve, 1 - 0.3 * dissolve);
-      placeAt(next, t);
-      setLook(next, assemble, 0.7 + 0.3 * assemble);
-    }
+    const working = k === 2 ? 1 - flight : 0;
+    flash = Math.max(0, flash - dt * 2.5);
+    robot.ballMaterial.emissiveIntensity = 0.4 + flash * 2 + working * (0.5 + Math.sin(t * 10) * 0.5);
+    robot.chestMaterial.emissiveIntensity = 0.5 + Math.sin(t * 3) * 0.3 + working * 0.8;
+    robot.ring.scale.setScalar(1 + Math.sin(t * 4) * 0.06 + flight * 0.25);
+    robot.ring.material.opacity = 0.55 + Math.sin(t * 4) * 0.15 + flight * 0.3;
 
-    // El aura de color detrás del texto sigue al objeto.
+    root.updateMatrixWorld(true);
+    robot.head.getWorldPosition(headWorld);
+    robot.ring.getWorldPosition(ringWorld);
+
+    // Chats: llegan volando (noche y respuesta) o giran alrededor (bandeja).
+    const incoming = (k === 1 || k === 2 ? 1 - smooth(p) : 0) + (next === 1 || next === 2 ? smooth(p) : 0);
+    const juggling = (k === 3 ? 1 - smooth(p) : 0) + (next === 3 ? smooth(p) : 0);
+    const robotScale = root.scale.x / root.userData.base;
+    chats.forEach((chat, i) => {
+      const data = chat.userData;
+      const show = Math.max(incoming, juggling) * (1 - flight * 0.8);
+      if (juggling > incoming) {
+        const a = t * 1.6 + data.offset * Math.PI * 2;
+        // Giran por encima de la cabeza, como malabares, sin taparle la cara.
+        chat.position.set(headWorld.x + Math.cos(a) * 1.5 * robotScale, headWorld.y + 1.6 * robotScale + Math.sin(a * 2) * 0.3 * robotScale, headWorld.z + Math.sin(a) * 1.1 * robotScale);
+        chat.rotation.set(0, -a, Math.sin(a) * 0.3);
+        chat.scale.setScalar(0.24 * robotScale * show + 0.001);
+      } else {
+        const cycle = (t / 2.4 + data.offset) % 1;
+        // Salen de alrededor del robot (no cruzan el texto del acto) y llegan a su cabeza.
+        if (cycle < 0.02 || data.from.lengthSq() === 0) {
+          const angle = data.seed * Math.PI * 2 + Math.floor(t / 2.4 + data.offset) * 2.1;
+          const reach = 2.6 * robotScale + 0.8;
+          data.from.set(headWorld.x + Math.cos(angle) * reach, headWorld.y + Math.sin(angle) * reach * 0.8, headWorld.z - 0.5);
+        }
+        const f = smooth(cycle);
+        chat.position.lerpVectors(data.from, edgePos.copy(headWorld), f);
+        chat.rotation.set(0, Math.sin(t + i) * 0.4, Math.sin(t * 2 + i) * 0.2);
+        const life = Math.min(1, cycle / 0.12, cycle > 0.88 ? (1 - cycle) / 0.12 : 1);
+        chat.scale.setScalar((0.13 * life * show + 0.001) * (0.6 + robotScale * 0.6));
+        if (cycle > 0.97 && show > 0.5) flash = 1;
+      }
+      chat.material.opacity = Math.min(1, show * 1.4);
+    });
+
+    // Estela: salen chispas del anillo mientras vuela.
+    const emit = Math.round(flight * 4);
+    for (let n = 0; n < emit; n++) {
+      const i = trailNext;
+      trailNext = (trailNext + 1) % TRAIL;
+      trailPositions.set([ringWorld.x + (Math.random() - 0.5) * 0.4, ringWorld.y, ringWorld.z + (Math.random() - 0.5) * 0.4], i * 3);
+      trailVelocity.set([-direction * (0.4 + Math.random() * 0.8), -0.6 - Math.random() * 0.6, (Math.random() - 0.5) * 0.4], i * 3);
+      trailAlpha[i] = 1;
+    }
+    for (let i = 0; i < TRAIL; i++) {
+      if (trailAlpha[i] <= 0) continue;
+      trailAlpha[i] = Math.max(0, trailAlpha[i] - dt * 1.4);
+      trailPositions[i * 3] += trailVelocity[i * 3] * dt;
+      trailPositions[i * 3 + 1] += trailVelocity[i * 3 + 1] * dt;
+      trailPositions[i * 3 + 2] += trailVelocity[i * 3 + 2] * dt;
+    }
+    trailGeometry.attributes.position.needsUpdate = true;
+    trailGeometry.attributes.aAlpha.needsUpdate = true;
+
+    // Habla solo cuando está quieto en un acto.
+    if (p < 0.03) say(k);
+    else if (p > 0.97) say(next);
+    else hush();
+    screenPos.copy(headWorld).project(camera);
+    tmp.copy(headWorld).add(edgePos.set(1.4 * root.scale.x, 0, 0)).project(camera);
+    const radius = Math.abs(tmp.x - screenPos.x) * 0.5 * innerWidth;
+    placeDialog(radius);
+
+    // El aura de color detrás del texto sigue al robot.
     if (aura) {
-      const h = items[p > 0.5 ? next : k].holder;
-      screen.copy(h.position).project(camera);
-      const x = (screen.x * 0.5 + 0.5) * innerWidth;
-      const y = (-screen.y * 0.5 + 0.5) * innerHeight;
-      colorMix.copy(items[k].color).lerp(items[next].color, p);
+      const x = (screenPos.x * 0.5 + 0.5) * innerWidth;
+      const y = (-screenPos.y * 0.5 + 0.5) * innerHeight;
       aura.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-      aura.style.setProperty('--aura', `rgba(${Math.round(colorMix.r * 255)}, ${Math.round(colorMix.g * 255)}, ${Math.round(colorMix.b * 255)}, 0.22)`);
     }
     renderer.render(scene, camera);
   }
@@ -620,24 +714,23 @@ function setupScene(canvas) {
   loop();
 }
 
-const POINT_VERTEX = /* glsl */ `
+const TRAIL_VERTEX = /* glsl */ `
 uniform float uSize; uniform float uPixelRatio;
-varying vec3 vColor;
+attribute float aAlpha;
+varying float vAlpha;
 void main(){
-  vColor = color;
+  vAlpha = aAlpha;
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
-  gl_PointSize = uSize * uPixelRatio * (10.0 / -mv.z);
+  gl_PointSize = uSize * uPixelRatio * (10.0 / -mv.z) * (0.4 + aAlpha * 0.6);
   gl_Position = projectionMatrix * mv;
 }`;
 
-const POINT_FRAGMENT = /* glsl */ `
-uniform float uAlpha;
-varying vec3 vColor;
+const TRAIL_FRAGMENT = /* glsl */ `
+varying float vAlpha;
 void main(){
   float d = length(gl_PointCoord - 0.5);
   float glow = smoothstep(0.5, 0.0, d);
-  float core = smoothstep(0.18, 0.0, d);
-  gl_FragColor = vec4(vColor * (0.8 + core * 0.8), glow * uAlpha);
+  gl_FragColor = vec4(vec3(0.45, 0.9, 1.0) * glow, glow * vAlpha);
 }`;
 
 // ── Arranque ─────────────────────────────────────────────────────────
