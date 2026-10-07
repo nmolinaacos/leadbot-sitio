@@ -634,35 +634,61 @@ function makeRobot() {
     add(sock, new THREE.TorusGeometry(0.248, 0.006, 8, seg), chestMaterial, [0, 0.066, 0], [Math.PI / 2, 0, 0]);
   });
 
-  // ── Brazos: hombro oscuro, brazo blanco, codo oscuro, antebrazo ensanchado
-  // con borde azul y mano de dedos articulados.
-  const HAND = -1.18;
+  // ── Brazos (como la referencia): rótula oscura dentro del hueco del hombro;
+  // brazo corto que se angosta hacia el codo, con borde azul; codo oscuro de
+  // anillos; antebrazo grande en forma de campana (angosto en el codo y ancho
+  // en la muñeca) con borde azul y la boca oscura de donde sale la mano; mano
+  // grande de dedos largos articulados, algo curvados, y pulgar aparte.
+  const HAND = -1.2;
   const arms = [-1, 1].map((side) => {
     const pivot = new THREE.Group();
     pivot.position.set(side * 0.64, 0.02, 0);
-    add(pivot, new THREE.SphereGeometry(0.13, 32, 16), dark);
-    const upper = add(pivot, new THREE.CapsuleGeometry(0.15, 0.3, 10, 24), white, [0, -0.3, 0]);
-    upper.scale.set(1, 1, 0.95);
-    add(pivot, new THREE.CylinderGeometry(0.13, 0.13, 0.08, 32), dark, [0, -0.56, 0]);
-    add(pivot, ring(0.135, 0.008), chestMaterial, [0, -0.6, 0]).rotation.x = Math.PI / 2;
-    add(pivot, lathe([[0.2, -1.04], [0.23, -1.0], [0.22, -0.86], [0.17, -0.7], [0.13, -0.61]]), white);
-    add(pivot, ring(0.205, 0.012), chestMaterial, [0, -1.035, 0]).rotation.x = Math.PI / 2;
-    add(pivot, new THREE.CylinderGeometry(0.17, 0.2, 0.03, 32), dark, [0, -1.05, 0]);
-    // Mano: palma oscura, cuatro dedos (falanges blancas, nudillos oscuros) y pulgar.
+    add(pivot, new THREE.SphereGeometry(0.15, 32, 16), dark);
+    // Brazo: casi cónico, ancho en el hombro.
+    add(pivot, lathe([[0, -0.47], [0.1, -0.465], [0.135, -0.43], [0.15, -0.3], [0.165, -0.14], [0.15, -0.07], [0.09, -0.03], [0, -0.025]], 40), white);
+    add(pivot, ring(0.138, 0.009), chestMaterial, [0, -0.44, 0]).rotation.x = Math.PI / 2;
+    // Codo: anillos oscuros.
+    const elbow = new THREE.Group();
+    elbow.position.y = -0.5;
+    elbow.rotation.x = -0.3; // un poco doblado hacia adelante
+    pivot.add(elbow);
+    add(elbow, new THREE.CylinderGeometry(0.11, 0.11, 0.12, 32), dark);
+    [-0.035, 0, 0.035].forEach((y) => add(elbow, ring(0.113, 0.008), grey, [0, y, 0]).rotation.x = Math.PI / 2);
+    // Antebrazo en campana, abierto abajo.
+    const fore = add(elbow, lathe([[0.235, -0.62], [0.25, -0.58], [0.25, -0.44], [0.23, -0.28], [0.19, -0.14], [0.14, -0.07], [0.1, -0.05]], 48), white);
+    fore.material = Object.assign(white.clone(), { side: THREE.DoubleSide });
+    add(elbow, ring(0.236, 0.016), dark, [0, -0.615, 0]).rotation.x = Math.PI / 2;
+    add(elbow, ring(0.245, 0.007), chestMaterial, [0, -0.6, 0]).rotation.x = Math.PI / 2;
+    add(elbow, new THREE.CircleGeometry(0.23, 40), dark, [0, -0.5, 0], [Math.PI / 2, 0, 0]);
+    // Mano: palma oscura, cuatro dedos de tres falanges (blancas, nudillos
+    // oscuros), un poco curvados, y el pulgar.
     const hand = new THREE.Group();
-    hand.position.y = -1.08;
-    hand.scale.setScalar(1.45);
-    pivot.add(hand);
-    const H = (y) => y + 1.08;
-    add(hand, new THREE.BoxGeometry(0.17, 0.08, 0.1), dark, [0, H(-1.1), 0]);
-    [-0.06, -0.02, 0.02, 0.06].forEach((x, i) => {
-      const sp = (i - 1.5) * 0.06;
-      add(hand, new THREE.SphereGeometry(0.02, 10, 8), dark, [x, H(-1.15), 0.01]);
-      add(hand, new THREE.CapsuleGeometry(0.018, 0.05, 4, 8), white, [x + sp * 0.04, H(-1.2), 0.015], [0.15, 0, sp]);
-      add(hand, new THREE.SphereGeometry(0.017, 10, 8), dark, [x + sp * 0.08, H(-1.245), 0.02]);
-      add(hand, new THREE.CapsuleGeometry(0.016, 0.04, 4, 8), white, [x + sp * 0.12, H(-1.285), 0.03], [0.35, 0, sp]);
+    hand.position.y = -0.6;
+    hand.scale.setScalar(1.35);
+    elbow.add(hand);
+    add(hand, new THREE.BoxGeometry(0.2, 0.1, 0.12), dark, [0, -0.02, 0]);
+    [-0.07, -0.024, 0.024, 0.07].forEach((x, i) => {
+      const sp = (i - 1.5) * 0.05;
+      const finger = new THREE.Group();
+      finger.position.set(x, -0.07, 0.01);
+      finger.rotation.set(-0.15, 0, sp);
+      hand.add(finger);
+      let y = 0;
+      [0.075, 0.065, 0.055].forEach((len, j) => {
+        add(finger, new THREE.SphereGeometry(0.024, 12, 8), dark, [0, y, j * 0.012]);
+        add(finger, new THREE.CapsuleGeometry(0.022, len - 0.03, 4, 10), white, [0, y - len / 2, j * 0.012 + 0.006]);
+        y -= len;
+      });
+      add(finger, new THREE.SphereGeometry(0.022, 10, 8), white, [0, y, 0.04]);
     });
-    add(hand, new THREE.CapsuleGeometry(0.02, 0.05, 4, 8), white, [-side * 0.1, H(-1.13), 0.05], [0.4, 0, -side * 0.9]);
+    const thumb = new THREE.Group();
+    thumb.position.set(-side * 0.11, -0.03, 0.05);
+    thumb.rotation.set(-0.3, 0, -side * 0.6);
+    hand.add(thumb);
+    add(thumb, new THREE.SphereGeometry(0.026, 12, 8), dark);
+    add(thumb, new THREE.CapsuleGeometry(0.024, 0.05, 4, 10), white, [0, -0.045, 0]);
+    add(thumb, new THREE.SphereGeometry(0.022, 10, 8), dark, [0, -0.085, 0]);
+    add(thumb, new THREE.CapsuleGeometry(0.022, 0.035, 4, 10), white, [0, -0.12, 0.01]);
     rig.add(pivot);
     return pivot;
   });
@@ -1049,7 +1075,7 @@ function setupScene(canvas) {
   // x negativo lleva la mano hacia adelante; z negativo abre el brazo
   // izquierdo hacia afuera y z positivo, el derecho.
   function armTargets(k, t) {
-    const idle = [Math.sin(t * 1.4) * 0.08, -0.18, Math.sin(t * 1.4 + 1) * 0.08, 0.18];
+    const idle = [Math.sin(t * 1.4) * 0.08, -0.42, Math.sin(t * 1.4 + 1) * 0.08, 0.42];
     const tap = Math.sin(t * 14) * 0.08;
     // Con la cabeza grande, saluda con el brazo hacia el lado y un poco al frente.
     if (k === LAST) return [idle[0], idle[1], -0.55, 1.45 + Math.sin(t * 7) * 0.28]; // se despide
@@ -1248,8 +1274,8 @@ function setupScene(canvas) {
 
     if (portrait !== null) {
       // De pie, en reposo y sin objetos (como la imagen de referencia).
-      robot.arms[0].rotation.set(0.08, 0, -0.22);
-      robot.arms[1].rotation.set(-0.1, 0, 0.3);
+      robot.arms[0].rotation.set(0.1, 0, -0.5);
+      robot.arms[1].rotation.set(-0.05, 0, 0.5);
       robot.mug.scale.setScalar(0.001);
       root.position.set(0, 0, 0);
       root.scale.setScalar(root.userData.base * portraitScale);
