@@ -586,24 +586,51 @@ function makeRobot() {
     dish.material.side = THREE.DoubleSide;
   });
 
-  // ── Cuello oscuro.
-  add(rig, new THREE.CylinderGeometry(0.2, 0.24, 0.16, seg), dark, [0, 0.27, 0]);
+  // ── Cuello: anillos oscuros y metálicos.
+  add(rig, new THREE.CylinderGeometry(0.19, 0.21, 0.07, seg), dark, [0, 0.33, 0]);
+  add(rig, new THREE.CylinderGeometry(0.2, 0.2, 0.05, seg), grey, [0, 0.275, 0]);
+  add(rig, new THREE.CylinderGeometry(0.22, 0.24, 0.06, seg), dark, [0, 0.225, 0]);
 
-  // ── Cuerpo: cápsula alta, más ancha abajo, con banda oscura de borde azul.
-  const body = add(rig, lathe([[0, -1.48], [0.36, -1.45], [0.6, -1.3], [0.7, -1.05], [0.72, -0.7], [0.69, -0.35], [0.6, -0.02], [0.45, 0.16], [0.24, 0.22], [0, 0.23]], 60), white);
+  // ── Cuerpo (como la referencia): forma cónica, más angosta arriba y ancha
+  // abajo, con tapa superior casi plana; abajo se redondea. Banda hundida
+  // oscura con dos hilos azules; huecos de hombro con borde azul; un punto
+  // oscuro en el pecho, a un lado.
+  const torsoProfile = [[0, -1.48], [0.4, -1.45], [0.64, -1.32], [0.745, -1.12], [0.765, -0.98], [0.73, -0.62], [0.66, -0.26], [0.585, 0.04], [0.53, 0.17], [0.43, 0.225], [0.26, 0.24], [0, 0.24]];
+  const body = add(rig, lathe(torsoProfile, 70), white);
   body.scale.z = 0.86;
-  const band = add(rig, ring(0.725, 0.03), dark, [0, -1.0, 0]);
-  band.rotation.x = Math.PI / 2;
-  band.scale.set(1, 0.86, 1);
-  const bandBlue = add(rig, ring(0.735, 0.008), chestMaterial, [0, -1.04, 0]);
-  bandBlue.rotation.x = Math.PI / 2;
-  bandBlue.scale.set(1, 0.86, 1);
-  // Punto oscuro arriba del pecho.
-  add(rig, new THREE.SphereGeometry(0.03, 16, 10), dark, [0, -0.02, 0.6]);
-  // Hombros: huecos oscuros donde entra el brazo.
+  const torsoR = (y) => {
+    for (let i = 0; i < torsoProfile.length - 1; i++) {
+      const [r0, y0] = torsoProfile[i], [r1, y1] = torsoProfile[i + 1];
+      if (y >= y0 && y <= y1) return r0 + ((y - y0) / (y1 - y0 || 1)) * (r1 - r0);
+    }
+    return 0.5;
+  };
+  const hoop = (y, r, t, mat) => {
+    const m = add(rig, ring(r, t), mat, [0, y, 0]);
+    m.rotation.x = Math.PI / 2;
+    m.scale.set(1, 0.86, 1);
+    return m;
+  };
+  // Borde oscuro alrededor del cuello, con hilo azul.
+  hoop(0.235, 0.25, 0.022, dark);
+  hoop(0.232, 0.28, 0.006, chestMaterial);
+  // Banda: canal oscuro con un hilo azul arriba y otro abajo.
+  hoop(-0.98, torsoR(-0.98) - 0.008, 0.02, dark);
+  hoop(-0.948, torsoR(-0.948) - 0.002, 0.005, chestMaterial);
+  hoop(-1.012, torsoR(-1.012) - 0.002, 0.005, chestMaterial);
+  // Punto oscuro en el pecho, a un lado.
+  add(rig, new THREE.SphereGeometry(0.028, 16, 10), dark, [0.13, -0.12, 0.86 * Math.sqrt(torsoR(-0.12) ** 2 - 0.13 ** 2) - 0.008]);
+  // Hombros: huecos oscuros hundidos con borde azul, que siguen la
+  // inclinación del cono.
   [-1, 1].forEach((side) => {
-    const sock = add(rig, new THREE.SphereGeometry(0.2, 32, 16), dark, [side * 0.6, -0.05, 0]);
-    sock.scale.set(0.6, 1, 1);
+    const y = -0.14, r = torsoR(y);
+    const sock = new THREE.Group();
+    sock.position.set(side * (r - 0.03), y, 0);
+    sock.rotation.set(0, 0, side * (-Math.PI / 2 + 0.2));
+    rig.add(sock);
+    add(sock, new THREE.CylinderGeometry(0.235, 0.235, 0.1, seg), dark, [0, 0.0, 0]);
+    add(sock, new THREE.TorusGeometry(0.24, 0.022, 12, seg), white, [0, 0.05, 0], [Math.PI / 2, 0, 0]);
+    add(sock, new THREE.TorusGeometry(0.248, 0.006, 8, seg), chestMaterial, [0, 0.066, 0], [Math.PI / 2, 0, 0]);
   });
 
   // ── Brazos: hombro oscuro, brazo blanco, codo oscuro, antebrazo ensanchado
@@ -611,7 +638,7 @@ function makeRobot() {
   const HAND = -1.18;
   const arms = [-1, 1].map((side) => {
     const pivot = new THREE.Group();
-    pivot.position.set(side * 0.72, -0.08, 0);
+    pivot.position.set(side * 0.72, -0.14, 0);
     add(pivot, new THREE.SphereGeometry(0.13, 32, 16), dark);
     const upper = add(pivot, new THREE.CapsuleGeometry(0.15, 0.3, 10, 24), white, [0, -0.3, 0]);
     upper.scale.set(1, 1, 0.95);
