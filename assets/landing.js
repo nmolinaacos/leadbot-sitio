@@ -748,6 +748,12 @@ function setupScene(canvas) {
     const A = pose(k);
     const B = pose(next);
     const direction = Math.sign(B.x - A.x) || 1;
+    // El vuelo crece con la distancia: si el destino está cerca (ej. de "Qué
+    // hace" a la frase) solo se desliza, sin acercarse a la cámara ni salirse
+    // del cuadro.
+    // En el celular siempre está en la misma esquina: el saltico se mantiene.
+    const travel = THREE.MathUtils.clamp(Math.hypot(B.x - A.x, B.y - A.y) / 5, camera.aspect >= 1 ? 0.12 : 0.6, 1);
+    const arc = flight * travel;
 
     // Posición: vuela en arco y pasa cerca de la cámara, por encima del texto.
     // En el celular solo da un saltico en su esquina.
@@ -755,15 +761,15 @@ function setupScene(canvas) {
     const root = robot.root;
     root.position.set(
       THREE.MathUtils.lerp(A.x, B.x, e),
-      THREE.MathUtils.lerp(A.y, B.y, e) + flight * (wide ? 0.9 : 0.35) + Math.sin(t * 1.6) * 0.07,
-      THREE.MathUtils.lerp(A.z, B.z, e) + flight * (wide ? 3.2 : 0.8),
+      THREE.MathUtils.lerp(A.y, B.y, e) + arc * (wide ? 0.9 : 0.35) + Math.sin(t * 1.6) * 0.07,
+      THREE.MathUtils.lerp(A.z, B.z, e) + arc * (wide ? 3.2 : 0.8),
     );
     root.scale.setScalar(root.userData.base * THREE.MathUtils.lerp(A.s, B.s, e));
     // Se inclina hacia donde va; quieto, mira un poco al mouse.
     robot.rig.rotation.set(
-      flight * 0.15 - pointer.y * 0.15,
-      flight * direction * 0.55 + pointer.x * 0.35 * (1 - flight),
-      -flight * direction * 0.32 + Math.sin(t * 1.2) * 0.03,
+      arc * 0.15 - pointer.y * 0.15,
+      arc * direction * 0.55 + pointer.x * 0.35 * (1 - flight),
+      -arc * direction * 0.32 + Math.sin(t * 1.2) * 0.03,
     );
     robot.head.rotation.set(-pointer.y * 0.2, pointer.x * 0.4, Math.sin(t * 0.9) * 0.04);
 
@@ -773,7 +779,7 @@ function setupScene(canvas) {
     const mix = smooth(THREE.MathUtils.clamp((p - 0.6) / 0.4, 0, 1));
     // En vuelo los brazos se abren un poco hacia atrás.
     const flying = [0.35, -0.5, 0.35, 0.5];
-    const lerp = (i) => THREE.MathUtils.lerp(from[i], to[i], mix) * (1 - flight * 0.6) + flying[i] * flight * 0.6;
+    const lerp = (i) => THREE.MathUtils.lerp(from[i], to[i], mix) * (1 - arc * 0.6) + flying[i] * arc * 0.6;
     robot.arms[0].rotation.set(lerp(0), 0, lerp(1));
     robot.arms[1].rotation.set(lerp(2), 0, lerp(3));
     const coffee = (k === 1 ? 1 - mix : 0) + (next === 1 ? mix : 0);
@@ -791,8 +797,8 @@ function setupScene(canvas) {
     flash = Math.max(0, flash - dt * 2.5);
     robot.ballMaterial.emissiveIntensity = 0.4 + flash * 2 + working * (0.5 + Math.sin(t * 10) * 0.5);
     robot.chestMaterial.emissiveIntensity = 0.5 + Math.sin(t * 3) * 0.3 + working * 0.8;
-    robot.ring.scale.setScalar(1 + Math.sin(t * 4) * 0.06 + flight * 0.25);
-    robot.ring.material.opacity = 0.55 + Math.sin(t * 4) * 0.15 + flight * 0.3;
+    robot.ring.scale.setScalar(1 + Math.sin(t * 4) * 0.06 + arc * 0.25);
+    robot.ring.material.opacity = 0.55 + Math.sin(t * 4) * 0.15 + arc * 0.3;
 
     root.updateMatrixWorld(true);
     robot.head.getWorldPosition(headWorld);
@@ -830,7 +836,7 @@ function setupScene(canvas) {
     });
 
     // Estela: salen chispas del anillo mientras vuela.
-    const emit = Math.round(flight * 4);
+    const emit = Math.round(arc * 4);
     for (let n = 0; n < emit; n++) {
       const i = trailNext;
       trailNext = (trailNext + 1) % TRAIL;
