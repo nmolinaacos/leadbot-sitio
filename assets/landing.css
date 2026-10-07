@@ -51,6 +51,32 @@ em { font-family: var(--display); font-style: italic; font-weight: 400; color: v
 .dialogo-punto { width: 7px; height: 7px; border-radius: 50%; background: #22c47a; box-shadow: 0 0 0 3px rgba(34, 196, 122, 0.18); animation: latido 1.8s ease-in-out infinite; }
 @keyframes latido { 50% { box-shadow: 0 0 0 6px rgba(34, 196, 122, 0); } }
 .dialogo-texto { margin: 0; min-height: 1.45em; }
+/* El botón del globo sí recibe clics (el globo no, para no estorbar). */
+.dialogo-accion { pointer-events: none; display: flex; align-items: center; gap: 6px; margin-top: 10px; padding: 7px 14px; border: 0; border-radius: 999px; cursor: pointer;
+  background: linear-gradient(135deg, #4a78ff, #6f5cff); color: #fff; font: 600 13px/1 var(--body); text-decoration: none; width: fit-content;
+  box-shadow: 0 8px 18px -8px rgba(74, 120, 255, 0.9); animation: aparece 0.35s ease both; transition: transform 0.2s, box-shadow 0.2s; }
+.dialogo.visible .dialogo-accion { pointer-events: auto; }
+.dialogo-accion:hover { transform: translateX(3px); box-shadow: 0 10px 22px -8px rgba(74, 120, 255, 1); }
+.dialogo-accion:focus-visible { outline: 2px solid #4a78ff; outline-offset: 3px; }
+a.dialogo-accion { background: linear-gradient(135deg, #1fbf73, #12a35f); box-shadow: 0 8px 18px -8px rgba(31, 191, 115, 0.9); }
+@keyframes aparece { from { opacity: 0; transform: translateY(4px); } }
+
+/* Puntos de avance: uno por acto, al costado derecho (abajo del menú en el celular). */
+.progreso { position: fixed; z-index: 9; right: 22px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 14px; }
+.progreso:empty { display: none; }
+.progreso button { position: relative; width: 10px; height: 10px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; background: rgba(255, 255, 255, 0.22); transition: background 0.3s, transform 0.3s, box-shadow 0.3s; }
+.progreso button::before { content: ""; position: absolute; inset: -8px; }
+.progreso button[aria-current] { background: var(--accent-2); transform: scale(1.35); box-shadow: 0 0 12px rgba(142, 170, 255, 0.8); }
+.progreso button span { position: absolute; right: 22px; top: 50%; transform: translate(6px, -50%); white-space: nowrap; padding: 5px 10px; border-radius: 8px; font: 500 12px var(--body); color: var(--text);
+  background: var(--panel); border: 1px solid var(--line); opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; }
+.progreso button:hover span, .progreso button:focus-visible span { opacity: 1; transform: translate(0, -50%); }
+.progreso button:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 4px; }
+.nav-cta.nav-whatsapp { background: #1fbf73; border-color: #1fbf73; color: #fff; }
+@media (max-width: 760px) {
+  .progreso { top: calc(env(safe-area-inset-top, 0px) + 66px); right: 50%; transform: translateX(50%); flex-direction: row; gap: 9px; }
+  .progreso button { width: 7px; height: 7px; }
+  .progreso button span { display: none; }
+}
 /* La cola: un rombo con el mismo borde de degradado. */
 .dialogo-caja::after { content: ""; position: absolute; width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid transparent;
   background: linear-gradient(160deg, #ffffff, #f1f5ff) padding-box, linear-gradient(135deg, #4a78ff, #9a7bff) border-box; transform: rotate(45deg); }

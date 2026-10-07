@@ -19,25 +19,130 @@ let scrollState = () => 0;
 // El arranque va al final del archivo.
 
 
-// ── Scroll suave y anclas ────────────────────────────────────────────
+// ── Scroll suave ─────────────────────────────────────────────────────
+let lenis = null;
 function setupScroll() {
-  const lenis = Lenis ? new Lenis({ lerp: 0.085, wheelMultiplier: 0.9 }) : null;
+  lenis = Lenis ? new Lenis({ lerp: 0.085, wheelMultiplier: 0.9 }) : null;
   if (lenis) {
     lenis.on('scroll', ScrollTrigger.update);
     gsap.ticker.add((time) => lenis.raf(time * 1000));
     gsap.ticker.lagSmoothing(0);
   }
+}
+
+function scrollToY(y, duration = 1.4) {
+  if (lenis) lenis.scrollTo(y, { duration, easing: (t) => 1 - Math.pow(1 - t, 3) });
+  else scrollTo({ top: y, behavior: reduce ? 'auto' : 'smooth' });
+}
+
+// ── Navegación por momentos ──────────────────────────────────────────
+// Cada acto tiene uno o varios "momentos": el punto del scroll en que se ve
+// completo (en los actos fijados, cuando terminó cada paso de su historia).
+// Al dejar de deslizar, la página aterriza en el momento más cercano; los
+// puntos del costado y el botón "Sigamos" del robot llevan de uno a otro.
+const ACT_NAMES = ['Inicio', 'La noche', 'La respuesta', 'Una bandeja', 'Qué hace', 'Tú decides', 'Hablemos'];
+
+function setupNavigation(pinned) {
+  const maxScroll = () => document.documentElement.scrollHeight - innerHeight;
+  const top = (selector) => document.querySelector(selector).getBoundingClientRect().top + scrollY;
+  const at = (st, f) => st.start + (st.end - st.start) * f;
+  let acts = [];
+  const compute = () => {
+    const frase = document.querySelector('.frase').getBoundingClientRect();
+    acts = [
+      [0],
+      [at(pinned.night, 0.45), at(pinned.night, 0.86)],
+      [at(pinned.reply, 0.36), at(pinned.reply, 0.64), at(pinned.reply, 0.9)],
+      [at(pinned.inbox, 0.8)],
+      [top('#funciones') - 24],
+      [frase.top + scrollY + frase.height / 2 - innerHeight / 2],
+      [maxScroll()],
+    ].map((ys) => ys.map((y) => Math.round(Math.min(Math.max(0, y), maxScroll()))));
+  };
+  ScrollTrigger.addEventListener('refresh', compute);
+  compute();
+  const moments = () => acts.flat();
+  const goToAct = (i) => scrollToY(acts[i][0]);
+
+  // Aterrizar al dejar de deslizar (solo si hay un momento cerca: dentro de
+  // una sección larga, como la lista de funciones en el celular, no se mueve).
+  let timer = 0;
+  let landing = false;
+  const settle = () => {
+    if (landing) return;
+    const y = scrollY;
+    const nearest = moments().reduce((best, m) => (Math.abs(m - y) < Math.abs(best - y) ? m : best), Infinity);
+    const distance = Math.abs(nearest - y);
+    if (distance < 3 || distance > innerHeight * 0.38) return;
+    landing = true;
+    scrollToY(nearest, 0.75);
+    setTimeout(() => (landing = false), 800);
+  };
+  addEventListener('scroll', () => {
+    clearTimeout(timer);
+    timer = setTimeout(settle, 220);
+  }, { passive: true });
+
+  // "Sigamos": al siguiente momento después de donde está la página.
+  document.addEventListener('leadbot:siguiente', () => {
+    const next = moments().find((m) => m > scrollY + 8);
+    if (next !== undefined) scrollToY(next);
+  });
+
+  // Links del menú: al primer momento de su acto.
+  const actOf = { '#inicio': 0, '#noche': 1, '#respuesta': 2, '#bandeja': 3, '#funciones': 4, '#contacto': 6 };
   document.querySelectorAll('a[href^="#"]').forEach((link) => {
+    const index = actOf[link.getAttribute('href')];
+    if (index === undefined) return;
     link.addEventListener('click', (event) => {
-      const target = document.querySelector(link.getAttribute('href'));
-      if (!target) return;
       event.preventDefault();
-      // Los actos fijados arrancan vacíos y aparecen al bajar: se llega un poco adentro.
-      const offset = target.querySelector('.pin') ? innerHeight * 0.45 : 0;
-      if (lenis) lenis.scrollTo(target, { offset, duration: 1.6 });
-      else target.scrollIntoView({ behavior: 'smooth' });
+      goToAct(index);
     });
   });
+
+  // Puntos de avance al costado (abajo del menú en el celular).
+  const dots = document.querySelector('.progreso');
+  if (dots) {
+    dots.innerHTML = ACT_NAMES.map((name, i) => `<button type="button" data-acto="${i}" aria-label="Ir a: ${name}"><span>${name}</span></button>`).join('');
+    dots.addEventListener('click', (event) => {
+      const button = event.target.closest('button');
+      if (button) goToAct(Number(button.dataset.acto));
+    });
+  }
+
+  // El acto activo (puntos) y, en el celular, WhatsApp en el menú al salir del inicio.
+  const cta = document.querySelector('.nav-cta');
+  const whatsapp = 'https://wa.me/573233272083?text=Hola%2C%20quiero%20conocer%20Leadbot';
+  let active = -1;
+  let green = null;
+  // El acto activo es la última sección cuyo comienzo ya pasó la mitad de la pantalla.
+  const sections = ['#inicio', '#noche', '#respuesta', '#bandeja', '#funciones', '.frase', '#contacto'].map((sel) => document.querySelector(sel));
+  const update = () => {
+    let current = 0;
+    sections.forEach((section, i) => {
+      if (section.getBoundingClientRect().top <= innerHeight * 0.5) current = i;
+    });
+    if (current !== active && dots) {
+      active = current;
+      dots.querySelectorAll('button').forEach((b, i) => b.toggleAttribute('aria-current', i === active));
+    }
+    const wantGreen = innerWidth < 760 && scrollY > innerHeight * 0.6;
+    if (cta && wantGreen !== green) {
+      green = wantGreen;
+      cta.classList.toggle('nav-whatsapp', green);
+      cta.textContent = green ? 'WhatsApp' : 'Hablemos';
+      cta.setAttribute('href', green ? whatsapp : '#contacto');
+      if (green) cta.setAttribute('target', '_blank');
+      else cta.removeAttribute('target');
+    }
+  };
+  addEventListener('scroll', update, { passive: true });
+  ScrollTrigger.addEventListener('refresh', update);
+  update();
+  // El link de WhatsApp no debe pasar por el scroll suave.
+  cta?.addEventListener('click', (event) => {
+    if (cta.classList.contains('nav-whatsapp')) event.stopImmediatePropagation();
+  }, true);
 }
 
 // Envuelve cada palabra en un span (las <em> quedan enteras, como una sola pieza).
@@ -110,6 +215,7 @@ function setupNight() {
     .fromTo('.noche .linea', { opacity: 0, y: 40, filter: 'blur(6px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.18, stagger: 0.16 }, 0.08)
     .fromTo('.avisos li', { opacity: 0, scale: 0.7, y: 30 }, { opacity: 1, scale: 1, y: 0, duration: 0.12, stagger: 0.12, ease: 'back.out(2)' }, 0.25)
     .to('.noche .pin', { opacity: 0, scale: 0.94, duration: 0.12 }, 0.9);
+  return tl.scrollTrigger;
 }
 
 // ── Acto 2: la respuesta ─────────────────────────────────────────────
@@ -150,6 +256,7 @@ function setupReply() {
   show(7, 0.8); // resumen del pedido
   tl.to('.telefono', { rotateY: 6, rotateX: 0, duration: 0.9, ease: 'none' }, 0.1)
     .to('.respuesta .pin', { opacity: 0, y: -40, duration: 0.08 }, 0.94);
+  return tl.scrollTrigger;
 }
 
 // ── Acto 3: una bandeja ──────────────────────────────────────────────
@@ -169,6 +276,7 @@ function setupInbox() {
     .fromTo('.t-ig', { yPercent: 160, z: -700, rotateX: -70, opacity: 0 }, { yPercent: 0, z: 60, rotateX: 0, opacity: 1, duration: 0.4 }, 0.26)
     .fromTo('.bandeja-nota', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.2 }, 0.6)
     .to('.bandeja .pin', { opacity: 0, scale: 0.96, duration: 0.1 }, 0.92);
+  return tl.scrollTrigger;
 }
 
 // ── Acto 4: qué hace (aparecen y se inclinan con el mouse) ───────────
@@ -553,6 +661,7 @@ function setupScene(canvas) {
     dialog.classList.add('visible');
     if (reduce) {
       dialogText.textContent = MESSAGES[k];
+      addAction(k);
       return;
     }
     dialogText.innerHTML = '<span class="puntos"><i></i><i></i><i></i></span>';
@@ -566,13 +675,24 @@ function setupScene(canvas) {
       if (i < text.length) {
         dialogText.insertAdjacentHTML('beforeend', '<span class="cursor"></span>');
         typingTimer = setTimeout(type, 26);
-      } else if (camera.aspect < 1) {
+      } else {
+        addAction(k);
         // En el celular el globo se va a los segundos, para no tapar lo que se lee.
-        typingTimer = setTimeout(() => shown === k && dialog.classList.remove('visible'), 5500);
+        if (camera.aspect < 1) typingTimer = setTimeout(() => shown === k && dialog.classList.remove('visible'), 9000);
       }
     };
     typingTimer = setTimeout(type, 650);
   }
+  // Al terminar de hablar ofrece seguir (o, en el cierre, escribir por WhatsApp).
+  function addAction(k) {
+    if (k === LAST) {
+      dialogText.insertAdjacentHTML('beforeend', '<a class="dialogo-accion" href="https://wa.me/573233272083?text=Hola%2C%20quiero%20conocer%20Leadbot" target="_blank" rel="noopener">Escribir por WhatsApp</a>');
+    } else {
+      dialogText.insertAdjacentHTML('beforeend', '<button type="button" class="dialogo-accion">Sigamos <span aria-hidden="true">→</span></button>');
+      dialogText.querySelector('button').addEventListener('click', () => document.dispatchEvent(new CustomEvent('leadbot:siguiente')));
+    }
+  }
+
   function hush() {
     if (!dialog || shown === -1) return;
     shown = -1;
@@ -788,12 +908,11 @@ if (gsap && ScrollTrigger && !reduce) {
   gsap.registerPlugin(ScrollTrigger);
   setupScroll();
   setupHero();
-  setupNight();
-  setupReply();
-  setupInbox();
+  const pinned = { night: setupNight(), reply: setupReply(), inbox: setupInbox() };
   setupFeatures();
   setupPhrase();
   setupClosing();
   scrollState = setupStateAnchors();
+  setupNavigation(pinned);
 }
 setupScene(document.getElementById('escena'));
