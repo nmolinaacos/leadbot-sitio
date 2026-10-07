@@ -547,14 +547,10 @@ function makeRobot() {
   const headFeatures = [
     // Cuencas teñidas de azul (la luz de los ojos rebota en ellas).
     ...EYE.map((c) => ({ c, r: SOCKET, d: 0.07, dark: 0.95, tint: [0.22, 0.55, 1.0] })),
-    // Hendidura oscura de la mandíbula, de lado a lado.
-    { path: JAW, w: 0.095, d: 0.06, dark: 0.08 },
-    // Costuras laterales: de la gorra a la mandíbula, junto a las orejas.
-    ...[-1, 1].map((s) => ({ path: [[s * 0.76, 0.44], [s * 0.82, 0.15], [s * 0.82, -0.1], [s * 0.8, -0.32]], w: 0.024, d: 0.014, dark: 0.45 })),
     // Cejas de luz: ranuras cortas sobre los ojos.
     ...[-1, 1].map((s) => ({ path: [[s * 0.53, 0.37], [s * 0.4, 0.4], [s * 0.27, 0.38]], w: 0.03, d: 0.016, dark: 0.3 })),
   ];
-  // La cara es un tono apenas más gris que la gorra.
+  // La cara (hundida dentro del casco) es apenas más gris que el casco.
   const skullMat = headWhite.clone();
   skullMat.color.set(0xe2e6eb);
   const skull = add(head, carve(ellipsoid(1.0, dense[0], dense[1]), headFeatures, 0.0), skullMat);
@@ -565,73 +561,84 @@ function makeRobot() {
     add(head, tube(brow, 0.011), glow);
     add(head, tube(brow, 0.03), headHalo);
   });
-  // Línea de luz tenue dentro de la mandíbula (como la referencia).
-  add(head, tube(JAW.slice(1, -1).map(([x, y]) => onHead(x, y, -0.045)), 0.008), Object.assign(glowSoft.clone(), { opacity: 0.35 }));
 
-  // Gorra: casquete un poco más grande que sobresale al frente. Su borde baja
-  // hacia las orejas. Se recorta con una máscara (UV de la esfera).
-  // Al frente queda sobre las cejas; a los lados baja hasta encima de la oreja
-  // y atrás baja casi a la nuca.
-  const capEdge = (phi) => 1.0 + 0.22 * Math.cos(phi) ** 2 + (Math.sin(phi) < 0 ? 0.35 * Math.sin(phi) ** 2 : 0);
-  const capMask = (() => {
+  // Casco: una sola pieza que cubre todo el cráneo (arriba, lados, nuca y
+  // mentón) con una abertura al frente para la cara. El borde de arriba de la
+  // abertura es grueso y sobresale sobre la frente; abajo, entre la cara y el
+  // mentón del casco, queda la hendidura oscura de la mandíbula. Junto a las
+  // orejas, el borde lleva una luz azul. Arriba: ranura con luz, rejilla y
+  // placa grabada.
+  const HELM_R = 1.07;
+  // Abertura en coordenadas de la esfera: phi alrededor (frente en π/2),
+  // theta desde arriba. Rectángulo de esquinas redondeadas (superelipse).
+  const OPEN = { half: 1.02, top: 1.05, bottom: 2.25 };
+  const openingOutline = (n = 200) => Array.from({ length: n }, (_, i) => {
+    const a = (i / n) * Math.PI * 2;
+    const c = Math.cos(a), s = Math.sin(a);
+    const e = 2 / 4.5;
+    const cy = (OPEN.top + OPEN.bottom) / 2, hh = (OPEN.bottom - OPEN.top) / 2;
+    const px = Math.sign(c) * Math.pow(Math.abs(c), e) * OPEN.half;
+    let py = cy + Math.sign(s) * Math.pow(Math.abs(s), e) * hh;
+    // El borde de abajo sube hacia los lados, como una sonrisa (la mandíbula).
+    if (s > 0) py -= 0.3 * (px / OPEN.half) ** 2 * Math.pow(s, 0.5);
+    return [Math.PI / 2 + px, py];
+  });
+  const outline = openingOutline();
+  const onEll = (phi, theta, r) => new THREE.Vector3(-r * SX * Math.cos(phi) * Math.sin(theta), r * SY * Math.cos(theta), r * SZ * Math.sin(phi) * Math.sin(theta));
+  const helmMask = (() => {
     const c = document.createElement('canvas');
-    c.width = 1024;
-    c.height = 512;
+    c.width = 2048;
+    c.height = 1024;
     const g = c.getContext('2d');
-    g.fillStyle = '#000';
-    g.fillRect(0, 0, c.width, c.height);
     g.fillStyle = '#fff';
+    g.fillRect(0, 0, c.width, c.height);
+    g.fillStyle = '#000';
     g.beginPath();
-    g.moveTo(0, 0);
-    for (let i = 0; i <= 256; i++) {
-      const phi = (i / 256) * Math.PI * 2;
-      g.lineTo((phi / (Math.PI * 2)) * c.width, (capEdge(phi) / Math.PI) * c.height);
-    }
-    g.lineTo(c.width, 0);
+    outline.forEach(([phi, theta], i) => {
+      const x = (phi / (Math.PI * 2)) * c.width, y = (theta / Math.PI) * c.height;
+      if (i) g.lineTo(x, y); else g.moveTo(x, y);
+    });
     g.closePath();
     g.fill();
-    return new THREE.CanvasTexture(c);
+    const t = new THREE.CanvasTexture(c);
+    t.anisotropy = 8;
+    return t;
   })();
-  const cap = new THREE.Group();
-  cap.position.set(0, 0.02, 0.075);
-  cap.scale.set(1, 0.97, 1); // un poco más plana arriba
-  head.add(cap);
-  const CAP_R = 1.065;
-  const capFeatures = [
-    // Ranura con luz azul en la frente de la gorra.
-    { path: [[-0.2, 0.72], [0, 0.735], [0.2, 0.72]], w: 0.075, d: 0.04, dark: 0.3 },
+  const helmFeatures = [
+    // Ranura con luz azul arriba de la frente.
+    { path: [[-0.2, 0.74], [0, 0.755], [0.2, 0.74]], w: 0.075, d: 0.04, dark: 0.3 },
     // Rejilla: cuatro ranuras cortas arriba a un lado.
-    ...[0, 1, 2, 3].map((i) => ({ path: [[-0.6 + i * 0.045, 0.79 - i * 0.012], [-0.53 + i * 0.045, 0.83 - i * 0.012]], w: 0.016, d: 0.01, dark: 0.45 })),
+    ...[0, 1, 2, 3].map((i) => ({ path: [[-0.6 + i * 0.045, 0.82 - i * 0.012], [-0.53 + i * 0.045, 0.86 - i * 0.012]], w: 0.016, d: 0.01, dark: 0.45 })),
   ];
-  const capGeo = carve(ellipsoid(CAP_R, dense[0], dense[1]), capFeatures, 0.1);
-  add(cap, capGeo, Object.assign(headWhite.clone(), { alphaMap: capMask, alphaTest: 0.5, side: THREE.DoubleSide }));
-  // Borde grueso y redondeado de la gorra (la visera).
-  const onSphereEll = (phi, theta, r) => new THREE.Vector3(-r * SX * Math.cos(phi) * Math.sin(theta), r * SY * Math.cos(theta), r * SZ * Math.sin(phi) * Math.sin(theta));
-  const capRim = Array.from({ length: 96 }, (_, i) => {
-    const phi = (i / 96) * Math.PI * 2;
-    return onSphereEll(phi, capEdge(phi) - 0.012, CAP_R - 0.012);
+  const helmGeo = carve(ellipsoid(HELM_R, dense[0], dense[1]), helmFeatures, 0.1);
+  add(head, helmGeo, Object.assign(headWhite.clone(), { alphaMap: helmMask, alphaTest: 0.5, side: THREE.DoubleSide }));
+  // Borde de la abertura: grueso y redondeado; arriba más grueso y salido.
+  const rimMat = (() => { const m = headWhite.clone(); m.vertexColors = false; return m; })();
+  add(head, tube(outline.map(([phi, theta]) => onEll(phi, theta, HELM_R - 0.022)), 0.03, true), rimMat);
+  const brow = outline.filter(([phi, theta]) => theta < OPEN.top + 0.12).sort((a, b) => a[0] - b[0]);
+  add(head, tube(brow.map(([phi, theta]) => onEll(phi, theta - 0.015, HELM_R + 0.02)), 0.06), rimMat);
+  // Mandíbula: hendidura oscura en el borde de abajo, con una luz tenue adentro.
+  const jaw = outline.filter(([phi, theta]) => theta > OPEN.top + 0.7 && Math.abs(phi - Math.PI / 2) < OPEN.half * 0.97).filter(([phi, theta], i, arr) => theta > (OPEN.top + OPEN.bottom) / 2 + 0.25).sort((a, b) => a[0] - b[0]);
+  add(head, tube(jaw.map(([phi, theta]) => onEll(phi, theta - 0.02, 1.012)), 0.04), darkMetal);
+  add(head, tube(jaw.map(([phi, theta]) => onEll(phi, theta - 0.035, 1.03)), 0.009), Object.assign(glowSoft.clone(), { opacity: 0.4 }));
+  // Luz azul en el borde junto a las orejas (de la esquina de arriba hacia abajo).
+  [-1, 1].forEach((s) => {
+    const side = outline.filter(([phi, theta]) => s * (phi - Math.PI / 2) > OPEN.half * 0.82 && theta < OPEN.top + 0.75).sort((a, b) => a[1] - b[1]);
+    const pts = side.map(([phi, theta]) => onEll(Math.PI / 2 + (phi - Math.PI / 2) * 0.985, theta + 0.015, HELM_R - 0.035));
+    add(head, tube(pts, 0.012), glow);
+    add(head, tube(pts, 0.032), headHalo);
   });
-  add(cap, tube(capRim, 0.052, true), Object.assign(headWhite.clone(), { vertexColors: false }));
-  // Luz en el fondo de la ranura de la frente.
-  const slotPts = [[-0.18, 0.72], [0, 0.735], [0.18, 0.72]].map(([x, y]) => {
-    const z = SZ * CAP_R * Math.sqrt(Math.max(0, 1 - (x / (SX * CAP_R)) ** 2 - (y / (SY * CAP_R)) ** 2));
+  // Luz en el fondo de la ranura de arriba.
+  const slotPts = [[-0.18, 0.74], [0, 0.755], [0.18, 0.74]].map(([x, y]) => {
+    const z = SZ * HELM_R * Math.sqrt(Math.max(0, 1 - (x / (SX * HELM_R)) ** 2 - (y / (SY * HELM_R)) ** 2));
     return new THREE.Vector3(x, y, z - 0.03);
   });
-  add(cap, tube(slotPts, 0.02), glow);
-  add(cap, tube(slotPts.map((p) => p.clone().setZ(p.z + 0.025)), 0.045), headHalo);
-  // Luz en el borde de la gorra, sobre cada oreja.
-  [-1, 1].forEach((s) => {
-    const arc = Array.from({ length: 14 }, (_, i) => {
-      const phi = Math.PI / 2 + s * (0.95 + (i / 13) * 0.32);
-      return onSphereEll(phi, capEdge(phi) + 0.03, 1.003);
-    });
-    add(cap, tube(arc, 0.012), glow);
-    add(cap, tube(arc, 0.03), headHalo);
-  });
-  // Placa grabada a un lado de la gorra.
-  const badgeAt = onSphereEll(Math.PI / 2 - 0.82, 0.72, CAP_R + 0.004);
+  add(head, tube(slotPts, 0.02), glow);
+  add(head, tube(slotPts.map((p) => p.clone().setZ(p.z + 0.025)), 0.045), headHalo);
+  // Placa grabada a un lado del casco.
   const seamGrey = new THREE.MeshStandardMaterial({ color: 0x8a929e, roughness: 0.5 });
-  const badge = add(cap, new THREE.BoxGeometry(0.16, 0.09, 0.014), (() => { const m = headWhite.clone(); m.vertexColors = false; m.color.set(0xe6e9ee); return m; })(), [badgeAt.x, badgeAt.y, badgeAt.z]);
+  const badgeAt = onEll(Math.PI / 2 - 0.85, 0.72, HELM_R + 0.004);
+  const badge = add(head, new THREE.BoxGeometry(0.16, 0.09, 0.014), (() => { const m = headWhite.clone(); m.vertexColors = false; m.color.set(0xe6e9ee); return m; })(), [badgeAt.x, badgeAt.y, badgeAt.z]);
   badge.lookAt(badgeAt.clone().multiplyScalar(2));
   [-0.04, -0.013, 0.013, 0.04].forEach((dx) => add(badge, new THREE.BoxGeometry(0.006, 0.05, 0.003), seamGrey, [dx, 0, 0.008]));
 
@@ -682,7 +689,7 @@ function makeRobot() {
   // Audífonos: aro de luz cian, banda gris oscuro, tapa plana clara y un botón.
   [-1, 1].forEach((side) => {
     const ear = new THREE.Group();
-    ear.position.set(side * 1.03, -0.04, -0.04);
+    ear.position.set(side * 1.1, -0.06, -0.04);
     ear.rotation.z = (side * Math.PI) / 2;
     head.add(ear);
     add(ear, new THREE.CylinderGeometry(0.4, 0.42, 0.14, seg), darkMetal, [0, 0.0, 0]);
