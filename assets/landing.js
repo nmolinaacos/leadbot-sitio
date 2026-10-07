@@ -595,7 +595,7 @@ function makeRobot() {
   // abajo, con tapa superior casi plana; abajo se redondea. Banda hundida
   // oscura con dos hilos azules; huecos de hombro con borde azul; un punto
   // oscuro en el pecho, a un lado.
-  const torsoProfile = [[0, -1.48], [0.4, -1.45], [0.64, -1.32], [0.745, -1.12], [0.765, -0.98], [0.73, -0.62], [0.66, -0.26], [0.585, 0.04], [0.53, 0.17], [0.43, 0.225], [0.26, 0.24], [0, 0.24]];
+  const torsoProfile = [[0, -1.48], [0.4, -1.45], [0.64, -1.32], [0.745, -1.12], [0.765, -0.98], [0.71, -0.62], [0.6, -0.26], [0.5, 0.04], [0.44, 0.17], [0.35, 0.225], [0.22, 0.24], [0, 0.24]];
   const body = add(rig, lathe(torsoProfile, 70), white);
   body.scale.z = 0.86;
   const torsoR = (y) => {
@@ -612,8 +612,8 @@ function makeRobot() {
     return m;
   };
   // Borde oscuro alrededor del cuello, con hilo azul.
-  hoop(0.235, 0.25, 0.022, dark);
-  hoop(0.232, 0.28, 0.006, chestMaterial);
+  hoop(0.235, 0.24, 0.022, dark);
+  hoop(0.232, 0.265, 0.006, chestMaterial);
   // Banda: canal oscuro con un hilo azul arriba y otro abajo.
   hoop(-0.98, torsoR(-0.98) - 0.008, 0.02, dark);
   hoop(-0.948, torsoR(-0.948) - 0.002, 0.005, chestMaterial);
@@ -638,7 +638,7 @@ function makeRobot() {
   const HAND = -1.18;
   const arms = [-1, 1].map((side) => {
     const pivot = new THREE.Group();
-    pivot.position.set(side * 0.72, -0.14, 0);
+    pivot.position.set(side * 0.66, -0.14, 0);
     add(pivot, new THREE.SphereGeometry(0.13, 32, 16), dark);
     const upper = add(pivot, new THREE.CapsuleGeometry(0.15, 0.3, 10, 24), white, [0, -0.3, 0]);
     upper.scale.set(1, 1, 0.95);
