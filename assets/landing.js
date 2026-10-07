@@ -566,8 +566,9 @@ function makeRobot() {
   const earGlow = new THREE.MeshBasicMaterial({ color: 0x3fb6f5, toneMapped: false });
   [-1, 1].forEach((side) => {
     const ear = new THREE.Group();
-    ear.position.set(side * 0.74, -0.03, -0.02);
+    ear.position.set(side * 0.72, -0.03, -0.02);
     ear.rotation.z = (side * Math.PI) / 2;
+    ear.scale.y = 0.75; // sobresale menos de la cabeza
     head.add(ear);
     // En el grupo de la oreja, -y apunta hacia afuera de la cabeza. El perfil
     // va de afuera (y negativo) hacia adentro para que las caras miren afuera.
@@ -575,7 +576,7 @@ function makeRobot() {
     // sobresale poco.
     add(ear, lathe([[0.2, -0.128], [0.232, -0.134], [0.258, -0.124], [0.276, -0.09], [0.29, -0.04], [0.298, 0.01], [0.3, 0.08]], 40), headMat);
     // Junta negra contra la cabeza.
-    add(ear, new THREE.TorusGeometry(0.288, 0.02, 12, seg), dark, [0, -0.012, 0], [Math.PI / 2, 0, 0]);
+    add(ear, new THREE.TorusGeometry(0.292, 0.022, 12, seg), dark, [0, -0.045, 0], [Math.PI / 2, 0, 0]);
     // Cara cóncava: aro de luz azul, aro negro y plato gris.
     add(ear, new THREE.RingGeometry(0.175, 0.218, seg), earGlow, [0, -0.131, 0], [Math.PI / 2, 0, 0]).material.side = THREE.DoubleSide;
     add(ear, new THREE.TorusGeometry(0.197, 0.026, 12, seg), Object.assign(halo.clone(), { opacity: 0.25 }), [0, -0.132, 0], [Math.PI / 2, 0, 0]);
