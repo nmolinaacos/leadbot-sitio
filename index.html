@@ -18,10 +18,11 @@
   <link rel="stylesheet" href="assets/landing.css">
   <script>document.documentElement.classList.add('js');</script>
   <script type="importmap">
-    { "imports": { "three": "./assets/vendor/three/three.module.min.js" } }
+    { "imports": { "three": "./assets/vendor/three/three.module.min.js", "three/addons/": "./assets/vendor/three/addons/" } }
   </script>
 </head>
 <body>
+  <div class="aura" aria-hidden="true"></div>
   <canvas id="escena" aria-hidden="true"></canvas>
   <div class="grano" aria-hidden="true"></div>
 
@@ -131,7 +132,7 @@
     </section>
 
     <!-- Acto 6: contacto -->
-    <section class="acto cierre" id="contacto" data-estado="4">
+    <section class="acto cierre" id="contacto" data-estado="5">
       <p class="kicker">Acceso por invitación</p>
       <h2 class="cierre-titulo">Ponlo a vender <em>esta noche.</em></h2>
       <p class="bajada">Estamos sumando comercios en Colombia. Escríbenos y te mostramos Leadbot con tus propios productos.</p>

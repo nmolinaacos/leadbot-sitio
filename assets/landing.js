@@ -1,11 +1,15 @@
 // Leadbot: la historia del inicio contada con el scroll.
 // - Lenis suaviza el scroll; GSAP + ScrollTrigger fijan cada acto y animan el DOM.
-// - Three.js dibuja la escena de fondo: un núcleo de luz (el bot) y burbujas
-//   de chat que cambian de forma en cada acto (estado 0..4, ver data-estado):
-//   0 orbitan · 1 caos de la noche · 2 tres anillos (los canales) ·
-//   3 fluyen en espiral hacia el núcleo · 4 halo tranquilo y lejano, para leer.
+// - Three.js dibuja un objeto 3D de redes sociales que baja con el scroll
+//   (canvas fijo, encima del texto, sin capturar el mouse). Cada acto tiene el
+//   suyo (data-estado 0..5): burbuja de chat · campana · robot (el bot) ·
+//   corazón · bolsa de compras · sello de confirmado. Entre un acto y otro el
+//   objeto se deshace en partículas que cruzan la pantalla por encima del
+//   texto, acercándose a la cámara, y se arman en el siguiente al otro lado.
 // Con movimiento reducido o sin WebGL la página se ve completa y estática.
 import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { MeshSurfaceSampler } from 'three/addons/math/MeshSurfaceSampler.js';
 
 const { gsap, ScrollTrigger, Lenis } = window;
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -14,7 +18,7 @@ const modest = small || (navigator.hardwareConcurrency || 8) <= 4;
 
 let scrollState = () => 0;
 
-// El arranque va al final del archivo: los shaders (const) se definen abajo.
+// El arranque va al final del archivo.
 
 
 // ── Scroll suave y anclas ────────────────────────────────────────────
@@ -30,7 +34,9 @@ function setupScroll() {
       const target = document.querySelector(link.getAttribute('href'));
       if (!target) return;
       event.preventDefault();
-      if (lenis) lenis.scrollTo(target, { offset: 0, duration: 1.6 });
+      // Los actos fijados arrancan vacíos y aparecen al bajar: se llega un poco adentro.
+      const offset = target.querySelector('.pin') ? innerHeight * 0.45 : 0;
+      if (lenis) lenis.scrollTo(target, { offset, duration: 1.6 });
       else target.scrollIntoView({ behavior: 'smooth' });
     });
   });
@@ -200,8 +206,10 @@ function setupClosing() {
   });
 }
 
-// El estado de la escena 3D según el scroll: cada acto mantiene su estado
-// mientras está en pantalla y cambia al pasar al siguiente.
+
+// El estado según el scroll: cada acto mantiene su objeto mientras está en
+// pantalla, y entre un acto y el siguiente hay casi una pantalla de scroll
+// para la transición (el viaje de las partículas).
 function setupStateAnchors() {
   let anchors = [];
   const compute = () => {
@@ -209,11 +217,11 @@ function setupStateAnchors() {
     anchors = [];
     document.querySelectorAll('[data-estado]').forEach((section) => {
       const value = Number(section.dataset.estado);
-      // La altura ya incluye el espacio extra de las secciones fijadas (pin-spacer).
       const box = section.getBoundingClientRect();
       const top = box.top + scrollY;
-      const bottom = top + box.height;
-      anchors.push([top - vh * 0.55, value], [Math.max(top - vh * 0.55, bottom - vh * 0.95), value]);
+      const start = top - vh * 0.35;
+      const end = Math.max(start, top + vh * 0.15, top + box.height - vh * 1.25);
+      anchors.push([start, value], [end, value]);
     });
     anchors.sort((a, b) => a[0] - b[0]);
   };
@@ -233,157 +241,251 @@ function setupStateAnchors() {
   };
 }
 
-// ── Escena 3D ────────────────────────────────────────────────────────
+// ── Objetos 3D ───────────────────────────────────────────────────────
+function glossy(color, extra = {}) {
+  return new THREE.MeshPhysicalMaterial({ color, roughness: 0.26, metalness: 0.05, clearcoat: 1, clearcoatRoughness: 0.12, transparent: true, ...extra });
+}
+
+// sizeRatio: qué tanto se ensancha el bisel (menos en formas con puntas
+// hacia adentro, como el corazón, para que no salgan picos).
+function extrude(shape, depth, bevel, sizeRatio = 0.85) {
+  const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel * sizeRatio, bevelSegments: 8, curveSegments: 32 });
+  geometry.center();
+  return geometry;
+}
+
+// Burbuja de chat con los tres puntos de "escribiendo".
+function makeBubble() {
+  const s = new THREE.Shape();
+  s.moveTo(-0.75, -0.95);
+  s.lineTo(-1.0, -1.5);
+  s.lineTo(-0.2, -0.95);
+  s.lineTo(0.75, -0.95);
+  s.quadraticCurveTo(1.3, -0.95, 1.3, -0.4);
+  s.lineTo(1.3, 0.4);
+  s.quadraticCurveTo(1.3, 0.95, 0.75, 0.95);
+  s.lineTo(-0.75, 0.95);
+  s.quadraticCurveTo(-1.3, 0.95, -1.3, 0.4);
+  s.lineTo(-1.3, -0.4);
+  s.quadraticCurveTo(-1.3, -0.95, -0.75, -0.95);
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(extrude(s, 0.45, 0.2), glossy(0x4a78ff));
+  group.add(body);
+  const dot = glossy(0xffffff, { roughness: 0.2 });
+  [-0.55, 0, 0.55].forEach((x) => {
+    const d = new THREE.Mesh(new THREE.SphereGeometry(0.17, 32, 16), dot);
+    d.position.set(x, 0.18, 0.42);
+    group.add(d);
+  });
+  return { group, primary: body, color: new THREE.Color(0x6f95ff) };
+}
+
+// Campana de notificaciones con su globo rojo.
+function makeBell() {
+  const profile = [[0.001, -0.72], [1.02, -0.72], [1.0, -0.6], [0.78, -0.42], [0.64, -0.1], [0.58, 0.35], [0.48, 0.8], [0.3, 1.08], [0.001, 1.18]].map(([x, y]) => new THREE.Vector2(x, y));
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.LatheGeometry(profile, 72), glossy(0xffb547));
+  group.add(body);
+  const knob = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.06, 16, 32), glossy(0xffb547));
+  knob.position.y = 1.3;
+  group.add(knob);
+  const clapper = new THREE.Mesh(new THREE.SphereGeometry(0.22, 32, 16), glossy(0xffd38a));
+  clapper.position.y = -0.86;
+  group.add(clapper);
+  const badge = new THREE.Mesh(new THREE.SphereGeometry(0.34, 32, 16), glossy(0xff4d5e));
+  badge.position.set(0.72, 0.78, 0.35);
+  group.add(badge);
+  group.rotation.z = 0.22;
+  return { group, primary: body, color: new THREE.Color(0xffb547) };
+}
+
+// Cabeza de robot: el bot de Leadbot, que responde.
+function roundedRect(w, h, r) {
+  const s = new THREE.Shape();
+  s.moveTo(-w / 2 + r, -h / 2);
+  s.lineTo(w / 2 - r, -h / 2);
+  s.quadraticCurveTo(w / 2, -h / 2, w / 2, -h / 2 + r);
+  s.lineTo(w / 2, h / 2 - r);
+  s.quadraticCurveTo(w / 2, h / 2, w / 2 - r, h / 2);
+  s.lineTo(-w / 2 + r, h / 2);
+  s.quadraticCurveTo(-w / 2, h / 2, -w / 2, h / 2 - r);
+  s.lineTo(-w / 2, -h / 2 + r);
+  s.quadraticCurveTo(-w / 2, -h / 2, -w / 2 + r, -h / 2);
+  return s;
+}
+
+function makeRobot() {
+  const group = new THREE.Group();
+  const head = new THREE.Mesh(extrude(roundedRect(2.3, 1.75, 0.55), 0.8, 0.28), glossy(0xe9eefc));
+  group.add(head);
+  const screen = new THREE.Mesh(extrude(roundedRect(1.75, 1.15, 0.38), 0.06, 0.05), glossy(0x0d1426, { roughness: 0.15 }));
+  screen.position.z = 0.7;
+  group.add(screen);
+  const eye = glossy(0x6ff0ff, { emissive: 0x2bd8ff, emissiveIntensity: 1.4 });
+  [-0.42, 0.42].forEach((x) => {
+    const e = new THREE.Mesh(new THREE.CapsuleGeometry(0.13, 0.22, 6, 16), eye);
+    e.position.set(x, 0.05, 0.8);
+    group.add(e);
+  });
+  const ear = glossy(0x4a78ff);
+  [-1.32, 1.32].forEach((x) => {
+    const e = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.3, 32), ear);
+    e.rotation.z = Math.PI / 2;
+    e.position.set(x, 0, 0);
+    group.add(e);
+  });
+  const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.45, 16), glossy(0xb9c6ea));
+  stick.position.set(0, 1.12, 0);
+  group.add(stick);
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(0.17, 32, 16), glossy(0xffb547, { emissive: 0xff8a00, emissiveIntensity: 0.4 }));
+  ball.position.set(0, 1.4, 0);
+  group.add(ball);
+  return { group, primary: head, color: new THREE.Color(0xc9d6ff) };
+}
+
+// Corazón (me gusta): la curva clásica del corazón, suave en toda su forma.
+function makeHeart() {
+  const points = [];
+  for (let i = 0; i < 160; i++) {
+    const t = (i / 160) * Math.PI * 2;
+    const x = 16 * Math.pow(Math.sin(t), 3);
+    const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+    points.push(new THREE.Vector2(x / 16, y / 16));
+  }
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(extrude(new THREE.Shape(points), 0.45, 0.3, 0.3), glossy(0xff5c8a));
+  group.add(body);
+  return { group, primary: body, color: new THREE.Color(0xff6f98) };
+}
+
+// Bolsa de compras (la venta).
+function makeBag() {
+  const s = new THREE.Shape();
+  const w = 1.0, h = 1.05, r = 0.14;
+  s.moveTo(-w + r, -h);
+  s.lineTo(w - r, -h);
+  s.quadraticCurveTo(w, -h, w, -h + r);
+  s.lineTo(w * 0.9, h - r);
+  s.quadraticCurveTo(w * 0.9, h, w * 0.9 - r, h);
+  s.lineTo(-w * 0.9 + r, h);
+  s.quadraticCurveTo(-w * 0.9, h, -w * 0.9, h - r);
+  s.lineTo(-w, -h + r);
+  s.quadraticCurveTo(-w, -h, -w + r, -h);
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(extrude(s, 0.7, 0.08), glossy(0x8e6bff));
+  group.add(body);
+  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.075, 16, 48, Math.PI), glossy(0xc9b8ff));
+  handle.position.set(0, 1.08, 0);
+  group.add(handle);
+  return { group, primary: body, color: new THREE.Color(0x9f82ff) };
+}
+
+// Sello de "pedido confirmado".
+function makeSeal() {
+  const s = new THREE.Shape();
+  for (let i = 0; i <= 200; i++) {
+    const a = (i / 200) * Math.PI * 2;
+    const r = 1.2 + 0.08 * Math.cos(a * 14);
+    if (i === 0) s.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+    else s.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+  }
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(extrude(s, 0.3, 0.12), glossy(0x3fd68f));
+  group.add(body);
+  const check = new THREE.Shape([[-0.6, 0.02], [-0.42, 0.2], [-0.16, -0.06], [0.44, 0.54], [0.62, 0.36], [-0.16, -0.42]].map(([x, y]) => new THREE.Vector2(x, y)));
+  const mark = new THREE.Mesh(extrude(check, 0.12, 0.05), glossy(0xffffff));
+  mark.position.set(0, -0.04, 0.3);
+  group.add(mark);
+  return { group, primary: body, color: new THREE.Color(0x52e3a0) };
+}
+
+// Centra el objeto y lo deja de un tamaño parecido a los demás.
+function normalize(item) {
+  const box = new THREE.Box3().setFromObject(item.group);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  const holder = new THREE.Group();
+  item.group.position.sub(center);
+  holder.add(item.group);
+  holder.userData.base = 2.5 / Math.max(size.x, size.y, size.z);
+  item.holder = holder;
+  return item;
+}
+
+// ── Escena ───────────────────────────────────────────────────────────
 function setupScene(canvas) {
+  const aura = document.querySelector('.aura');
   let renderer;
   try {
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
   } catch {
-    return; // Sin WebGL: queda el degradado del CSS.
+    return; // Sin WebGL: el texto sigue completo.
   }
-  renderer.setPixelRatio(Math.min(devicePixelRatio, modest ? 1.25 : 1.6));
-  renderer.setClearColor(0x04060c, 1);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, modest ? 1.5 : 2));
+  renderer.setClearColor(0x000000, 0);
+  // Neutral conserva la saturación de los colores (ACES los lavaba).
+  renderer.toneMapping = THREE.NeutralToneMapping;
+  renderer.toneMappingExposure = 1;
+
   const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x04060c, 0.035);
-  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 120);
-  camera.position.set(0, 0, 14);
+  const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
+  camera.position.set(0, 0, 10);
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  scene.environmentIntensity = 0.6;
+  const key = new THREE.DirectionalLight(0xffffff, 1.4);
+  key.position.set(4, 6, 8);
+  const rim = new THREE.DirectionalLight(0x8eaaff, 2.4);
+  rim.position.set(-6, -2, -5);
+  scene.add(key, rim);
 
-  // Polvo de estrellas.
-  const starCount = modest ? 700 : 1600;
-  const starPositions = new Float32Array(starCount * 3);
-  for (let i = 0; i < starCount; i++) {
-    const r = 14 + Math.random() * 34;
-    const theta = Math.random() * Math.PI * 2;
-    const phi = Math.acos(2 * Math.random() - 1);
-    starPositions.set([r * Math.sin(phi) * Math.cos(theta), r * Math.cos(phi) * 0.6, r * Math.sin(phi) * Math.sin(theta) - 10], i * 3);
-  }
-  const starGeometry = new THREE.BufferGeometry();
-  starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-  const stars = new THREE.Points(
-    starGeometry,
-    new THREE.PointsMaterial({ color: 0x9fb4ff, size: 0.07, transparent: true, opacity: 0.75, depthWrite: false, blending: THREE.AdditiveBlending }),
-  );
-  scene.add(stars);
+  const items = [makeBubble(), makeBell(), makeRobot(), makeHeart(), makeBag(), makeSeal()].map(normalize);
+  items.forEach((item) => {
+    item.holder.visible = false;
+    item.materials = [];
+    item.holder.traverse((o) => o.material && item.materials.push(o.material));
+    scene.add(item.holder);
+  });
+  const LAST = items.length - 1;
 
-  // El núcleo: una esfera viva con brillo en el borde.
-  const coreUniforms = {
-    uTime: { value: 0 },
-    uEnergy: { value: 0.7 },
-    uColorA: { value: new THREE.Color() },
-    uColorB: { value: new THREE.Color() },
+  // Dónde descansa cada objeto: a un lado del texto de su acto.
+  const DESKTOP = [[3.3, 0.15, 0, 1], [-3.8, -0.2, 0, 0.85], [4.75, 1.55, -0.5, 0.7], [-4.4, -1.0, 0, 0.85], [5.3, 1.9, -0.6, 0.55], [0, -2.2, 0, 0.62]];
+  const MOBILE = [[0.7, -2.3, 0, 0.5], [0, -2.35, 0, 0.5], [1.2, 2.55, 0, 0.36], [0, -2.4, 0, 0.5], [1.25, 2.6, 0, 0.34], [0, -2.4, 0, 0.5]];
+  const pose = (k) => {
+    const wide = camera.aspect >= 1;
+    const [x, y, z, s] = (wide ? DESKTOP : MOBILE)[k];
+    return { x: x * (wide ? Math.min(1, camera.aspect / 1.8) : 1), y, z, s };
   };
-  const core = new THREE.Mesh(
-    new THREE.IcosahedronGeometry(1.5, modest ? 20 : 48),
-    new THREE.ShaderMaterial({ uniforms: coreUniforms, vertexShader: CORE_VERTEX, fragmentShader: CORE_FRAGMENT }),
+
+  // Partículas: puntos tomados de la superficie de cada objeto.
+  const COUNT = modest ? 900 : 1800;
+  const samples = items.map((item) => {
+    item.holder.updateMatrixWorld(true);
+    const sampler = new MeshSurfaceSampler(item.primary).build();
+    const toHolder = new THREE.Matrix4().copy(item.primary.matrixWorld);
+    const out = new Float32Array(COUNT * 3);
+    const v = new THREE.Vector3();
+    for (let i = 0; i < COUNT; i++) {
+      sampler.sample(v);
+      v.applyMatrix4(toHolder);
+      out.set([v.x, v.y, v.z], i * 3);
+    }
+    return out;
+  });
+  const jitter = new Float32Array(COUNT * 4);
+  for (let i = 0; i < COUNT; i++) jitter.set([Math.random(), Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1], i * 4);
+  const positions = new Float32Array(COUNT * 3);
+  const colors = new Float32Array(COUNT * 3);
+  const particleGeometry = new THREE.BufferGeometry();
+  particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3).setUsage(THREE.DynamicDrawUsage));
+  particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3).setUsage(THREE.DynamicDrawUsage));
+  const particleUniforms = { uAlpha: { value: 0 }, uSize: { value: modest ? 7 : 9 }, uPixelRatio: { value: renderer.getPixelRatio() } };
+  const particles = new THREE.Points(
+    particleGeometry,
+    new THREE.ShaderMaterial({ uniforms: particleUniforms, vertexShader: POINT_VERTEX, fragmentShader: POINT_FRAGMENT, transparent: true, depthWrite: false, vertexColors: true }),
   );
-  scene.add(core);
-  const shell = new THREE.LineSegments(
-    new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(2.25, 1)),
-    new THREE.LineBasicMaterial({ color: 0x8eaaff, transparent: true, opacity: 0.18 }),
-  );
-  scene.add(shell);
-  // Halo de luz detrás del núcleo (en vez de un bloom, que aclaraba todo el fondo).
-  const haloCanvas = document.createElement('canvas');
-  haloCanvas.width = haloCanvas.height = 256;
-  const hctx = haloCanvas.getContext('2d');
-  const gradient = hctx.createRadialGradient(128, 128, 0, 128, 128, 128);
-  gradient.addColorStop(0, 'rgba(255,255,255,0.55)');
-  gradient.addColorStop(0.35, 'rgba(255,255,255,0.16)');
-  gradient.addColorStop(1, 'rgba(255,255,255,0)');
-  hctx.fillStyle = gradient;
-  hctx.fillRect(0, 0, 256, 256);
-  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(haloCanvas), color: 0x4a78ff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
-  halo.scale.setScalar(9);
-  scene.add(halo);
-
-  // Las burbujas de chat.
-  const count = modest ? 70 : 130;
-  const bubbleGeometry = new THREE.CapsuleGeometry(0.12, 0.3, 4, 12);
-  bubbleGeometry.rotateZ(Math.PI / 2);
-  const bubbles = new THREE.InstancedMesh(bubbleGeometry, new THREE.MeshBasicMaterial({ color: 0xc4ceff, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false }), count);
-  bubbles.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  scene.add(bubbles);
-  const seeds = Array.from({ length: count }, () => [Math.random(), Math.random(), Math.random(), Math.random()]);
-  const ringOf = (i) => i % 3;
-  const ringSize = [Math.ceil(count / 3), Math.ceil((count - 1) / 3), Math.floor(count / 3)];
-  const ringTilt = [new THREE.Euler(1.15, 0.1, 0.2), new THREE.Euler(1.45, -0.5, -0.1), new THREE.Euler(1.75, 0.6, 0.15)];
-
-  const palette = {
-    accent: new THREE.Color(0x8eaaff), white: new THREE.Color(0xffffff), alert: new THREE.Color(0xff5368), amber: new THREE.Color(0xffb547),
-    wa: new THREE.Color(0x3fd68f), ig: new THREE.Color(0xff7ab0), ms: new THREE.Color(0x69b4ff), warm: new THREE.Color(0xffc56b),
-  };
-  // Por estado: posición del núcleo (x se escala en pantallas angostas), cámara, energía y colores.
-  const STATES = [
-    { core: [4.2, 0.1, -1], cam: 14, energy: 0.75, a: 0x3a62ff, b: 0x9a7bff, shell: 0.2 },
-    { core: [0, 0, -3], cam: 16, energy: 0.12, a: 0x5a1020, b: 0x1a0a14, shell: 0.04 },
-    { core: [3.4, 0, -3], cam: 13, energy: 1, a: 0x2f6bff, b: 0x48e0ff, shell: 0.28 },
-    { core: [0, -0.2, 0], cam: 11.5, energy: 0.95, a: 0x4a78ff, b: 0xffb547, shell: 0.22 },
-    { core: [0, -4.2, -9], cam: 15, energy: 0.55, a: 0x3a62ff, b: 0xffb547, shell: 0.1 },
-  ].map((s) => ({ ...s, a: new THREE.Color(s.a), b: new THREE.Color(s.b) }));
-
-  // Cuánto baja el núcleo en el celular en cada estado.
-  const MOBILE_LIFT = [-5.4, 0, -0.5, 0, 0];
-  if (small) bubbles.material.opacity = 0.5;
-  const dummy = new THREE.Object3D();
-  const tmpA = new THREE.Vector3();
-  const tmpB = new THREE.Vector3();
-  const colA = new THREE.Color();
-  const colB = new THREE.Color();
-  const corePos = new THREE.Vector3();
-  const coreFrom = new THREE.Vector3();
-  const coreTo = new THREE.Vector3();
-  const posTo = new THREE.Vector3();
-  const TAU = Math.PI * 2;
-
-  function bubblePosition(state, i, t, out, coreAt) {
-    const [r1, r2, r3, r4] = seeds[i];
-    if (state === 0) {
-      const a = r1 * TAU + t * (0.06 + 0.1 * r2);
-      const rad = 2.3 + r3 * 1.9;
-      out.set(Math.cos(a) * rad, (r4 - 0.5) * 2.4 + Math.sin(t * 0.6 + r1 * 9) * 0.2, Math.sin(a) * rad).applyEuler(ringTilt[0]).multiplyScalar(0.9);
-      out.y *= 0.55;
-      return out.add(coreAt);
-    }
-    if (state === 1) {
-      return out.set(
-        (r1 - 0.5) * 24 + Math.sin(t * 0.25 + r4 * 20) * 0.8,
-        (r2 - 0.5) * 13 + Math.cos(t * 0.3 + r1 * 20) * 0.6,
-        (r3 - 0.5) * 12 - 3,
-      );
-    }
-    if (state === 2) {
-      const ring = ringOf(i);
-      const index = Math.floor(i / 3);
-      const a = (index / ringSize[ring]) * TAU + t * 0.16 * (ring === 1 ? -1 : 1);
-      const rad = [2.4, 3.2, 4.0][ring];
-      return out.set(Math.cos(a) * rad, Math.sin(a) * rad, 0).applyEuler(ringTilt[ring]).add(coreAt);
-    }
-    if (state === 3) {
-      const p = (r1 + t * 0.06) % 1;
-      const rad = 0.4 + (1 - p) * 6.2;
-      const a = p * 13 + r2 * TAU;
-      return out.set(Math.cos(a) * rad, (1 - p) * 4.2 - 1.2 + (r3 - 0.5) * 0.6, Math.sin(a) * rad * 0.7).add(coreAt);
-    }
-    const a = r1 * TAU + t * 0.035;
-    const rad = 6.8 + r3 * 2.2;
-    return out.set(Math.cos(a) * rad, (r4 - 0.5) * 1.2 + Math.sin(a * 2) * 0.4, Math.sin(a) * rad * 0.45 - 2).add(coreAt);
-  }
-
-  function bubbleColor(state, i, t, out) {
-    const [r1, r2] = seeds[i];
-    if (state === 0) return out.copy(palette.accent).lerp(palette.white, r2 * 0.6);
-    if (state === 1) return out.copy(palette.alert).lerp(palette.amber, r2 * 0.4);
-    if (state === 2) return out.copy([palette.wa, palette.ig, palette.ms][ringOf(i)]);
-    if (state === 3) return out.copy(palette.white).lerp(palette.warm, (r1 + t * 0.06) % 1);
-    return out.copy(palette.accent).lerp(palette.warm, r2 * 0.5);
-  }
-
-  function bubbleScale(state, i, t) {
-    const [r1, r2] = seeds[i];
-    if (state === 3) return 0.35 + (1 - ((r1 + t * 0.06) % 1)) * 0.85;
-    if (state === 1) return 0.8 + r2 * 0.9;
-    return 0.7 + r2 * 0.6;
-  }
+  particles.frustumCulled = false;
+  scene.add(particles);
 
   const resize = () => {
     renderer.setSize(innerWidth, innerHeight, false);
@@ -399,74 +501,105 @@ function setupScene(canvas) {
     pointer.y = event.clientY / innerHeight - 0.5;
   });
 
-  let state = scrollState();
   const clock = new THREE.Clock();
   const smooth = (x) => x * x * (3 - 2 * x);
+  const easeInOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+  const a = new THREE.Vector3();
+  const b = new THREE.Vector3();
+  const c = new THREE.Vector3();
+  const colorMix = new THREE.Color();
+  const screen = new THREE.Vector3();
+  let state = scrollState();
+
+  // Coloca un objeto en su lugar de descanso, flotando y siguiendo al mouse.
+  function placeAt(k, t) {
+    const item = items[k];
+    const p = pose(k);
+    const h = item.holder;
+    h.position.set(p.x, p.y + Math.sin(t * 1.1 + k) * 0.08, p.z);
+    h.rotation.set(Math.sin(t * 0.5 + k) * 0.12 - pointer.y * 0.35, Math.sin(t * 0.6 + k * 2) * 0.45 + pointer.x * 0.6, 0);
+    h.scale.setScalar(h.userData.base * p.s);
+    h.updateMatrixWorld(true);
+  }
+
+  function setLook(k, opacity, grow) {
+    const h = items[k].holder;
+    h.visible = opacity > 0.01;
+    h.scale.multiplyScalar(grow);
+    h.updateMatrixWorld(true);
+    items[k].materials.forEach((m) => {
+      m.opacity = opacity;
+      m.depthWrite = opacity > 0.98;
+    });
+  }
 
   function frame() {
     const dt = Math.min(clock.getDelta(), 0.25);
     const t = clock.elapsedTime;
-    // Suavizado por tiempo (no por cuadro): igual en pantallas de 60 o 120 Hz.
-    state += (scrollState() - state) * (1 - Math.exp(-dt * 2.6));
-    const k0 = Math.min(4, Math.floor(state));
-    const k1 = Math.min(4, k0 + 1);
-    const f = state - k0;
-    const sA = STATES[k0];
-    const sB = STATES[k1];
-    const narrow = camera.aspect < 1 ? 0.15 : camera.aspect < 1.4 ? 0.6 : 1;
+    state += (scrollState() - state) * (1 - Math.exp(-dt * 4));
+    const k = Math.min(LAST, Math.max(0, Math.floor(state + 1e-4)));
+    const next = Math.min(LAST, k + 1);
+    const p = k === LAST ? 0 : THREE.MathUtils.clamp(state - k, 0, 1);
 
-    corePos.set(...sA.core).lerp(tmpA.set(...sB.core), smooth(f));
-    corePos.x *= narrow;
-    // En pantallas angostas el núcleo baja, para no quedar detrás del texto.
-    if (camera.aspect < 1) corePos.y += THREE.MathUtils.lerp(MOBILE_LIFT[k0], MOBILE_LIFT[k1], smooth(f));
-    core.position.copy(corePos);
-    shell.position.copy(corePos);
-    halo.position.copy(corePos);
-    halo.material.color.copy(coreUniforms.uColorA.value).lerp(coreUniforms.uColorB.value, 0.3);
-    halo.material.opacity = 0.35 + 0.65 * coreUniforms.uEnergy.value;
-    core.rotation.y = t * 0.12;
-    shell.rotation.set(t * 0.05, t * 0.08, 0);
-    shell.material.opacity = THREE.MathUtils.lerp(sA.shell, sB.shell, f);
-    coreUniforms.uTime.value = t;
-    coreUniforms.uEnergy.value = THREE.MathUtils.lerp(sA.energy, sB.energy, f);
-    coreUniforms.uColorA.value.copy(sA.a).lerp(sB.a, f);
-    coreUniforms.uColorB.value.copy(sA.b).lerp(sB.b, f);
-
-    coreFrom.set(...sA.core);
-    coreFrom.x *= narrow;
-    coreTo.set(...sB.core);
-    coreTo.x *= narrow;
-    if (camera.aspect < 1) {
-      coreFrom.y += MOBILE_LIFT[k0];
-      coreTo.y += MOBILE_LIFT[k1];
+    items.forEach((item, i) => {
+      if (i !== k && i !== next) item.holder.visible = false;
+    });
+    placeAt(k, t);
+    if (p < 0.002) {
+      setLook(k, 1, 1);
+      if (next !== k) items[next].holder.visible = false;
+      particles.visible = false;
+    } else {
+      placeAt(next, t);
+      // Se deshace al empezar, viaja y se arma al final.
+      const dissolve = smooth(THREE.MathUtils.clamp(p / 0.16, 0, 1));
+      const assemble = smooth(THREE.MathUtils.clamp((p - 0.84) / 0.16, 0, 1));
+      const from = samples[k];
+      const to = samples[next];
+      const mA = items[k].holder.matrixWorld;
+      const mB = items[next].holder.matrixWorld;
+      const colA = items[k].color;
+      const colB = items[next].color;
+      for (let i = 0; i < COUNT; i++) {
+        const j = i * 4;
+        const local = easeInOut(THREE.MathUtils.clamp((p - 0.06 - jitter[j] * 0.22) / 0.7, 0, 1));
+        a.fromArray(from, i * 3).applyMatrix4(mA);
+        b.fromArray(to, i * 3).applyMatrix4(mB);
+        // El punto de control pasa cerca de la cámara: las partículas cruzan
+        // por encima del texto, más grandes, antes de llegar al otro lado.
+        c.addVectors(a, b).multiplyScalar(0.5);
+        c.x += jitter[j + 1] * 1.8;
+        c.y += 0.8 + jitter[j + 2] * 1.6;
+        c.z += 5 + jitter[j + 3] * 1.4;
+        const u = 1 - local;
+        positions[i * 3] = u * u * a.x + 2 * u * local * c.x + local * local * b.x;
+        positions[i * 3 + 1] = u * u * a.y + 2 * u * local * c.y + local * local * b.y;
+        positions[i * 3 + 2] = u * u * a.z + 2 * u * local * c.z + local * local * b.z;
+        colorMix.copy(colA).lerp(colB, local);
+        colors[i * 3] = colorMix.r;
+        colors[i * 3 + 1] = colorMix.g;
+        colors[i * 3 + 2] = colorMix.b;
+      }
+      particleGeometry.attributes.position.needsUpdate = true;
+      particleGeometry.attributes.color.needsUpdate = true;
+      particles.visible = true;
+      particleUniforms.uAlpha.value = Math.min(dissolve, 1 - assemble);
+      placeAt(k, t);
+      setLook(k, 1 - dissolve, 1 - 0.3 * dissolve);
+      placeAt(next, t);
+      setLook(next, assemble, 0.7 + 0.3 * assemble);
     }
-    for (let i = 0; i < count; i++) {
-      // Cada burbuja cambia de estado con un pequeño retraso propio: el
-      // enjambre se reacomoda de forma orgánica, no todo a la vez.
-      const local = smooth(THREE.MathUtils.clamp((f - seeds[i][0] * 0.35) / 0.65, 0, 1));
-      bubblePosition(k0, i, t, tmpA, tmpB.copy(coreFrom));
-      bubblePosition(k1, i, t, posTo, tmpB.copy(coreTo));
-      dummy.position.lerpVectors(tmpA, posTo, local);
-      dummy.rotation.set(0, 0, Math.sin(t * 0.8 + seeds[i][1] * 10) * 0.35);
-      dummy.scale.setScalar(THREE.MathUtils.lerp(bubbleScale(k0, i, t), bubbleScale(k1, i, t), local));
-      dummy.updateMatrix();
-      bubbles.setMatrixAt(i, dummy.matrix);
-      bubbleColor(k0, i, t, colA);
-      bubbleColor(k1, i, t, colB);
-      bubbles.setColorAt(i, colA.lerp(colB, local));
+
+    // El aura de color detrás del texto sigue al objeto.
+    if (aura) {
+      const h = items[p > 0.5 ? next : k].holder;
+      screen.copy(h.position).project(camera);
+      const x = (screen.x * 0.5 + 0.5) * innerWidth;
+      const y = (-screen.y * 0.5 + 0.5) * innerHeight;
+      colorMix.copy(items[k].color).lerp(items[next].color, p);
+      aura.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+      aura.style.setProperty('--aura', `rgba(${Math.round(colorMix.r * 255)}, ${Math.round(colorMix.g * 255)}, ${Math.round(colorMix.b * 255)}, 0.22)`);
     }
-    bubbles.instanceMatrix.needsUpdate = true;
-    if (bubbles.instanceColor) bubbles.instanceColor.needsUpdate = true;
-
-    stars.rotation.y = t * 0.008 + state * 0.15;
-    stars.position.y = -state * 0.8;
-    const camZ = THREE.MathUtils.lerp(sA.cam, sB.cam, smooth(f));
-    const ease = 1 - Math.exp(-dt * 3);
-    camera.position.x += (pointer.x * 1.2 - camera.position.x) * ease;
-    camera.position.y += (-pointer.y * 0.8 - camera.position.y) * ease;
-    camera.position.z += (camZ - camera.position.z) * ease;
-    camera.lookAt(0, 0, 0);
-
     renderer.render(scene, camera);
   }
 
@@ -487,54 +620,24 @@ function setupScene(canvas) {
   loop();
 }
 
-// Ruido simplex 3D (Ashima Arts / Stefan Gustavson, licencia MIT).
-const NOISE = /* glsl */ `
-vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}
-vec4 mod289(vec4 x){return x-floor(x*(1.0/289.0))*289.0;}
-vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);}
-vec4 taylorInvSqrt(vec4 r){return 1.79284291400159-0.85373472095314*r;}
-float snoise(vec3 v){
-  const vec2 C=vec2(1.0/6.0,1.0/3.0); const vec4 D=vec4(0.0,0.5,1.0,2.0);
-  vec3 i=floor(v+dot(v,C.yyy)); vec3 x0=v-i+dot(i,C.xxx);
-  vec3 g=step(x0.yzx,x0.xyz); vec3 l=1.0-g; vec3 i1=min(g.xyz,l.zxy); vec3 i2=max(g.xyz,l.zxy);
-  vec3 x1=x0-i1+C.xxx; vec3 x2=x0-i2+C.yyy; vec3 x3=x0-D.yyy;
-  i=mod289(i);
-  vec4 p=permute(permute(permute(i.z+vec4(0.0,i1.z,i2.z,1.0))+i.y+vec4(0.0,i1.y,i2.y,1.0))+i.x+vec4(0.0,i1.x,i2.x,1.0));
-  float n_=0.142857142857; vec3 ns=n_*D.wyz-D.xzx;
-  vec4 j=p-49.0*floor(p*ns.z*ns.z); vec4 x_=floor(j*ns.z); vec4 y_=floor(j-7.0*x_);
-  vec4 x=x_*ns.x+ns.yyyy; vec4 y=y_*ns.x+ns.yyyy; vec4 h=1.0-abs(x)-abs(y);
-  vec4 b0=vec4(x.xy,y.xy); vec4 b1=vec4(x.zw,y.zw);
-  vec4 s0=floor(b0)*2.0+1.0; vec4 s1=floor(b1)*2.0+1.0; vec4 sh=-step(h,vec4(0.0));
-  vec4 a0=b0.xzyw+s0.xzyw*sh.xxyy; vec4 a1=b1.xzyw+s1.xzyw*sh.zzww;
-  vec3 p0=vec3(a0.xy,h.x); vec3 p1=vec3(a0.zw,h.y); vec3 p2=vec3(a1.xy,h.z); vec3 p3=vec3(a1.zw,h.w);
-  vec4 norm=taylorInvSqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));
-  p0*=norm.x; p1*=norm.y; p2*=norm.z; p3*=norm.w;
-  vec4 m=max(0.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.0); m=m*m;
-  return 42.0*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
-}`;
-
-const CORE_VERTEX = /* glsl */ `
-uniform float uTime; uniform float uEnergy;
-varying vec3 vNormal; varying vec3 vView; varying float vNoise;
-${NOISE}
+const POINT_VERTEX = /* glsl */ `
+uniform float uSize; uniform float uPixelRatio;
+varying vec3 vColor;
 void main(){
-  float n = snoise(normal * 1.3 + vec3(uTime * 0.22));
-  vNoise = n;
-  vec3 p = position + normal * n * (0.1 + 0.22 * uEnergy);
-  vec4 mv = modelViewMatrix * vec4(p, 1.0);
-  vView = normalize(-mv.xyz);
-  vNormal = normalize(normalMatrix * normal);
+  vColor = color;
+  vec4 mv = modelViewMatrix * vec4(position, 1.0);
+  gl_PointSize = uSize * uPixelRatio * (10.0 / -mv.z);
   gl_Position = projectionMatrix * mv;
 }`;
 
-const CORE_FRAGMENT = /* glsl */ `
-uniform vec3 uColorA; uniform vec3 uColorB; uniform float uEnergy;
-varying vec3 vNormal; varying vec3 vView; varying float vNoise;
+const POINT_FRAGMENT = /* glsl */ `
+uniform float uAlpha;
+varying vec3 vColor;
 void main(){
-  float rim = pow(1.0 - max(dot(vNormal, vView), 0.0), 2.4);
-  vec3 base = mix(uColorA, uColorB, smoothstep(-0.5, 0.8, vNoise));
-  vec3 color = base * (0.12 + 0.55 * uEnergy) + rim * (base * 1.8 + 0.25) * (0.35 + uEnergy);
-  gl_FragColor = vec4(color, 1.0);
+  float d = length(gl_PointCoord - 0.5);
+  float glow = smoothstep(0.5, 0.0, d);
+  float core = smoothstep(0.18, 0.0, d);
+  gl_FragColor = vec4(vColor * (0.8 + core * 0.8), glow * uAlpha);
 }`;
 
 // ── Arranque ─────────────────────────────────────────────────────────
