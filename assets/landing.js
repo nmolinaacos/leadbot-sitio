@@ -463,23 +463,23 @@ function makeRobot() {
   // Visor: gran lámina negra de esquinas redondeadas que cubre casi todo el
   // frente (de la frente casi al mentón y de oreja a oreja), un poco abombada
   // sobre la cabeza y con un hilo azul claro en el borde.
-  const VIS = { half: 1.1, top: 1.06, bottom: 2.24 };
+  const VIS = { half: 0.96, top: 0.94, bottom: 2.34 };
   const visorOutline = (n = 200) => Array.from({ length: n }, (_, i) => {
     const a = (i / n) * Math.PI * 2;
-    const c = Math.cos(a), s = Math.sin(a), e = 2 / 4.2;
+    const c = Math.cos(a), s = Math.sin(a), e = 2 / 6.5;
     const cy = (VIS.top + VIS.bottom) / 2, hh = (VIS.bottom - VIS.top) / 2;
     return [Math.PI / 2 + Math.sign(c) * Math.pow(Math.abs(c), e) * VIS.half, cy + Math.sign(s) * Math.pow(Math.abs(s), e) * hh];
   });
   const outline = visorOutline();
   const onHeadSphere = ([phi, theta], r) => new THREE.Vector3(-r * HS[0] * Math.cos(phi) * Math.sin(theta), r * HS[1] * Math.cos(theta), r * HS[2] * Math.sin(phi) * Math.sin(theta));
-  const visorMask = (() => {
+  const visorMask = (invert = false) => {
     const c = document.createElement('canvas');
     c.width = 2048;
     c.height = 1024;
     const g = c.getContext('2d');
-    g.fillStyle = '#000';
+    g.fillStyle = invert ? '#fff' : '#000';
     g.fillRect(0, 0, c.width, c.height);
-    g.fillStyle = '#fff';
+    g.fillStyle = invert ? '#000' : '#fff';
     g.beginPath();
     outline.forEach(([phi, theta], i) => {
       const x = (phi / (Math.PI * 2)) * c.width, y = (theta / Math.PI) * c.height;
@@ -490,14 +490,19 @@ function makeRobot() {
     const t = new THREE.CanvasTexture(c);
     t.anisotropy = 8;
     return t;
-  })();
-  const VR = 0.816;
-  const visor = add(head, new THREE.SphereGeometry(VR, seg * 1.5, seg), Object.assign(visorMat.clone(), { alphaMap: visorMask, alphaTest: 0.5 }));
+  };
+  // El visor va hundido: la cabeza tiene la abertura y el visor queda adentro.
+  skull.material = Object.assign(headMat.clone(), { alphaMap: visorMask(true), alphaTest: 0.5, side: THREE.DoubleSide });
+  const VR = 0.765;
+  const visor = add(head, new THREE.SphereGeometry(VR, seg * 1.5, seg), Object.assign(visorMat.clone(), { alphaMap: visorMask(), alphaTest: 0.5 }));
   visor.scale.set(...HS);
   // Canto del visor (negro) y el hilo azul claro que lo rodea.
   const edge = (r) => new THREE.CatmullRomCurve3(outline.map((p) => onHeadSphere(p, r)), true);
-  add(head, new THREE.TubeGeometry(edge(VR - 0.004), 260, 0.01, 8, true), visorMat);
-  add(head, new THREE.TubeGeometry(edge(VR + 0.002), 260, 0.0055, 6, true), new THREE.MeshBasicMaterial({ color: 0x8fcfff, toneMapped: false }));
+  // Pared de la abertura (oscura, entre la cabeza y el visor) y el hilo azul
+  // en el borde de la cabeza.
+  for (let r = VR; r < 0.8; r += 0.008) add(head, new THREE.TubeGeometry(edge(r), 260, 0.006, 6, true), dark);
+  add(head, new THREE.TubeGeometry(edge(0.797), 260, 0.008, 8, true), headMat);
+  add(head, new THREE.TubeGeometry(edge(0.799), 260, 0.005, 6, true), new THREE.MeshBasicMaterial({ color: 0x8fcfff, toneMapped: false }));
 
   // Ojos: óvalos verticales celestes con borde azul más oscuro y un resplandor
   // suave; párpado negro como el visor.
