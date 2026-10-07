@@ -643,15 +643,47 @@ function setupScene(canvas) {
 
   // Chats que le llegan al robot (de noche y al responder) o con los que
   // hace malabares (en el inicio): verde, rosado y azul, como los canales.
+  // Globos de chat de vidrio, teñidos del color de cada canal, con los tres
+  // puntos de "escribiendo…" adentro; al responderlos se ponen verdes con un visto.
   const geometry = bubbleGeometry();
-  const CHANNEL_COLORS = [0x3fd68f, 0xff7ab0, 0x69b4ff];
+  const CHANNEL_COLORS = [0x3fd68f, 0xff7ab0, 0x69b4ff].map((c) => new THREE.Color(c));
+  const ANSWERED = new THREE.Color(0x3fd68f);
+  const WHITE = new THREE.Color(0xffffff);
   const CHATS = modest ? 4 : 6;
+  const dotGeometry = new THREE.SphereGeometry(0.2, 20, 12);
+  const checkGeometry = new THREE.CapsuleGeometry(0.11, 0.5, 6, 12);
   const chats = Array.from({ length: CHATS }, (_, i) => {
-    const mesh = new THREE.Mesh(geometry, glossy(CHANNEL_COLORS[i % 3], { transparent: true }));
-    mesh.scale.setScalar(0.001);
-    mesh.userData = { offset: i / CHATS, from: new THREE.Vector3(), seed: Math.random() };
-    scene.add(mesh);
-    return mesh;
+    const chat = new THREE.Group();
+    const tint = CHANNEL_COLORS[i % 3];
+    const glassMaterial = new THREE.MeshPhysicalMaterial({
+      color: tint.clone().lerp(new THREE.Color(0xffffff), 0.3), emissive: tint.clone(), emissiveIntensity: 0.75,
+      roughness: 0.06, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.04, envMapIntensity: 1.6,
+      transparent: true, opacity: 0.5, depthWrite: false,
+    });
+    chat.add(new THREE.Mesh(geometry, glassMaterial));
+    const dotMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true });
+    const dots = [-0.6, 0, 0.6].map((x) => {
+      const dot = new THREE.Mesh(dotGeometry, dotMaterial);
+      dot.position.set(x, 0.05, 0.05);
+      chat.add(dot);
+      return dot;
+    });
+    // El visto: dos cápsulas en V.
+    const check = new THREE.Group();
+    const short = new THREE.Mesh(checkGeometry, dotMaterial);
+    short.scale.y = 0.55;
+    short.position.set(-0.32, -0.08, 0.05);
+    short.rotation.z = 0.8;
+    const long = new THREE.Mesh(checkGeometry, dotMaterial);
+    long.position.set(0.18, 0.1, 0.05);
+    long.rotation.z = -0.65;
+    check.add(short, long);
+    check.scale.setScalar(0.001);
+    chat.add(check);
+    chat.scale.setScalar(0.001);
+    chat.userData = { offset: i / CHATS, from: new THREE.Vector3(), seed: Math.random(), tint, glassMaterial, dotMaterial, dots, check };
+    scene.add(chat);
+    return chat;
   });
 
   // Estela de luz cuando vuela.
@@ -915,15 +947,26 @@ function setupScene(canvas) {
     const incoming = (k === 1 || k === 2 ? 1 - smooth(p) : 0) + (next === 1 || next === 2 ? smooth(p) : 0);
     const juggling = (k === 0 ? 1 - smooth(p) : 0) + (next === 0 && k !== 0 ? smooth(p) : 0);
     const robotScale = root.scale.x / root.userData.base;
+    // En la respuesta, el globo que llega al robot queda respondido (verde y con visto).
+    const answering = (k === 2 ? 1 - smooth(p) : 0) + (next === 2 && k !== 2 ? smooth(p) : 0);
+    const ORBIT = 3;
     chats.forEach((chat, i) => {
       const data = chat.userData;
-      const show = Math.max(incoming, juggling) * (1 - flight * 0.8);
+      let show = Math.max(incoming, juggling) * (1 - flight * 0.8);
+      let answered = 0;
       if (juggling > incoming) {
-        const a = t * 1.6 + data.offset * Math.PI * 2;
-        // Giran por encima de la cabeza, como malabares, sin taparle la cara.
-        chat.position.set(headWorld.x + Math.cos(a) * 1.5 * robotScale, headWorld.y + 1.6 * robotScale + Math.sin(a * 2) * 0.3 * robotScale, headWorld.z + Math.sin(a) * 1.1 * robotScale);
-        chat.rotation.set(0, -a, Math.sin(a) * 0.3);
-        chat.scale.setScalar(0.24 * robotScale * show + 0.001);
+        // Órbita ordenada: tres globos, uno por canal, en un anillo inclinado
+        // por encima de la cabeza (no le tapan la cara).
+        if (i >= ORBIT) show = 0;
+        const a = t * 0.7 + (i / ORBIT) * Math.PI * 2;
+        chat.position.set(
+          headWorld.x + Math.cos(a) * 1.55 * robotScale,
+          headWorld.y + (1.25 + Math.sin(a) * 0.22) * robotScale,
+          headWorld.z + Math.sin(a) * 1.0 * robotScale,
+        );
+        chat.rotation.set(0, Math.sin(a) * 0.25, Math.sin(t * 1.3 + i) * 0.08);
+        // Los de atrás se ven un poco más pequeños: da profundidad.
+        chat.scale.setScalar((0.2 + Math.sin(a) * 0.03) * robotScale * show + 0.001);
       } else {
         const cycle = (t / 2.4 + data.offset) % 1;
         // Salen de alrededor del robot (no cruzan el texto del acto) y llegan a su cabeza.
@@ -938,8 +981,18 @@ function setupScene(canvas) {
         const life = Math.min(1, cycle / 0.12, cycle > 0.88 ? (1 - cycle) / 0.12 : 1);
         chat.scale.setScalar((0.13 * life * show + 0.001) * (0.6 + robotScale * 0.6));
         if (cycle > 0.97 && show > 0.5) flash = 1;
+        answered = answering * smooth(THREE.MathUtils.clamp((cycle - 0.55) / 0.25, 0, 1));
       }
-      chat.material.opacity = Math.min(1, show * 1.4);
+      // Color del canal → verde al responderlo; los puntos se vuelven un visto.
+      data.glassMaterial.emissive.copy(data.tint).lerp(ANSWERED, answered);
+      data.glassMaterial.color.copy(data.tint).lerp(ANSWERED, answered).lerp(WHITE, 0.3);
+      data.glassMaterial.opacity = Math.min(0.72, show * 0.9);
+      data.dotMaterial.opacity = Math.min(1, show * 1.4);
+      data.dots.forEach((dot, d) => {
+        dot.position.y = 0.05 + Math.max(0, Math.sin(t * 7 - d * 0.9)) * 0.22 * (1 - answered);
+        dot.scale.setScalar(Math.max(0.001, 1 - answered));
+      });
+      data.check.scale.setScalar(Math.max(0.001, answered));
     });
 
     // Estela: salen chispas del anillo mientras vuela.
