@@ -480,7 +480,7 @@ function makeRobot() {
   // que carga el modelo es un material suelto que nadie dibuja.
   const robotParts = { ballMaterial: new THREE.MeshStandardMaterial(), chestMaterial: ringMaterial };
 
-  new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load('assets/leadbot-robot.glb', (gltf) => {
+  new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load('assets/leadbot-robot.glb?v=202610071104', (gltf) => {
     const parts = {};
     gltf.scene.traverse((o) => { if (o.isMesh) parts[o.name] = o; });
     const material = Object.values(parts)[0]?.material;

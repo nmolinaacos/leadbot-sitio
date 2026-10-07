@@ -1,10 +1,11 @@
-// Limpia y reclasifica las texturas del robot de Tripo, suaviza y simplifica
+// Repinta las texturas del robot de Tripo por zonas en 3D (como la imagen de
+// referencia), suaviza y simplifica
 // la malla, la corta en cabeza / cuerpo / brazos y exporta un .glb liviano.
 //
 // Uso (en una carpeta con robot.glb, el modelo original):
 //   npm i @gltf-transform/core@4 @gltf-transform/extensions@4 @gltf-transform/functions@4 meshoptimizer sharp
 //   node procesar-robot.mjs        → leadbot-robot.glb (copiarlo a assets/)
-// Variables: SIZE (texturas, 2048), RATIO (triángulos que quedan, 0.3), SMOOTH (pasadas, 6), NSCALE (relieve, 0.4).
+// Variables: SIZE (texturas, 2048), RATIO (triángulos que quedan, 0.3), SMOOTH (pasadas, 10), NSCALE (relieve, 0.08).
 import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS, KHRMaterialsClearcoat, EXTMeshoptCompression, EXTTextureWebP } from '@gltf-transform/extensions';
 import { weld, simplify, prune, dedup, quantize, reorder } from '@gltf-transform/functions';
@@ -53,103 +54,128 @@ const posMap = new Float32Array(N * 3).fill(NaN);
     }
   }
 }
-// 1) Clasifica cada píxel (pesos de 0 a 255 por material) a partir del color suavizado.
-const W8 = { blanco: Buffer.alloc(N), metal: Buffer.alloc(N), grafito: Buffer.alloc(N), oscuro: Buffer.alloc(N), luz: Buffer.alloc(N), boca: Buffer.alloc(N) };
-const stats = { blanco: 0, metal: 0, grafito: 0, oscuro: 0, luz: 0, boca: 0 };
-for (let i = 0; i < N; i++) {
-  const r = soft[i * 3], g = soft[i * 3 + 1], b = soft[i * 3 + 2];
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  const sat = max ? (max - min) / max : 0;
-  let k;
-  if (sat > 0.32 && b > r * 1.2 && b > 105) k = 'luz';
-  else if (sat > 0.18 && r > b * 1.08 && lum < 150) k = 'boca';
-  // Negro de los ojos: casi negro o azul marino saturado.
-  // (por posición: frente de la cabeza, donde están los ojos)
-  else if (lum < 34 || (lum < 112 && posMap[i * 3 + 1] > 0.55 && posMap[i * 3 + 2] > 0.1)) k = 'oscuro';
-  else if (lum > 112) k = 'blanco';
-  else if (lum < 78) k = 'grafito';
-  else k = 'metal';
-  W8[k][i] = 255;
-  stats[k]++;
-}
-// 2) Bordes suaves entre materiales.
-const blur = async (buf, r) => sharp(buf, { raw: { width: info.width, height: info.height, channels: 1 } }).blur(r).extractChannel(0).raw().toBuffer();
-for (const k of Object.keys(W8)) W8[k] = await blur(W8[k], k === 'luz' || k === 'oscuro' ? 1.2 : k === 'blanco' ? 2.4 : 5);
-
-// 3) Color, metal/rugosidad y emisión por material.
-const MAT = {
-  blanco: { c: [238, 241, 246], rough: 0.3, metal: 0, keep: 0.12 },
-  metal: { c: [168, 175, 187], rough: 0.4, metal: 0.6, keep: 0.15 },
-  grafito: { c: [104, 111, 123], rough: 0.4, metal: 0.65, keep: 0.12 },
-  oscuro: { c: [8, 11, 18], rough: 0.08, metal: 0.05, keep: 0.4 },
-  luz: { c: [70, 200, 255], rough: 0.25, metal: 0, keep: 0.2, glow: [40, 190, 255] },
-  boca: { c: [70, 40, 32], rough: 0.4, metal: 0, keep: 0.5 },
+// 1) Pintura por posición en 3D (como la imagen de referencia): la cabeza se
+// pinta con formas limpias (casco, cara, ojos, sonrisa, audífonos) y el cuerpo
+// usa la zona de la IA muy suavizada (blanco / metal / grafito).
+const smoothL = await sharp(base, { raw: info }).median(13).blur(16).raw().toBuffer();
+const lumAt = (buf, i) => 0.2126 * buf[i * 3] + 0.7152 * buf[i * 3 + 1] + 0.0722 * buf[i * 3 + 2];
+const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const MATS = {
+  casco: { c: [244, 246, 249], rough: 0.2, metal: 0 },
+  cara: { c: [214, 219, 226], rough: 0.42, metal: 0 },
+  metalClaro: { c: [170, 177, 188], rough: 0.38, metal: 0.6 },
+  lente: { c: [5, 7, 11], rough: 0.04, metal: 0.1 },
+  aro: { c: [20, 190, 255], rough: 0.2, metal: 0, em: [0, 200, 255] },
+  aroBorde: { c: [12, 34, 70], rough: 0.2, metal: 0.2, em: [5, 40, 110] },
+  boca: { c: [40, 32, 32], rough: 0.4, metal: 0 },
+  oscuro: { c: [40, 44, 52], rough: 0.36, metal: 0.5 },
+  orejaAro: { c: [62, 122, 255], rough: 0.25, metal: 0.55, em: [12, 45, 140] },
+  blanco: { c: [240, 243, 247], rough: 0.24, metal: 0 },
+  metal: { c: [150, 157, 168], rough: 0.45, metal: 0.6 },
+  grafito: { c: [66, 72, 84], rough: 0.45, metal: 0.55 },
+  luz: { c: [60, 205, 255], rough: 0.2, metal: 0, em: [35, 190, 255] },
 };
+const EYES = [[-0.158, 0.672], [0.165, 0.675]];
+const LENS = 0.071, RING = 0.088, RING_EDGE = 0.095;
+// Devuelve [[material, peso], ...] para un punto del robot.
+const paint = (x, y, z, i) => {
+  if (y > 0.455) {
+    const front = z > 0.06;
+    const ax = Math.abs(x);
+    // Audífonos.
+    if (ax > 0.305) {
+      const r = Math.hypot(y - 0.655, z - 0.005);
+      if (r < 0.045) return [['oscuro', 1]];
+      if (r < 0.064) return [['orejaAro', 1]];
+      return [['casco', 1]];
+    }
+    // Ojos: lente negro, aro cian y un borde azul marino.
+    if (front) for (const [cx, cy] of EYES) {
+      const r = Math.hypot(x - cx, y - cy);
+      if (r < RING_EDGE + 0.004) {
+        const lens = 1 - sstep(LENS - 0.002, LENS + 0.002, r);
+        const ring = sstep(LENS - 0.002, LENS + 0.002, r) * (1 - sstep(RING - 0.002, RING + 0.002, r));
+        const edge = sstep(RING - 0.002, RING + 0.002, r) * (1 - sstep(RING_EDGE - 0.002, RING_EDGE + 0.003, r));
+        const rest = Math.max(0, 1 - lens - ring - edge);
+        return [['lente', lens], ['aro', ring], ['aroBorde', edge], ['cara', rest]];
+      }
+    }
+    // Sonrisa: un arco fino.
+    if (front && z > 0.15) {
+      const r = Math.hypot(x, y - 0.578);
+      const onArc = 1 - sstep(0.0025, 0.005, Math.abs(r - 0.04));
+      if (onArc > 0 && y < 0.562 && ax < 0.033) return [['boca', onArc], ['cara', 1 - onArc]];
+    }
+    // Ranura del casco y marcas oscuras de arriba (las de la IA).
+    if (y > 0.82 && ax < 0.14 && z > 0.12 && y < 0.93 && lumAt(soft, i) < 125) return [['oscuro', 1]];
+    // Aro del mentón y cuello.
+    if (y < 0.5 && front) return [['metalClaro', 1]];
+    if (y < 0.5) return [['oscuro', 1]];
+    // Cara (gris claro) dentro del casco blanco.
+    if (front && y > 0.505 && y < 0.812 && ax < 0.29) {
+      const k = Math.pow(ax / 0.29, 4) + Math.pow(Math.abs(y - 0.66) / 0.155, 4);
+      const inFace = 1 - sstep(0.9, 1.0, k);
+      return [['cara', inFace], ['casco', 1 - inFace]];
+    }
+    return [['casco', 1]];
+  }
+  // Cuerpo: blanco / metal / grafito según la zona (muy suavizada) de la IA.
+  const L = lumAt(smoothL, i);
+  const r0 = soft[i * 3], g0 = soft[i * 3 + 1], b0 = soft[i * 3 + 2];
+  const mx = Math.max(r0, g0, b0), mn = Math.min(r0, g0, b0);
+  if (mx && (mx - mn) / mx > 0.34 && b0 > r0 * 1.25 && b0 > 110) return [['luz', 1]];
+  const w = sstep(98, 122, L), g = 1 - sstep(55, 75, L);
+  return [['blanco', w], ['grafito', g * (1 - w)], ['metal', (1 - w) * (1 - g)]];
+};
+
 const color = Buffer.alloc(N * 3);
 const rm = Buffer.alloc(N * 3);
 const emissive = Buffer.alloc(N * 3);
+const valid = new Uint8Array(N);
 for (let i = 0; i < N; i++) {
+  const x = posMap[i * 3];
+  if (Number.isNaN(x)) continue;
+  valid[i] = 1;
   let tw = 0, cr = 0, cg = 0, cb = 0, ro = 0, me = 0, er = 0, eg = 0, eb = 0;
-  for (const k of Object.keys(MAT)) {
-    const w = W8[k][i] / 255;
-    if (!w) continue;
-    const m = MAT[k];
-    tw += w;
-    // keep: cuánto del detalle original se conserva (para no verse plano).
-    const or = base[i * 3], og = base[i * 3 + 1], ob = base[i * 3 + 2];
-    const lumO = (0.2126 * or + 0.7152 * og + 0.0722 * ob) / 255;
-    const shade = 1 + (lumO - 0.7) * m.keep;
-    cr += w * m.c[0] * shade; cg += w * m.c[1] * shade; cb += w * m.c[2] * shade;
-    ro += w * m.rough; me += w * m.metal;
-    if (m.glow) { er += w * m.glow[0]; eg += w * m.glow[1]; eb += w * m.glow[2]; }
+  for (const [k, w] of paint(x, posMap[i * 3 + 1], posMap[i * 3 + 2], i)) {
+    if (w <= 0) continue;
+    const m = MATS[k];
+    tw += w; cr += w * m.c[0]; cg += w * m.c[1]; cb += w * m.c[2]; ro += w * m.rough; me += w * m.metal;
+    if (m.em) { er += w * m.em[0]; eg += w * m.em[1]; eb += w * m.em[2]; }
   }
   tw = tw || 1;
-  color[i * 3] = Math.min(255, cr / tw); color[i * 3 + 1] = Math.min(255, cg / tw); color[i * 3 + 2] = Math.min(255, cb / tw);
+  color[i * 3] = cr / tw; color[i * 3 + 1] = cg / tw; color[i * 3 + 2] = cb / tw;
   rm[i * 3] = 255; rm[i * 3 + 1] = Math.round((ro / tw) * 255); rm[i * 3 + 2] = Math.round((me / tw) * 255);
   emissive[i * 3] = er / tw; emissive[i * 3 + 1] = eg / tw; emissive[i * 3 + 2] = eb / tw;
 }
-// Centro y radio de cada ojo (en coordenadas del modelo original), para la escena.
+// 2) Relleno de bordes: los píxeles fuera de los triángulos toman el color del
+// vecino válido más cercano, para que no aparezcan líneas en las costuras.
 {
-  const eyes = [[], []];
-  for (let i = 0; i < N; i++) {
-    if (W8.oscuro[i] < 200 || Number.isNaN(posMap[i * 3])) continue;
-    const x = posMap[i * 3], y = posMap[i * 3 + 1], z = posMap[i * 3 + 2];
-    if (y < 0.55 || z < 0.1) continue;
-    eyes[x < 0 ? 0 : 1].push([x, y, z]);
+  const Wd = info.width, Ht = info.height;
+  let frontier = valid;
+  for (let pass = 0; pass < 8; pass++) {
+    const next = frontier.slice();
+    for (let y = 0; y < Ht; y++) for (let x = 0; x < Wd; x++) {
+      const i = y * Wd + x;
+      if (frontier[i]) continue;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= Wd || ny >= Ht) continue;
+        const j = ny * Wd + nx;
+        if (!frontier[j]) continue;
+        for (const buf of [color, rm, emissive]) { buf[i * 3] = buf[j * 3]; buf[i * 3 + 1] = buf[j * 3 + 1]; buf[i * 3 + 2] = buf[j * 3 + 2]; }
+        next[i] = 1;
+        break;
+      }
+    }
+    frontier = next;
   }
-  // Ajuste de esfera por mínimos cuadrados: x²+y²+z² = 2ax + 2by + 2cz + d.
-  const fit = (pts) => {
-    const M = Array.from({ length: 4 }, () => new Float64Array(4)), v = new Float64Array(4);
-    for (const [x, y, z] of pts) {
-      const row = [2 * x, 2 * y, 2 * z, 1], rhs = x * x + y * y + z * z;
-      for (let i = 0; i < 4; i++) { v[i] += row[i] * rhs; for (let j = 0; j < 4; j++) M[i][j] += row[i] * row[j]; }
-    }
-    // Gauss
-    for (let i = 0; i < 4; i++) {
-      let piv = i; for (let r = i + 1; r < 4; r++) if (Math.abs(M[r][i]) > Math.abs(M[piv][i])) piv = r;
-      [M[i], M[piv]] = [M[piv], M[i]]; [v[i], v[piv]] = [v[piv], v[i]];
-      for (let r = 0; r < 4; r++) if (r !== i) { const f = M[r][i] / M[i][i]; for (let c = 0; c < 4; c++) M[r][c] -= f * M[i][c]; v[r] -= f * v[i]; }
-    }
-    const a = v[0] / M[0][0], b = v[1] / M[1][1], c = v[2] / M[2][2], d = v[3] / M[3][3];
-    return { centro: [a, b, c].map((q) => +q.toFixed(4)), radio: +Math.sqrt(d + a * a + b * b + c * c).toFixed(4) };
-  };
-  const near = (pts, cx) => pts.filter((p) => Math.abs(p[0] - cx) < 0.09 && p[1] > 0.6 && p[1] < 0.78);
-  for (const [pts, cx] of [[eyes[0], -0.155], [eyes[1], 0.158]]) { const f = near(pts, cx); const zs = f.map(p => p[2]).sort((a, b) => a - b); console.log('esfera', JSON.stringify(fit(f)), f.length, 'z', zs[0], zs[f.length >> 1], zs[f.length - 1]); }
-  const info2 = eyes.map((pts) => {
-    const c = pts.reduce((a, p) => [a[0] + p[0], a[1] + p[1], a[2] + p[2]], [0, 0, 0]).map((v) => v / pts.length);
-    const rad = Math.sqrt(pts.reduce((a, p) => a + (p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2, 0) / pts.length) * Math.SQRT2;
-    const zmax = Math.max(...pts.map((p) => p[2]));
-    return { centro: c.map((v) => +v.toFixed(4)), radio: +rad.toFixed(4), zmax: +zmax.toFixed(4), n: pts.length };
-  });
-  console.log('ojos', JSON.stringify(info2));
 }
-console.log('píxeles', Object.fromEntries(Object.entries(stats).map(([k, v]) => [k, (v / N * 100).toFixed(1) + ' %'])));
 
 const webp = (buf, q = 86) => sharp(buf, { raw: info }).webp({ quality: q }).toBuffer();
 // El mapa de metal/rugosidad se suaviza para que no haya bordes duros entre zonas.
-const rmSoft = await sharp(rm, { raw: info }).blur(1.2).raw().toBuffer();
-const emSoft = await sharp(emissive, { raw: info }).blur(1.5).raw().toBuffer();
+const rmSoft = rm;
+const emSoft = emissive;
 await sharp(color, { raw: info }).png().toFile('rev_color.png');
 await sharp(rmSoft, { raw: info }).png().toFile('rev_rm.png');
 await sharp(emSoft, { raw: info }).png().toFile('rev_emissive.png');
@@ -159,7 +185,7 @@ const setTex = async (tex, buf) => { tex.setImage(await webp(buf)).setMimeType('
 await setTex(mat.getBaseColorTexture(), color);
 await setTex(mat.getMetallicRoughnessTexture(), rmSoft);
 const normal = mat.getNormalTexture();
-mat.setNormalScale(Number(process.env.NSCALE || 0.4));
+mat.setNormalScale(Number(process.env.NSCALE || 0.08));
 normal.setImage(await sharp(Buffer.from(normal.getImage())).resize(SIZE, SIZE).webp({ quality: 90 }).toBuffer()).setMimeType('image/webp');
 const emTex = doc.createTexture('emisivo').setImage(await webp(emSoft)).setMimeType('image/webp');
 mat.setEmissiveTexture(emTex).setEmissiveFactor([1, 1, 1]);
@@ -212,7 +238,7 @@ await doc.transform(weld());
     }
     gp.set(out);
   };
-  const ITER = Number(process.env.SMOOTH || 6);
+  const ITER = Number(process.env.SMOOTH || 10);
   for (let it = 0; it < ITER; it++) { step(0.5); step(-0.53); }
   for (let i = 0; i < n; i++) pos.setElement(i, [gp[groupOf[i] * 3], gp[groupOf[i] * 3 + 1], gp[groupOf[i] * 3 + 2]]);
   // Normales suaves por posición (sin costuras de sombreado).
