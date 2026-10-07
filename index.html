@@ -2,62 +2,163 @@
 <html lang="es-CO">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Leadbot</title>
-  <meta name="description" content="Leadbot ayuda a los comercios a atender a sus clientes por WhatsApp, Instagram y Messenger con un asistente automático.">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Leadbot · Tus clientes escriben. Leadbot vende.</title>
+  <meta name="description" content="Leadbot responde por WhatsApp, Instagram y Messenger con tu catálogo, envía fotos y precios, toma pedidos y te avisa cuando hace falta una persona. Para comercios en Colombia.">
+  <meta name="theme-color" content="#04060c">
+  <meta property="og:title" content="Leadbot · Tus clientes escriben. Leadbot vende.">
+  <meta property="og:description" content="Un asistente que vende por WhatsApp, Instagram y Messenger, a cualquier hora.">
+  <meta property="og:url" content="https://leadbot.com.co/">
+  <meta property="og:type" content="website">
   <link rel="icon" href="favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;600&display=swap">
-  <link rel="stylesheet" href="estilos.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+  <link rel="stylesheet" href="assets/vendor/lenis/lenis.css">
+  <link rel="stylesheet" href="assets/landing.css">
+  <script>document.documentElement.classList.add('js');</script>
+  <script type="importmap">
+    { "imports": { "three": "./assets/vendor/three/three.module.min.js" } }
+  </script>
 </head>
 <body>
-  <header class="top">
-    <a class="marca" href="index.html"><img src="icono.png" alt="">Leadbot</a>
-    <nav aria-label="Páginas">
-      <a href="index.html" aria-current="page">Inicio</a>
-      <a href="privacidad.html">Privacidad</a>
-      <a href="eliminar-datos.html">Eliminar datos</a>
-      <a href="terminos.html">Términos</a>
+  <canvas id="escena" aria-hidden="true"></canvas>
+  <div class="grano" aria-hidden="true"></div>
+
+  <header class="nav">
+    <a class="marca" href="#inicio" aria-label="Leadbot, inicio"><img src="icono.png" alt="" width="28" height="28">Leadbot</a>
+    <nav aria-label="Secciones">
+      <a href="#respuesta">Cómo funciona</a>
+      <a href="#funciones">Qué hace</a>
+      <a class="nav-cta" href="#contacto">Hablemos</a>
     </nav>
   </header>
+
   <main>
-    <section>
-      <h1>Atiende a tus clientes por WhatsApp, Instagram y Messenger desde un solo lugar</h1>
-      <p class="lead">Leadbot es un servicio para comercios pequeños y medianos de Colombia. Un asistente automático responde las preguntas de los clientes con la información del negocio, y el equipo del comercio ve y contesta todas las conversaciones desde un tablero.</p>
+    <!-- Acto 0: la promesa -->
+    <section class="acto hero" id="inicio" data-estado="0">
+      <div class="hero-contenido">
+      <p class="kicker">Ventas por chat para comercios en Colombia</p>
+      <h1 class="titular" data-palabras>Tus clientes escriben a&nbsp;cualquier hora. <em>Leadbot vende</em> a&nbsp;toda hora.</h1>
+      <p class="bajada">Un asistente que responde por WhatsApp, Instagram y Messenger con tu catálogo, muestra fotos y precios, toma el pedido y te llama cuando hace falta una persona.</p>
+      <div class="acciones">
+        <a class="boton primario" href="#contacto">Quiero probarlo</a>
+        <a class="boton fantasma" href="#noche">Mira cómo funciona</a>
+      </div>
+      </div>
+      <div class="desliza" aria-hidden="true"><span></span>Desliza</div>
     </section>
-    <div class="grid">
-      <div class="caja"><h3>Un solo tablero</h3><p>Los mensajes de WhatsApp, Instagram y Messenger del comercio llegan a la misma bandeja.</p></div>
-      <div class="caja"><h3>Asistente automático</h3><p>Responde precios, disponibilidad y envíos con el catálogo y las reglas que define el comercio.</p></div>
-      <div class="caja"><h3>Pedidos y seguimiento</h3><p>Registra pedidos, citas y datos de envío, y avisa al cliente cuando algo cambia.</p></div>
-    </div>
-    <section>
-      <h2>Cómo funciona</h2>
-      <ol>
-        <li>El comercio crea su cuenta en Leadbot y carga su catálogo.</li>
-        <li>Conecta sus canales desde Configuración → Canales, con la ventana oficial de Meta.</li>
-        <li>Los clientes escriben como siempre; el asistente responde y el equipo puede tomar la conversación cuando quiera.</li>
-      </ol>
-      <p>El acceso a Leadbot es por invitación. Si tienes un comercio y quieres probarlo, escríbenos.</p>
+
+    <!-- Acto 1: la noche -->
+    <section class="acto noche" id="noche" data-estado="1">
+      <div class="pin">
+        <p class="reloj" aria-label="Son las 11:47 de la noche"><span class="reloj-hora">11:47</span><span class="reloj-ampm">p.&nbsp;m.</span></p>
+        <div class="noche-lineas">
+          <p class="linea">Tu tienda cerró.</p>
+          <p class="linea"><em>Tus clientes no.</em></p>
+        </div>
+        <p class="contador"><span class="contador-num">0</span> mensajes sin responder</p>
+        <ul class="avisos" aria-hidden="true">
+          <li><b>WhatsApp</b> ¿Tienen la silla en negro?</li>
+          <li><b>Instagram</b> Precio porfa 🙏</li>
+          <li><b>Messenger</b> ¿Hacen envíos a Pasto?</li>
+          <li><b>WhatsApp</b> Hola, ¿siguen atendiendo?</li>
+          <li><b>Instagram</b> Info del escritorio</li>
+        </ul>
+      </div>
     </section>
-    <section>
-      <h2>Contacto</h2>
-      <div class="caja">
-      <dl class="datos">
-        <dt>Responsable</dt><dd>Dandeny Molina (persona natural)</dd>
-        <dt>Cédula</dt><dd>1014233623</dd>
-        <dt>Dirección</dt><dd>Calle 26B # 55B-48, Rionegro, Antioquia, Colombia</dd>
-        <dt>Teléfono</dt><dd><a href="tel:+573233272083">+57 323 327 2083</a></dd>
-        <dt>Correo</dt><dd><a href="mailto:contacto@leadbot.com.co">contacto@leadbot.com.co</a></dd>
-        <dt>Soporte</dt><dd><a href="mailto:soporte@leadbot.com.co">soporte@leadbot.com.co</a> (comercios que usan Leadbot)</dd>
-        <dt>Datos personales</dt><dd><a href="mailto:privacidad@leadbot.com.co">privacidad@leadbot.com.co</a></dd>
-      </dl>
+
+    <!-- Acto 2: la respuesta -->
+    <section class="acto respuesta" id="respuesta" data-estado="2">
+      <div class="pin">
+        <div class="pasos">
+          <p class="paso-kicker">Leadbot responde en segundos</p>
+          <ol>
+            <li class="paso"><span class="paso-num">01</span><h2>Conoce tu catálogo</h2><p>Precios, colores, tallas y lo que está agotado. Nunca inventa un producto.</p></li>
+            <li class="paso"><span class="paso-num">02</span><h2>Muestra fotos y precios</h2><p>Envía las fotos del color que pidió el cliente y tu catálogo en PDF.</p></li>
+            <li class="paso"><span class="paso-num">03</span><h2>Toma el pedido</h2><p>Pide los datos de envío, arma el resumen y te lo deja listo para despachar.</p></li>
+          </ol>
+        </div>
+        <div class="telefono-escena">
+          <div class="telefono" role="img" aria-label="Conversación de ejemplo entre un cliente y Leadbot">
+            <div class="telefono-top"><span class="avatar">TJ</span><div><b>Todo Juegos</b><small>en línea</small></div></div>
+            <div class="chat">
+              <p class="msg cliente" data-paso="0">Hola, ¿tienen la silla Nova en negro? <time>11:47</time></p>
+              <p class="msg escribiendo" data-paso="0"><span></span><span></span><span></span></p>
+              <p class="msg bot" data-paso="0">¡Hola Laura! Sí, la Nova en negro está disponible 👇 <time>11:47</time></p>
+              <div class="msg bot foto" data-paso="1">
+                <svg viewBox="0 0 160 120" aria-hidden="true"><rect width="160" height="120" rx="10" fill="#f3f5fa"/><rect x="62" y="12" width="36" height="52" rx="9" fill="#1d2230"/><rect x="66" y="18" width="28" height="18" rx="5" fill="#2c3346"/><rect x="50" y="60" width="60" height="12" rx="5" fill="#1d2230"/><rect x="77" y="72" width="6" height="22" fill="#5b6377"/><rect x="58" y="94" width="44" height="5" rx="2.5" fill="#5b6377"/><circle cx="60" cy="102" r="3" fill="#5b6377"/><circle cx="100" cy="102" r="3" fill="#5b6377"/></svg>
+              </div>
+              <p class="msg bot" data-paso="1">Cuesta <b>$650.000</b> y el envío a Medellín es gratis. <time>11:47</time></p>
+              <div class="msg bot pdf" data-paso="1"><span class="pdf-icono">PDF</span><div><b>Catalogo-Todo-Juegos.pdf</b><small>5 páginas · 120 KB</small></div></div>
+              <p class="msg cliente" data-paso="2">¡Me la llevo! <time>11:48</time></p>
+              <div class="msg bot pedido" data-paso="2"><b>Este es tu pedido 📦</b><span>Silla Nova, negro (x1) · $650.000</span><span>Envío a Medellín · Gratis</span><span class="total">Total · $650.000</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Acto 3: una bandeja -->
+    <section class="acto bandeja" id="bandeja" data-estado="3">
+      <div class="pin">
+        <h2 class="bandeja-titulo">Tres canales.<br><em>Una sola bandeja.</em></h2>
+        <div class="tarjetas" aria-hidden="true">
+          <div class="tarjeta t-wa"><span class="canal">WhatsApp</span><b>Laura G.</b><p>¡Me la llevo!</p><span class="estado ok">Pedido #1042</span></div>
+          <div class="tarjeta t-ig"><span class="canal">Instagram</span><b>@andres.dev</b><p>¿Tienen teclados blancos?</p><span class="estado">Respondió el bot</span></div>
+          <div class="tarjeta t-ms"><span class="canal">Messenger</span><b>Carolina R.</b><p>Quiero hablar con alguien</p><span class="estado alerta">Te necesita</span></div>
+        </div>
+        <p class="bandeja-nota">Cada conversación, cada pedido y cada cliente en el mismo tablero. Tomas el control con un clic.</p>
+      </div>
+    </section>
+
+    <!-- Acto 4: qué hace -->
+    <section class="acto funciones" id="funciones" data-estado="4">
+      <h2 class="seccion-titulo">Todo lo que hace <em>mientras duermes</em></h2>
+      <div class="rejilla">
+        <article class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z M14 3v5h5 M10 13h6 M10 17h6"/></svg><h3>Catálogo en PDF</h3><p>Se arma solo con tus productos, fotos por color y precios. Se actualiza cuando cambias algo.</p></article>
+        <article class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v9H3z M14 10h4l3 3v3h-7 M7 19a2 2 0 1 0 0-.01 M17 19a2 2 0 1 0 0-.01"/></svg><h3>Pedidos y envíos</h3><p>Toma los datos, calcula el envío por ciudad y deja el pedido listo para despachar a toda Colombia.</p></article>
+        <article class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z M8 10h8"/></svg><h3>Recupera ventas</h3><p>Le escribe al cliente que dejó un pedido a medias y le avisa cuando llega lo que estaba agotado.</p></article>
+        <article class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21c1-4 4-6 8-6s7 2 8 6"/></svg><h3>Tú decides cuándo entras</h3><p>Si el cliente pide una persona o algo no está claro, te avisa en el celular y tú tomas la conversación.</p></article>
+        <article class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z M9 12l2 2 4-4"/></svg><h3>Datos protegidos</h3><p>Aviso de privacidad, opción de no recibir más mensajes y tokens cifrados. Cumple la Ley 1581.</p></article>
+        <article class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><h3>Sabes qué funciona</h3><p>Qué anuncio trajo a cada cliente, cuánto se vendió por chat y en qué conversaciones se cayó la venta.</p></article>
+      </div>
+    </section>
+
+    <!-- Acto 5: la frase -->
+    <section class="acto frase" data-estado="4">
+      <p class="frase-texto" data-resaltar>El bot vende por ti a las once de la noche. Tú decides en qué momento entra una persona.</p>
+    </section>
+
+    <!-- Acto 6: contacto -->
+    <section class="acto cierre" id="contacto" data-estado="4">
+      <p class="kicker">Acceso por invitación</p>
+      <h2 class="cierre-titulo">Ponlo a vender <em>esta noche.</em></h2>
+      <p class="bajada">Estamos sumando comercios en Colombia. Escríbenos y te mostramos Leadbot con tus propios productos.</p>
+      <div class="acciones">
+        <a class="boton primario" href="https://wa.me/573233272083?text=Hola%2C%20quiero%20conocer%20Leadbot" target="_blank" rel="noopener">Escríbenos por WhatsApp</a>
+        <a class="boton fantasma" href="mailto:contacto@leadbot.com.co?subject=Quiero%20conocer%20Leadbot">contacto@leadbot.com.co</a>
       </div>
     </section>
   </main>
+
   <footer class="pie">
-    <p>Leadbot es un servicio de Dandeny Molina, persona natural, C.C. 1014233623.</p>
-    <p>Calle 26B # 55B-48, Rionegro, Antioquia, Colombia · <a href="tel:+573233272083">+57 323 327 2083</a> · <a href="mailto:contacto@leadbot.com.co">contacto@leadbot.com.co</a></p>
+    <div class="pie-marca"><img src="icono.png" alt="" width="24" height="24"><b>Leadbot</b></div>
+    <div class="pie-datos">
+      <p>Leadbot es un servicio de Dandeny Molina, persona natural, C.C. 1014233623.</p>
+      <p>Calle 26B # 55B-48, Rionegro, Antioquia, Colombia · <a href="tel:+573233272083">+57 323 327 2083</a></p>
+      <p><a href="mailto:contacto@leadbot.com.co">contacto@leadbot.com.co</a> · Soporte: <a href="mailto:soporte@leadbot.com.co">soporte@leadbot.com.co</a> · Datos personales: <a href="mailto:privacidad@leadbot.com.co">privacidad@leadbot.com.co</a></p>
+    </div>
+    <nav class="pie-links" aria-label="Legal">
+      <a href="privacidad.html">Política de privacidad</a>
+      <a href="eliminar-datos.html">Eliminar datos</a>
+      <a href="terminos.html">Términos</a>
+    </nav>
   </footer>
+
+  <script src="assets/vendor/lenis/lenis.min.js"></script>
+  <script src="assets/vendor/gsap/gsap.min.js"></script>
+  <script src="assets/vendor/gsap/ScrollTrigger.min.js"></script>
+  <script type="module" src="assets/landing.js"></script>
 </body>
 </html>
