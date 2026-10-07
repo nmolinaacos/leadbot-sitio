@@ -182,7 +182,18 @@ html:not(.anim) .hero-tarjetas .t-ms { transform: translate(36%, 170px) rotate(4
 .paso h2 { font-size: clamp(26px, 3vw, 40px); }
 .paso p { margin: 6px 0 0; color: var(--muted); max-width: 40ch; }
 .telefono-escena { perspective: 1400px; display: flex; justify-content: center; }
-.telefono { width: min(340px, 82vw); height: min(640px, 76svh); border-radius: 44px; padding: 14px; background: linear-gradient(160deg, #20283c, #0b0f1b); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12) inset, 0 40px 120px -30px rgba(74, 120, 255, 0.55), 0 30px 60px -30px rgba(0, 0, 0, 0.9); transform-style: preserve-3d; display: flex; flex-direction: column; }
+/* El teléfono es un cuerpo 3D: frente (la pantalla), espalda con cámara y logo, y
+   un canto hecho de capas apiladas en profundidad, para que se vea sólido al girar.
+   Ojo: nada con opacity < 1 en .telefono, porque aplana el 3D (se anima .telefono-escena). */
+.telefono { --d: 20px; --r: 44px; position: relative; width: min(340px, 82vw); height: min(640px, 76svh); transform-style: preserve-3d; }
+.telefono-cuerpo { position: absolute; inset: 0; transform-style: preserve-3d; }
+.telefono-canto { position: absolute; inset: 0; border-radius: var(--r); background: linear-gradient(160deg, #3a4560, #121828 55%, #1d2538); transform: translateZ(calc(var(--z) * var(--d) / 9)); }
+.telefono-espalda { position: absolute; inset: 0; border-radius: var(--r); display: grid; place-items: center; background: radial-gradient(120% 80% at 30% 0%, #2c3a5e, #0f1422 70%); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14) inset; transform: rotateY(180deg) translateZ(calc(var(--d) / 2 + 0.5px)); backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.telefono-espalda svg { width: 30%; opacity: 0.92; }
+.camara { position: absolute; top: 18px; left: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px; border-radius: 22px; background: rgba(5, 8, 16, 0.7); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1) inset; }
+.camara i { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #3b4a7a, #05070d 60%); box-shadow: 0 0 0 3px #1a2236; }
+.camara i:nth-child(3) { grid-column: 1; }
+.telefono-frente { position: absolute; inset: 0; border-radius: var(--r); padding: 14px; background: linear-gradient(160deg, #20283c, #0b0f1b); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12) inset, 0 40px 120px -30px rgba(74, 120, 255, 0.55), 0 30px 60px -30px rgba(0, 0, 0, 0.9); display: flex; flex-direction: column; transform: translateZ(calc(var(--d) / 2 + 0.5px)); backface-visibility: hidden; -webkit-backface-visibility: hidden; }
 .telefono-top { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 30px 30px 0 0; background: #111829; }
 .telefono-top b { display: block; font-size: 14px; }
 .telefono-top small { color: var(--ok); font-size: 11px; }
@@ -285,7 +296,9 @@ html:not(.anim) .hero-tarjetas .t-ms { transform: translate(36%, 170px) rotate(4
   .pasos ol { gap: 8px; }
   .paso h2 { font-size: 22px; }
   .paso-kicker { margin-bottom: 14px; }
-  .telefono { height: min(330px, 40svh); width: min(290px, 76vw); }
+  .telefono { --d: 14px; --r: 34px; height: min(330px, 40svh); width: min(290px, 76vw); }
+  .camara { top: 12px; left: 12px; padding: 6px; gap: 4px; }
+  .camara i { width: 16px; height: 16px; }
   .noche .pin { gap: 12px; }
   .avisos li:nth-child(3) { bottom: 26%; left: 6%; }
   .dialogo { max-width: calc(100vw - 150px); }

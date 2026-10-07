@@ -266,21 +266,23 @@ function setupReply() {
   const focus = (index, at) =>
     tl.to(steps, { opacity: (i) => (i === index ? 1 : 0.28), x: (i) => (i === index ? 0 : -6), duration: 0.06 }, at);
 
-  tl.fromTo('.telefono', { rotateY: -24, rotateX: 10, y: 60, opacity: 0 }, { rotateY: -8, rotateX: 4, y: 0, opacity: 1, duration: 0.12 }, 0)
+  // El teléfono entra de espaldas y da una vuelta completa antes de que lleguen los mensajes.
+  tl.fromTo('.telefono-escena', { opacity: 0 }, { opacity: 1, duration: 0.05 }, 0)
+    .fromTo('.telefono', { rotateY: -340, rotateX: 14, rotateZ: -6, y: 70, scale: 0.86 }, { rotateY: -8, rotateX: 4, rotateZ: 0, y: 0, scale: 1, duration: 0.17, ease: 'power3.inOut' }, 0)
     .fromTo('.pasos', { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.1 }, 0.02);
   focus(0, 0.05);
-  show(0, 0.1); // cliente pregunta
-  show(1, 0.18); // escribiendo…
-  hide(1, 0.26);
-  show(2, 0.27); // el bot responde
-  focus(1, 0.38);
-  show(3, 0.42); // foto
-  show(4, 0.5); // precio
-  show(5, 0.58); // catálogo PDF
+  show(0, 0.19); // cliente pregunta
+  show(1, 0.25); // escribiendo…
+  hide(1, 0.31);
+  show(2, 0.32); // el bot responde
+  focus(1, 0.41);
+  show(3, 0.45); // foto
+  show(4, 0.52); // precio
+  show(5, 0.59); // catálogo PDF
   focus(2, 0.68);
   show(6, 0.72); // "me la llevo"
   show(7, 0.8); // resumen del pedido
-  tl.to('.telefono', { rotateY: 6, rotateX: 0, duration: 0.9, ease: 'none' }, 0.1)
+  tl.to('.telefono', { rotateY: 6, rotateX: 0, duration: 0.76, ease: 'none' }, 0.18)
     .to('.respuesta .pin', { opacity: 0, y: -40, duration: 0.08 }, 0.94);
   return tl.scrollTrigger;
 }
