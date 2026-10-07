@@ -571,15 +571,17 @@ function makeRobot() {
     head.add(ear);
     // En el grupo de la oreja, -y apunta hacia afuera de la cabeza. El perfil
     // va de afuera (y negativo) hacia adentro para que las caras miren afuera.
-    add(ear, lathe([[0.215, -0.17], [0.245, -0.178], [0.28, -0.17], [0.305, -0.14], [0.315, -0.09], [0.31, -0.03], [0.3, -0.01], [0.27, 0.08]], 40), headMat);
+    // Cuerpo en diagonal: ancho contra la cabeza y más angosto hacia afuera;
+    // sobresale poco.
+    add(ear, lathe([[0.15, -0.128], [0.185, -0.134], [0.215, -0.126], [0.245, -0.09], [0.275, -0.04], [0.295, 0.01], [0.3, 0.08]], 40), headMat);
     // Junta negra contra la cabeza.
-    add(ear, new THREE.TorusGeometry(0.3, 0.03, 12, seg), dark, [0, 0.0, 0], [Math.PI / 2, 0, 0]);
+    add(ear, new THREE.TorusGeometry(0.288, 0.02, 12, seg), dark, [0, -0.012, 0], [Math.PI / 2, 0, 0]);
     // Cara cóncava: aro de luz azul, aro negro y plato gris.
-    add(ear, new THREE.RingGeometry(0.18, 0.218, seg), earGlow, [0, -0.165, 0], [Math.PI / 2, 0, 0]).material.side = THREE.DoubleSide;
-    add(ear, new THREE.TorusGeometry(0.2, 0.03, 12, seg), Object.assign(halo.clone(), { opacity: 0.25 }), [0, -0.166, 0], [Math.PI / 2, 0, 0]);
-    add(ear, new THREE.CylinderGeometry(0.182, 0.182, 0.03, seg, 1, true), dark, [0, -0.15, 0]);
-    add(ear, new THREE.RingGeometry(0.15, 0.182, seg), dark, [0, -0.136, 0], [Math.PI / 2, 0, 0]).material = Object.assign(dark.clone(), { side: THREE.DoubleSide });
-    const dish = add(ear, new THREE.SphereGeometry(0.2, seg, 16, 0, Math.PI * 2, 0, 0.85), earDish, [0, -0.3, 0]);
+    add(ear, new THREE.RingGeometry(0.135, 0.172, seg), earGlow, [0, -0.131, 0], [Math.PI / 2, 0, 0]).material.side = THREE.DoubleSide;
+    add(ear, new THREE.TorusGeometry(0.154, 0.026, 12, seg), Object.assign(halo.clone(), { opacity: 0.25 }), [0, -0.132, 0], [Math.PI / 2, 0, 0]);
+    add(ear, new THREE.CylinderGeometry(0.137, 0.137, 0.02, seg, 1, true), dark, [0, -0.12, 0]);
+    add(ear, new THREE.RingGeometry(0.105, 0.137, seg), dark, [0, -0.111, 0], [Math.PI / 2, 0, 0]).material = Object.assign(dark.clone(), { side: THREE.DoubleSide });
+    const dish = add(ear, new THREE.SphereGeometry(0.15, seg, 16, 0, Math.PI * 2, 0, 0.8), earDish, [0, -0.2165, 0]);
     dish.material.side = THREE.DoubleSide;
   });
 
