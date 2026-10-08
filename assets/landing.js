@@ -541,14 +541,40 @@ function makeRobot() {
     add(head, new THREE.CylinderGeometry(0.014, 0.018, 0.22, 12), grey, [0, top + 0.13, 0]);
     add(head, new THREE.SphereGeometry(0.045, 20, 12), ballMaterial, [0, top + 0.26, 0]);
   }
-  // Sonrisa pequeña de luz, debajo de los ojos.
+  // Sonrisa pequeña con el mismo acabado de los ojos: media luna de luz
+  // (celeste claro con degradado), borde azul y un brillo suave alrededor.
+  const smileShape = (R, t) => {
+    const sh = new THREE.Shape();
+    const a0 = Math.PI * 1.18, a1 = Math.PI * 1.82, n = 24;
+    for (let i = 0; i <= n; i++) {
+      const a = a0 + ((a1 - a0) * i) / n;
+      const v = [Math.cos(a) * R, Math.sin(a) * R];
+      if (i) sh.lineTo(...v); else sh.moveTo(...v);
+    }
+    // Punta redondeada del lado derecho.
+    const endR = (a) => [Math.cos(a1) * (R - t / 2) + Math.cos(a) * (t / 2), Math.sin(a1) * (R - t / 2) + Math.sin(a) * (t / 2)];
+    for (let i = 1; i <= 8; i++) sh.lineTo(...endR(a1 + (Math.PI * i) / 8));
+    for (let i = n; i >= 0; i--) {
+      const a = a0 + ((a1 - a0) * i) / n;
+      sh.lineTo(Math.cos(a) * (R - t), Math.sin(a) * (R - t));
+    }
+    const startR = (a) => [Math.cos(a0) * (R - t / 2) + Math.cos(a) * (t / 2), Math.sin(a0) * (R - t / 2) + Math.sin(a) * (t / 2)];
+    for (let i = 1; i < 8; i++) sh.lineTo(...startR(a0 + Math.PI + (Math.PI * i) / 8));
+    return sh;
+  };
   {
-    const p = eyeAt(0, -0.27);
+    const p = eyeAt(0, -0.3);
     const smile = new THREE.Group();
     smile.position.copy(p);
     smile.lookAt(p.clone().multiply(new THREE.Vector3(1 / HS[0] ** 2, 1 / HS[1] ** 2, 1 / HS[2] ** 2)).normalize().add(p));
     head.add(smile);
-    add(smile, new THREE.TorusGeometry(0.075, 0.011, 8, 32, Math.PI * 0.6), eyeRim, [0, 0.03, 0.004], [0, 0, Math.PI * 1.2]);
+    const R = 0.1, T = 0.04;
+    const mid = new THREE.Group();
+    mid.position.y = R - T / 2;
+    smile.add(mid);
+    add(mid, new THREE.ShapeGeometry(smileShape(R + 0.016, T + 0.032), 32), eyeRim, [0, 0.008, 0.003]);
+    add(mid, new THREE.ExtrudeGeometry(smileShape(R, T), { depth: 0.012, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.006, bevelSegments: 3, curveSegments: 32 }), ballMaterial, [0, 0, 0.004]);
+    add(mid, new THREE.ShapeGeometry(smileShape(R + 0.04, T + 0.08), 32), Object.assign(halo.clone(), { opacity: 0.14 }), [0, 0.02, 0.001]);
   }
   const eyes = [-1, 1].map((side) => {
     const p = eyeAt(side * 0.275, -0.04);
