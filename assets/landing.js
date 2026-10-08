@@ -697,8 +697,17 @@ function makeRobot() {
         v.fromBufferAttribute(pos, i);
         // Corte en diagonal (como la referencia): del lado de afuera el brazo
         // sube y envuelve la bola; del lado del torso queda más bajo.
+        // El borde del corte se redondea (sin puntas): la superficie se va
+        // curvando hacia adentro al acercarse al corte.
         const cut = -0.04 + 0.42 * (v.x * side);
-        if (v.y > cut) v.y = cut;
+        const F = 0.12;
+        if (v.y > cut - F) {
+          const t = 1 - Math.exp(-(v.y - (cut - F)) / F);
+          v.y = cut - F + F * t;
+          const k = 1 - 0.5 * t * t;
+          v.x *= k;
+          v.z *= k;
+        }
         if (v.length() < CAP) v.setLength(CAP);
         pos.setXYZ(i, v.x, v.y, v.z);
       }
