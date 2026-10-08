@@ -534,6 +534,22 @@ function makeRobot() {
   const eyeRim = new THREE.MeshBasicMaterial({ color: 0x2f86f5, toneMapped: false });
   const eyeGlow = new THREE.MeshBasicMaterial({ map: radial([[0, 'rgba(90,200,255,0.55)'], [0.62, 'rgba(70,180,255,0.35)'], [0.8, 'rgba(50,150,255,0.12)'], [1, 'rgba(40,130,255,0)']]), transparent: true, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending });
   const eyeGlass = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.03, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.02, transparent: true, opacity: 0.18, envMapIntensity: 2.5, depthWrite: false });
+  // Antena: base oscura, varilla y una luz azul en la punta.
+  {
+    const top = 0.8 * HS[1];
+    add(head, new THREE.CylinderGeometry(0.06, 0.08, 0.05, 24), dark, [0, top + 0.01, 0]);
+    add(head, new THREE.CylinderGeometry(0.014, 0.018, 0.22, 12), grey, [0, top + 0.13, 0]);
+    add(head, new THREE.SphereGeometry(0.045, 20, 12), ballMaterial, [0, top + 0.26, 0]);
+  }
+  // Sonrisa pequeña de luz, debajo de los ojos.
+  {
+    const p = eyeAt(0, -0.27);
+    const smile = new THREE.Group();
+    smile.position.copy(p);
+    smile.lookAt(p.clone().multiply(new THREE.Vector3(1 / HS[0] ** 2, 1 / HS[1] ** 2, 1 / HS[2] ** 2)).normalize().add(p));
+    head.add(smile);
+    add(smile, new THREE.TorusGeometry(0.075, 0.011, 8, 32, Math.PI * 0.6), eyeRim, [0, 0.03, 0.004], [0, 0, Math.PI * 1.2]);
+  }
   const eyes = [-1, 1].map((side) => {
     const p = eyeAt(side * 0.275, -0.04);
     const eye = new THREE.Group();
@@ -826,14 +842,30 @@ function makeRobot() {
     return pivot;
   });
 
-  // ── Piernas: articulación oscura con aro azul y una esfera blanca que flota.
+  // ── Piernas (como la referencia): la cadera es un eje oscuro horizontal
+  // de anillos, con una tapa de lente y aro azul por fuera (como las
+  // orejas). Debajo, un pie en forma de huevo con la parte de arriba plana y
+  // hundida (donde entra la cadera) y una línea azul en la parte baja.
+  const footShell = (() => { const m = white.clone(); m.side = THREE.DoubleSide; return m; })();
   [-1, 1].forEach((side) => {
-    const x = side * 0.3;
-    add(rig, new THREE.CylinderGeometry(0.16, 0.16, 0.18, 32), dark, [x, -1.55, 0]);
-    add(rig, ring(0.165, 0.01), chestMaterial, [x, -1.62, 0]).rotation.x = Math.PI / 2;
-    const pod = add(rig, new THREE.SphereGeometry(0.34, seg, seg / 2), white, [x, -1.95, 0.02]);
-    pod.scale.set(1, 1.05, 1);
-    add(rig, ring(0.335, 0.007), chestMaterial, [x, -2.05, 0.02]).rotation.x = Math.PI / 2;
+    const x = side * 0.33;
+    const hip = new THREE.Group();
+    hip.position.set(x, -1.55, 0);
+    hip.rotation.z = Math.PI / 2; // eje de lado a lado
+    rig.add(hip);
+    add(hip, new THREE.CylinderGeometry(0.15, 0.15, 0.3, 32), dark);
+    [-0.1, -0.05, 0, 0.05, 0.1].forEach((y) => add(hip, ring(0.152, 0.012), grey, [0, y, 0]).rotation.x = Math.PI / 2);
+    // Tapa de afuera: aro azul y lente oscuro (en +y o -y según el lado).
+    const out = -side; // con la rotación, -y local apunta hacia afuera a la izquierda
+    add(hip, new THREE.CylinderGeometry(0.155, 0.155, 0.03, 40), grey, [0, out * 0.16, 0]);
+    add(hip, ring(0.125, 0.014), chestMaterial, [0, out * 0.177, 0]).rotation.x = Math.PI / 2;
+    const hipLens = add(hip, new THREE.SphereGeometry(0.1, 32, 16), visorMat, [0, out * 0.17, 0]);
+    hipLens.scale.y = 0.3;
+    // Pie: huevo con la parte de arriba plana y hundida.
+    const foot = add(rig, lathe([[0, -2.4], [0.14, -2.385], [0.25, -2.33], [0.32, -2.23], [0.352, -2.09], [0.348, -1.95], [0.315, -1.83], [0.265, -1.75], [0.21, -1.72], [0.18, -1.73], [0, -1.73]], 60), footShell, [x, 0, 0.02]);
+    foot.scale.z = 0.95;
+    add(rig, new THREE.CircleGeometry(0.2, 40), dark, [x, -1.73, 0.02], [-Math.PI / 2, 0, 0]);
+    add(rig, ring(0.334, 0.008), chestMaterial, [x, -2.2, 0.02]).rotation.x = Math.PI / 2;
   });
 
   // Taza de café en la mano izquierda (la noche: no duerme).
@@ -851,7 +883,7 @@ function makeRobot() {
 
   const floatRing = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.045, 16, 72), new THREE.MeshBasicMaterial({ color: 0x6ff0ff, transparent: true, opacity: 0.8 }));
   floatRing.rotation.x = Math.PI / 2;
-  floatRing.position.y = -2.42;
+  floatRing.position.y = -2.55;
   rig.add(floatRing);
 
   root.updateMatrixWorld(true);
