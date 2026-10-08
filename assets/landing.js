@@ -726,14 +726,17 @@ function makeRobot() {
     elbow.rotation.set(-0.3, 0, -side * 0.35);
     limb.add(elbow);
     const top = new THREE.Vector3(0, 0.15, 0);
-    add(elbow, new THREE.CylinderGeometry(0.025, 0.025, 0.24, 12), grey, [0, 0.03, 0]);
-    for (let c = 0; c < 6; c++) {
-      const a = (c / 6) * Math.PI * 2;
-      const r0 = 0.075, r1 = 0.085;
-      const p0 = new THREE.Vector3(Math.cos(a) * r0, 0.155, Math.sin(a) * r0);
-      const p1 = new THREE.Vector3(Math.cos(a + 0.5) * (r0 + 0.035), 0.03, Math.sin(a + 0.5) * (r0 + 0.035));
-      const p2 = new THREE.Vector3(Math.cos(a + 0.2) * r1, -0.09, Math.sin(a + 0.2) * r1);
-      add(elbow, new THREE.TubeGeometry(new THREE.CatmullRomCurve3([p0, p1, p2]), 20, 0.014, 8), c % 2 ? dark : grey);
+    // Haz de cables gruesos, muy juntos y trenzados: se leen como una sola
+    // pieza flexible que une brazo y antebrazo.
+    for (let c = 0; c < 5; c++) {
+      const a = (c / 5) * Math.PI * 2;
+      const pts = [0, 1, 2, 3, 4].map((j) => {
+        const t = j / 4;
+        const r = 0.032 + Math.sin(t * Math.PI) * 0.008;
+        const ang = a + t * 1.2;
+        return new THREE.Vector3(Math.cos(ang) * r, 0.16 - t * 0.25, Math.sin(ang) * r);
+      });
+      add(elbow, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.026, 10), c % 2 ? dark : grey);
     }
     // Tapa oscura al inicio del antebrazo.
     add(elbow, new THREE.CylinderGeometry(0.1, 0.12, 0.03, 32), dark, [0, -0.085, 0]);
