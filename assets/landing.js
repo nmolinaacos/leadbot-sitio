@@ -680,19 +680,28 @@ function makeRobot() {
     // El brazo nace del costado de la bola (no de abajo) y baja en diagonal;
     // queda un pequeño espacio libre con la bola.
     const limb = new THREE.Group();
-    limb.position.set(side * 0.2, -0.06, 0);
-    limb.rotation.z = side * 0.6;
+    // Gira alrededor del centro de la bola: el brazo sale de su costado.
+    limb.position.set(0, 0, 0);
+    limb.rotation.z = side * 0.72;
     pivot.add(limb);
     // Brazo: casi cónico, ancho en el hombro.
-    add(limb, lathe([[0, -0.51], [0.1, -0.505], [0.135, -0.47], [0.15, -0.34], [0.165, -0.18], [0.15, -0.11], [0.09, -0.07], [0, -0.065]], 40), white);
-    add(limb, ring(0.138, 0.009), chestMaterial, [0, -0.48, 0]).rotation.x = Math.PI / 2;
+    // El extremo del brazo es cóncavo y sigue la curva de la bola (casi
+    // pegado a ella, con una ranura mínima).
+    const CAP = 0.212;
+    const upperProfile = [[0, -0.64], [0.1, -0.635], [0.135, -0.6], [0.15, -0.47], [0.165, -0.3], [0.168, -0.2]].map(([x, y]) => new THREE.Vector2(x, y));
+    for (let i = 0; i <= 16; i++) {
+      const r = 0.168 * (1 - i / 16);
+      upperProfile.push(new THREE.Vector2(r, -Math.sqrt(CAP * CAP - Math.min(r * r, CAP * CAP - 0.0001))));
+    }
+    add(limb, new THREE.LatheGeometry(upperProfile, seg), white);
+    add(limb, ring(0.138, 0.009), chestMaterial, [0, -0.61, 0]).rotation.x = Math.PI / 2;
     // Codo: anillos oscuros.
     // Tapa oscura al final del brazo.
-    add(limb, new THREE.CylinderGeometry(0.12, 0.1, 0.03, 32), dark, [0, -0.515, 0]);
+    add(limb, new THREE.CylinderGeometry(0.12, 0.1, 0.03, 32), dark, [0, -0.645, 0]);
     // Codo: brazo y antebrazo separados, unidos por cables (dan la ilusión
     // de articulación) y una varilla metálica al centro.
     const elbow = new THREE.Group();
-    elbow.position.y = -0.66;
+    elbow.position.y = -0.79;
     // Un poco doblado hacia adelante y de vuelta hacia el cuerpo.
     elbow.rotation.set(-0.3, 0, -side * 0.35);
     limb.add(elbow);
