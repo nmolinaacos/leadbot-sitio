@@ -689,15 +689,15 @@ function makeRobot() {
     // arriba es una copa que rodea la bola del hombro: el eje pasa por el
     // centro de la bola y el borde de la copa la envuelve alrededor.
     const CAP = 0.215;
-    const upperGeo = new THREE.LatheGeometry(new THREE.SplineCurve([[0, -0.7], [0.1, -0.694], [0.16, -0.66], [0.2, -0.58], [0.225, -0.44], [0.235, -0.28], [0.238, -0.13], [0.232, -0.08], [0.222, -0.05], [0.205, -0.035], [0.1, -0.035], [0, -0.035]].map(([x, y]) => new THREE.Vector2(x, y))).getPoints(90), seg);
+    const upperGeo = new THREE.LatheGeometry(new THREE.SplineCurve([[0, -0.7], [0.1, -0.694], [0.16, -0.66], [0.2, -0.58], [0.225, -0.44], [0.235, -0.28], [0.24, -0.12], [0.242, 0.0], [0.236, 0.08], [0.222, 0.12], [0.1, 0.13], [0, 0.13]].map(([x, y]) => new THREE.Vector2(x, y))).getPoints(90), seg);
     {
       const pos = upperGeo.attributes.position;
       const v = new THREE.Vector3();
       for (let i = 0; i < pos.count; i++) {
         v.fromBufferAttribute(pos, i);
-        // Del lado que mira al torso, la copa es un poco más corta (no choca).
-        const inner = Math.max(0, -v.x * side) / 0.24;
-        const cut = -0.035 - 0.085 * inner * inner;
+        // Corte en diagonal (como la referencia): del lado de afuera el brazo
+        // sube y envuelve la bola; del lado del torso queda más bajo.
+        const cut = -0.04 + 0.42 * (v.x * side);
         if (v.y > cut) v.y = cut;
         if (v.length() < CAP) v.setLength(CAP);
         pos.setXYZ(i, v.x, v.y, v.z);
