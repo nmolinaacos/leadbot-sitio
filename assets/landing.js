@@ -770,36 +770,47 @@ function makeRobot() {
     // Interior oscuro.
     const inner = add(elbow, new THREE.CylinderGeometry(0.27, 0.27, 0.02, 40), dark, [0, -0.66, 0]);
     inner.rotation.z = Math.atan(0.18 * side);
-    // Mano: palma oscura, cuatro dedos de tres falanges (blancas, nudillos
-    // oscuros), un poco curvados, y el pulgar.
+    // Mano (como la referencia): sale de la boca del antebrazo. Dorso blanco
+    // con la palma oscura; cuatro dedos gruesos de tres falanges blancas
+    // separadas por nudillos oscuros, curvados hacia adentro; y el pulgar
+    // aparte, del otro lado, de dos falanges gruesas que bajan.
     const hand = new THREE.Group();
-    hand.position.y = -0.82;
+    hand.position.y = -0.8;
     handsOut.push(hand);
-    hand.scale.setScalar(1.9); // en la referencia la mano es casi del largo del antebrazo
+    hand.scale.setScalar(1.3);
     elbow.add(hand);
-    add(hand, new THREE.BoxGeometry(0.2, 0.1, 0.12), dark, [0, -0.02, 0]);
-    [-0.07, -0.024, 0.024, 0.07].forEach((x, i) => {
-      const sp = (i - 1.5) * 0.05;
-      const finger = new THREE.Group();
-      finger.position.set(x, -0.07, 0.01);
-      finger.rotation.set(-0.15, 0, sp);
-      hand.add(finger);
-      let y = 0;
-      [0.075, 0.065, 0.055].forEach((len, j) => {
-        add(finger, new THREE.SphereGeometry(0.024, 12, 8), dark, [0, y, j * 0.012]);
-        add(finger, new THREE.CapsuleGeometry(0.022, len - 0.03, 4, 10), white, [0, y - len / 2, j * 0.012 + 0.006]);
-        y -= len;
+    const knuckle = (parent, y, r) => add(parent, new THREE.CylinderGeometry(r * 0.8, r * 0.8, 0.02, 14), dark, [0, y, 0]);
+    const palmGeo = new THREE.BoxGeometry(0.24, 0.16, 0.09, 4, 4, 4);
+    const palm = add(hand, palmGeo, white, [side * 0.03, -0.06, 0.02]);
+    palm.rotation.z = side * 0.12;
+    add(hand, new THREE.BoxGeometry(0.2, 0.14, 0.02), dark, [side * 0.03, -0.06, -0.025]);
+    [-0.084, -0.028, 0.028, 0.084].forEach((x, i) => {
+      let seg = new THREE.Group();
+      seg.position.set(side * 0.03 + x, -0.145, 0.02);
+      seg.rotation.set(0.25, 0, (i - 1.5) * 0.04);
+      hand.add(seg);
+      [0.075, 0.062, 0.05].forEach((len, j) => {
+        knuckle(seg, 0, 0.033);
+        add(seg, new THREE.CapsuleGeometry(0.03, len - 0.02, 4, 12), white, [0, -0.012 - len / 2, 0]);
+        const next = new THREE.Group();
+        next.position.y = -len - 0.012;
+        next.rotation.x = 0.4 + j * 0.1; // se curvan hacia la palma
+        seg.add(next);
+        seg = next;
       });
-      add(finger, new THREE.SphereGeometry(0.022, 10, 8), white, [0, y, 0.04]);
     });
     const thumb = new THREE.Group();
-    thumb.position.set(-side * 0.11, -0.03, 0.05);
-    thumb.rotation.set(-0.3, 0, -side * 0.6);
+    thumb.position.set(-side * 0.12, 0.04, 0.05);
+    thumb.rotation.set(0.3, 0, -side * 0.2);
     hand.add(thumb);
-    add(thumb, new THREE.SphereGeometry(0.026, 12, 8), dark);
-    add(thumb, new THREE.CapsuleGeometry(0.024, 0.05, 4, 10), white, [0, -0.045, 0]);
-    add(thumb, new THREE.SphereGeometry(0.022, 10, 8), dark, [0, -0.085, 0]);
-    add(thumb, new THREE.CapsuleGeometry(0.022, 0.035, 4, 10), white, [0, -0.12, 0.01]);
+    knuckle(thumb, 0, 0.032);
+    add(thumb, new THREE.CapsuleGeometry(0.03, 0.06, 4, 12), white, [0, -0.05, 0]);
+    const tip = new THREE.Group();
+    tip.position.y = -0.1;
+    tip.rotation.x = 0.3;
+    thumb.add(tip);
+    knuckle(tip, 0, 0.03);
+    add(tip, new THREE.CapsuleGeometry(0.028, 0.045, 4, 12), white, [0, -0.045, 0]);
     rig.add(pivot);
     return pivot;
   });
