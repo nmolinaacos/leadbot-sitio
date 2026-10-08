@@ -597,7 +597,32 @@ function makeRobot() {
   // oscuro en el pecho, a un lado.
   // Por encima de la banda, el cuerpo se estira (más alto).
   const torsoProfile = [[0, -1.48], [0.4, -1.45], [0.64, -1.32], [0.745, -1.12], [0.765, -0.98], [0.71, -0.62], [0.6, -0.26], [0.5, 0.04], [0.44, 0.17], [0.35, 0.225], [0.22, 0.24], [0, 0.24]].map(([r, y]) => [r, y > -0.98 ? -0.98 + (y + 0.98) * 1.15 : y]);
-  const body = add(rig, lathe(torsoProfile, 70), white);
+  // Huecos de los hombros: se recorta la coraza a cada lado y se pone una
+  // copa oscura adentro con un borde, para que la bola del hombro quede
+  // metida en la abertura con un pequeño espacio alrededor.
+  const SOCKET = { y: 0.02, r: 0.26 };
+  const bodyGeo = (() => {
+    const g = new THREE.LatheGeometry(new THREE.SplineCurve(torsoProfile.map(([x, y]) => new THREE.Vector2(x, y))).getPoints(180), modest ? 160 : 260).toNonIndexed();
+    const pos = g.attributes.position;
+    const keep = [];
+    const v = new THREE.Vector3();
+    for (let t = 0; t < pos.count; t += 3) {
+      let cx = 0, cy = 0, cz = 0;
+      for (let k = 0; k < 3; k++) { v.fromBufferAttribute(pos, t + k); cx += v.x; cy += v.y; cz += v.z * 0.86; }
+      cx /= 3; cy /= 3; cz /= 3;
+      const inHole = Math.abs(cx) > 0.25 && Math.hypot(cy - SOCKET.y, cz) < SOCKET.r - 0.01;
+      if (!inHole) keep.push(t);
+    }
+    const out = new THREE.BufferGeometry();
+    for (const name of Object.keys(g.attributes)) {
+      const src = g.attributes[name];
+      const arr = new Float32Array(keep.length * 3 * src.itemSize);
+      keep.forEach((t, n) => { for (let k = 0; k < 3 * src.itemSize; k++) arr[n * 3 * src.itemSize + k] = src.array[t * src.itemSize + k]; });
+      out.setAttribute(name, new THREE.BufferAttribute(arr, src.itemSize));
+    }
+    return out; // conserva las normales suaves del torno
+  })();
+  const body = add(rig, bodyGeo, Object.assign(white.clone(), { side: THREE.DoubleSide }));
   body.scale.z = 0.86;
   const torsoR = (y) => {
     for (let i = 0; i < torsoProfile.length - 1; i++) {
@@ -619,6 +644,24 @@ function makeRobot() {
   hoop(-0.98, torsoR(-0.98) - 0.008, 0.02, dark);
   hoop(-0.948, torsoR(-0.948) - 0.002, 0.005, chestMaterial);
   hoop(-1.012, torsoR(-1.012) - 0.002, 0.005, chestMaterial);
+  [-1, 1].forEach((side) => {
+    const sx = torsoR(SOCKET.y);
+    const sock = new THREE.Group();
+    sock.position.set(side * (sx - 0.06), SOCKET.y, 0);
+    sock.rotation.z = side * -Math.PI / 2; // +y local apunta hacia afuera
+    rig.add(sock);
+    // Copa oscura (por dentro) y el borde de la abertura.
+    add(sock, new THREE.SphereGeometry(SOCKET.r, 40, 20, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), Object.assign(dark.clone(), { side: THREE.DoubleSide }), [0, 0.02, 0]);
+    // Borde que sigue la curva de la coraza y tapa el corte, con un hilo azul.
+    const edge = (R, inset) => new THREE.CatmullRomCurve3(Array.from({ length: 96 }, (_, i) => {
+      const a = (i / 96) * Math.PI * 2;
+      const y = SOCKET.y + R * Math.sin(a), z = R * Math.cos(a);
+      const x = Math.sqrt(Math.max(0, torsoR(y) ** 2 - (z / 0.86) ** 2)) - inset;
+      return new THREE.Vector3(side * x, y, z);
+    }), true);
+    add(rig, new THREE.TubeGeometry(edge(SOCKET.r - 0.005, 0.012), 200, 0.03, 12, true), white);
+    add(rig, new THREE.TubeGeometry(edge(SOCKET.r - 0.035, 0.03), 200, 0.006, 8, true), chestMaterial);
+  });
   // Punto oscuro en el pecho, a un lado.
   add(rig, new THREE.SphereGeometry(0.028, 16, 10), dark, [0.13, 0.04, 0.86 * Math.sqrt(torsoR(0.04) ** 2 - 0.13 ** 2) - 0.008]);
 
@@ -628,23 +671,32 @@ function makeRobot() {
   // en la muñeca) con borde azul y la boca oscura de donde sale la mano; mano
   // grande de dedos largos articulados, algo curvados, y pulgar aparte.
   const HAND = -1.32;
+  const handsOut = [];
   const arms = [-1, 1].map((side) => {
     const pivot = new THREE.Group();
-    pivot.position.set(side * 0.64, 0.02, 0);
+    pivot.position.set(side * 0.6, 0.02, 0);
     // Hombro: una bola negra grande, de la que sale el brazo.
-    add(pivot, new THREE.SphereGeometry(0.21, 40, 20), dark);
+    add(pivot, new THREE.SphereGeometry(0.2, 40, 20), dark);
+    // El brazo nace del costado de la bola (no de abajo) y baja en diagonal;
+    // queda un pequeño espacio con la bola, unido por un eje metálico.
+    const limb = new THREE.Group();
+    limb.position.set(side * 0.2, -0.06, 0);
+    limb.rotation.z = side * 0.6;
+    pivot.add(limb);
+    add(limb, new THREE.CylinderGeometry(0.045, 0.045, 0.12, 16), grey, [0, 0.0, 0]);
     // Brazo: casi cónico, ancho en el hombro.
-    add(pivot, lathe([[0, -0.47], [0.1, -0.465], [0.135, -0.43], [0.15, -0.3], [0.165, -0.14], [0.15, -0.07], [0.09, -0.03], [0, -0.025]], 40), white);
-    add(pivot, ring(0.138, 0.009), chestMaterial, [0, -0.44, 0]).rotation.x = Math.PI / 2;
+    add(limb, lathe([[0, -0.51], [0.1, -0.505], [0.135, -0.47], [0.15, -0.34], [0.165, -0.18], [0.15, -0.11], [0.09, -0.07], [0, -0.065]], 40), white);
+    add(limb, ring(0.138, 0.009), chestMaterial, [0, -0.48, 0]).rotation.x = Math.PI / 2;
     // Codo: anillos oscuros.
     // Tapa oscura al final del brazo.
-    add(pivot, new THREE.CylinderGeometry(0.12, 0.1, 0.03, 32), dark, [0, -0.475, 0]);
+    add(limb, new THREE.CylinderGeometry(0.12, 0.1, 0.03, 32), dark, [0, -0.515, 0]);
     // Codo: brazo y antebrazo separados, unidos por cables (dan la ilusión
     // de articulación) y una varilla metálica al centro.
     const elbow = new THREE.Group();
-    elbow.position.y = -0.62;
-    elbow.rotation.x = -0.3; // un poco doblado hacia adelante
-    pivot.add(elbow);
+    elbow.position.y = -0.66;
+    // Un poco doblado hacia adelante y de vuelta hacia el cuerpo.
+    elbow.rotation.set(-0.3, 0, -side * 0.35);
+    limb.add(elbow);
     const top = new THREE.Vector3(0, 0.15, 0);
     add(elbow, new THREE.CylinderGeometry(0.025, 0.025, 0.24, 12), grey, [0, 0.03, 0]);
     for (let c = 0; c < 6; c++) {
@@ -672,6 +724,7 @@ function makeRobot() {
     // oscuros), un poco curvados, y el pulgar.
     const hand = new THREE.Group();
     hand.position.y = -0.6;
+    handsOut.push(hand);
     hand.scale.setScalar(1.35);
     elbow.add(hand);
     add(hand, new THREE.BoxGeometry(0.2, 0.1, 0.12), dark, [0, -0.02, 0]);
@@ -720,9 +773,9 @@ function makeRobot() {
   const coffee = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.02, 32), glossy(0x4a2a12, { roughness: 0.4 }));
   coffee.position.y = 0.13;
   mug.add(coffee);
-  mug.position.set(0, HAND - 0.1, 0.12);
+  mug.position.set(0, -0.12, 0.1);
   mug.scale.setScalar(0.001);
-  arms[0].add(mug);
+  handsOut[0].add(mug);
 
   const floatRing = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.045, 16, 72), new THREE.MeshBasicMaterial({ color: 0x6ff0ff, transparent: true, opacity: 0.8 }));
   floatRing.rotation.x = Math.PI / 2;
@@ -734,7 +787,7 @@ function makeRobot() {
   rig.position.y = -(box.min.y + box.max.y) / 2;
   root.userData.base = 2.7 / (box.max.y - box.min.y);
   const fit = { hand: HAND - 0.04, desk: { y: -0.95, z: 1.05, floor: -2.3 }, props: 0.78 };
-  return { root, rig, head, eyes, ballMaterial, chestMaterial, arms, mug, ring: floatRing, fit };
+  return { root, rig, head, eyes, ballMaterial, chestMaterial, arms, hands: handsOut, mug, ring: floatRing, fit };
 }
 
 // Pantalla dibujada en un canvas (el chat del celular, la gráfica de la tablet).
@@ -909,10 +962,15 @@ function makeProps(robot) {
   }
 
   // Puntos de agarre en cada mano (en el sistema del brazo).
-  const hands = robot.arms.map((arm) => {
+  const hands = robot.arms.map((arm, i) => {
     const anchor = new THREE.Object3D();
-    anchor.position.set(0, robot.fit.hand, 0.04);
-    arm.add(anchor);
+    if (robot.hands) {
+      anchor.position.set(0, -0.08, 0.04);
+      robot.hands[i].add(anchor);
+    } else {
+      anchor.position.set(0, robot.fit.hand, 0.04);
+      arm.add(anchor);
+    }
     return anchor;
   });
   const handPos = [new THREE.Vector3(), new THREE.Vector3()];
@@ -1083,7 +1141,7 @@ function setupScene(canvas) {
   // x negativo lleva la mano hacia adelante; z negativo abre el brazo
   // izquierdo hacia afuera y z positivo, el derecho.
   function armTargets(k, t) {
-    const idle = [Math.sin(t * 1.4) * 0.08, -0.42, Math.sin(t * 1.4 + 1) * 0.08, 0.42];
+    const idle = [Math.sin(t * 1.4) * 0.08, -0.08, Math.sin(t * 1.4 + 1) * 0.08, 0.08];
     const tap = Math.sin(t * 14) * 0.08;
     // Con la cabeza grande, saluda con el brazo hacia el lado y un poco al frente.
     if (k === LAST) return [idle[0], idle[1], -0.55, 1.45 + Math.sin(t * 7) * 0.28]; // se despide
@@ -1282,8 +1340,8 @@ function setupScene(canvas) {
 
     if (portrait !== null) {
       // De pie, en reposo y sin objetos (como la imagen de referencia).
-      robot.arms[0].rotation.set(0.1, 0, -0.5);
-      robot.arms[1].rotation.set(-0.05, 0, 0.5);
+      robot.arms[0].rotation.set(0.1, 0, -0.08);
+      robot.arms[1].rotation.set(-0.05, 0, 0.08);
       robot.mug.scale.setScalar(0.001);
       root.position.set(0, 0, 0);
       root.scale.setScalar(root.userData.base * portraitScale);
