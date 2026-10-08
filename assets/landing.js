@@ -775,9 +775,9 @@ function makeRobot() {
     // separadas por nudillos oscuros, curvados hacia adentro; y el pulgar
     // aparte, del otro lado, de dos falanges gruesas que bajan.
     const hand = new THREE.Group();
-    hand.position.y = -0.8;
+    hand.position.y = -0.78;
     handsOut.push(hand);
-    hand.scale.setScalar(1.3);
+    hand.scale.setScalar(0.65);
     elbow.add(hand);
     const knuckle = (parent, y, r) => add(parent, new THREE.CylinderGeometry(r * 0.8, r * 0.8, 0.02, 14), dark, [0, y, 0]);
     const palmGeo = new THREE.BoxGeometry(0.24, 0.16, 0.09, 4, 4, 4);
