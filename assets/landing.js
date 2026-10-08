@@ -742,21 +742,38 @@ function makeRobot() {
     add(elbow, new THREE.CylinderGeometry(0.06, 0.06, 0.2, 20), dark, [0, 0.025, 0]);
     // Tapa oscura al inicio del antebrazo.
     add(elbow, new THREE.CylinderGeometry(0.11, 0.12, 0.03, 32), dark, [0, -0.085, 0]);
-    // Antebrazo en campana, abierto abajo.
-    const fore = add(elbow, lathe([[0.235, -0.62], [0.25, -0.58], [0.25, -0.44], [0.23, -0.28], [0.19, -0.16], [0.15, -0.11], [0.12, -0.095]], 48), white);
-    fore.material = Object.assign(white.clone(), { side: THREE.DoubleSide });
-    add(elbow, ring(0.236, 0.016), dark, [0, -0.615, 0]).rotation.x = Math.PI / 2;
-    add(elbow, ring(0.245, 0.007), chestMaterial, [0, -0.6, 0]).rotation.x = Math.PI / 2;
-    add(elbow, new THREE.CircleGeometry(0.23, 40), dark, [0, -0.5, 0], [Math.PI / 2, 0, 0]);
-    // Visera del antebrazo: sobresale por delante y cubre un poco los nudillos.
-    const cover = add(elbow, new THREE.CylinderGeometry(0.235, 0.215, 0.12, 48, 1, true, -Math.PI * 0.42, Math.PI * 0.84), Object.assign(white.clone(), { side: THREE.DoubleSide }), [0, -0.68, 0.02]);
-    cover.rotation.x = 0.12;
-    const coverEdge = add(elbow, new THREE.TorusGeometry(0.215, 0.011, 8, 48, Math.PI * 0.84), chestMaterial, [0, -0.738, 0.028]);
-    coverEdge.rotation.set(Math.PI / 2 + 0.12, 0, Math.PI / 2 - Math.PI * 0.42 - Math.PI);
+    // Antebrazo (como la referencia): un huevo grande, con la cúpula de arriba
+    // redondeada hacia el codo y la parte ancha abajo. La boca de abajo está
+    // cortada en diagonal (más baja por fuera), con un borde oscuro y un hilo
+    // azul; adentro es oscuro y de ahí sale la mano.
+    const foreProfile = [[0.28, -0.86], [0.295, -0.76], [0.3, -0.62], [0.285, -0.46], [0.25, -0.31], [0.2, -0.19], [0.145, -0.11], [0.1, -0.085], [0.07, -0.08]];
+    const foreGeo = lathe(foreProfile, 64);
+    const foreCut = (x) => -0.76 - 0.18 * (x * side);
+    {
+      const pos = foreGeo.attributes.position;
+      const v = new THREE.Vector3();
+      for (let i = 0; i < pos.count; i++) {
+        v.fromBufferAttribute(pos, i);
+        const c = foreCut(v.x);
+        if (v.y < c) { v.y = c; pos.setXYZ(i, v.x, v.y, v.z); }
+      }
+      foreGeo.computeVertexNormals();
+    }
+    add(elbow, foreGeo, Object.assign(white.clone(), { side: THREE.DoubleSide }));
+    const mouth = (R, dy) => new THREE.CatmullRomCurve3(Array.from({ length: 64 }, (_, i) => {
+      const a = (i / 64) * Math.PI * 2;
+      const x = Math.cos(a) * R, z = Math.sin(a) * R;
+      return new THREE.Vector3(x, foreCut(x) + dy, z);
+    }), true);
+    add(elbow, new THREE.TubeGeometry(mouth(0.288, 0.012), 128, 0.022, 10, true), dark);
+    add(elbow, new THREE.TubeGeometry(mouth(0.298, 0.04), 128, 0.007, 8, true), chestMaterial);
+    // Interior oscuro.
+    const inner = add(elbow, new THREE.CylinderGeometry(0.27, 0.27, 0.02, 40), dark, [0, -0.66, 0]);
+    inner.rotation.z = Math.atan(0.18 * side);
     // Mano: palma oscura, cuatro dedos de tres falanges (blancas, nudillos
     // oscuros), un poco curvados, y el pulgar.
     const hand = new THREE.Group();
-    hand.position.y = -0.6;
+    hand.position.y = -0.82;
     handsOut.push(hand);
     hand.scale.setScalar(1.35);
     elbow.add(hand);
