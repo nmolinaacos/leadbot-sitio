@@ -767,17 +767,28 @@ function makeRobot() {
     }), true);
     add(elbow, new THREE.TubeGeometry(mouth(0.288, 0.012), 128, 0.022, 10, true), dark);
     add(elbow, new THREE.TubeGeometry(mouth(0.298, 0.04), 128, 0.007, 8, true), chestMaterial);
-    // Interior oscuro.
-    const inner = add(elbow, new THREE.CylinderGeometry(0.27, 0.27, 0.02, 40), dark, [0, -0.66, 0]);
-    inner.rotation.z = Math.atan(0.18 * side);
+    // Hendidura: la boca es un hueco profundo y oscuro (con pared interior)
+    // donde se mete la mano.
+    const hollowGeo = lathe([[0.268, -0.95], [0.265, -0.75], [0.25, -0.6], [0.22, -0.5], [0.16, -0.46], [0, -0.45]], 40);
+    {
+      const pos = hollowGeo.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        const c = foreCut(pos.getX(i)) + 0.012;
+        if (pos.getY(i) < c) pos.setY(i, c);
+      }
+      hollowGeo.computeVertexNormals();
+    }
+    const hollow = add(elbow, hollowGeo, Object.assign(dark.clone(), { side: THREE.BackSide }));
+    hollow.renderOrder = 1;
     // Mano (como la referencia): sale de la boca del antebrazo. Dorso blanco
     // con la palma oscura; cuatro dedos gruesos de tres falanges blancas
     // separadas por nudillos oscuros, curvados hacia adentro; y el pulgar
     // aparte, del otro lado, de dos falanges gruesas que bajan.
     const hand = new THREE.Group();
-    hand.position.y = -0.78;
+    // Empieza desde adentro del hueco del antebrazo.
+    hand.position.y = -0.64;
     handsOut.push(hand);
-    hand.scale.setScalar(0.65);
+    hand.scale.setScalar(1.3);
     elbow.add(hand);
     const knuckle = (parent, y, r) => add(parent, new THREE.CylinderGeometry(r * 0.8, r * 0.8, 0.02, 14), dark, [0, y, 0]);
     const palmGeo = new THREE.BoxGeometry(0.24, 0.16, 0.09, 4, 4, 4);
