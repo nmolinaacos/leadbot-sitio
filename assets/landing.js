@@ -678,12 +678,11 @@ function makeRobot() {
     // Hombro: una bola negra grande, de la que sale el brazo.
     add(pivot, new THREE.SphereGeometry(0.2, 40, 20), dark);
     // El brazo nace del costado de la bola (no de abajo) y baja en diagonal;
-    // queda un pequeño espacio con la bola, unido por un eje metálico.
+    // queda un pequeño espacio libre con la bola.
     const limb = new THREE.Group();
     limb.position.set(side * 0.2, -0.06, 0);
     limb.rotation.z = side * 0.6;
     pivot.add(limb);
-    add(limb, new THREE.CylinderGeometry(0.045, 0.045, 0.12, 16), grey, [0, 0.0, 0]);
     // Brazo: casi cónico, ancho en el hombro.
     add(limb, lathe([[0, -0.51], [0.1, -0.505], [0.135, -0.47], [0.15, -0.34], [0.165, -0.18], [0.15, -0.11], [0.09, -0.07], [0, -0.065]], 40), white);
     add(limb, ring(0.138, 0.009), chestMaterial, [0, -0.48, 0]).rotation.x = Math.PI / 2;
