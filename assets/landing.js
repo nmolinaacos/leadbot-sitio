@@ -685,13 +685,11 @@ function makeRobot() {
     limb.rotation.z = side * 0.62;
     pivot.add(limb);
     // Brazo: casi cónico, ancho en el hombro.
-    // Brazo grueso en forma de huevo (puntas redondeadas). Su eje va un poco
-    // corrido hacia afuera de la bola, y la parte que toca el hombro se
-    // recorta contra la esfera de la bola: el borde queda en diagonal y
-    // cóncavo, siguiendo la curva del hombro.
+    // Brazo grueso en forma de huevo (puntas redondeadas). Su extremo de
+    // arriba es una copa que rodea la bola del hombro: el eje pasa por el
+    // centro de la bola y el borde de la copa la envuelve alrededor.
     const CAP = 0.215;
-    const upperGeo = new THREE.LatheGeometry(new THREE.SplineCurve([[0, -0.67], [0.1, -0.664], [0.16, -0.63], [0.2, -0.55], [0.215, -0.42], [0.21, -0.28], [0.19, -0.16], [0.15, -0.06], [0.08, -0.005], [0, 0.005]].map(([x, y]) => new THREE.Vector2(x, y))).getPoints(80), seg);
-    upperGeo.translate(side * 0.07, 0, 0);
+    const upperGeo = new THREE.LatheGeometry(new THREE.SplineCurve([[0, -0.7], [0.1, -0.694], [0.16, -0.66], [0.2, -0.58], [0.225, -0.44], [0.235, -0.28], [0.238, -0.13], [0.232, -0.08], [0.222, -0.05], [0.205, -0.035], [0.1, -0.035], [0, -0.035]].map(([x, y]) => new THREE.Vector2(x, y))).getPoints(90), seg);
     {
       const pos = upperGeo.attributes.position;
       const v = new THREE.Vector3();
@@ -702,14 +700,14 @@ function makeRobot() {
       upperGeo.computeVertexNormals();
     }
     add(limb, upperGeo, white);
-    add(limb, ring(0.17, 0.009), chestMaterial, [side * 0.07, -0.6, 0]).rotation.x = Math.PI / 2;
+    add(limb, ring(0.172, 0.009), chestMaterial, [0, -0.63, 0]).rotation.x = Math.PI / 2;
     // Codo: anillos oscuros.
     // Tapa oscura al final del brazo.
-    add(limb, new THREE.CylinderGeometry(0.1, 0.09, 0.04, 32), dark, [side * 0.07, -0.67, 0]);
+    add(limb, new THREE.CylinderGeometry(0.1, 0.09, 0.04, 32), dark, [0, -0.7, 0]);
     // Codo: brazo y antebrazo separados, unidos por cables (dan la ilusión
     // de articulación) y una varilla metálica al centro.
     const elbow = new THREE.Group();
-    elbow.position.set(side * 0.07, -0.8, 0);
+    elbow.position.set(0, -0.84, 0);
     // Un poco doblado hacia adelante y de vuelta hacia el cuerpo.
     elbow.rotation.set(-0.3, 0, -side * 0.35);
     limb.add(elbow);
