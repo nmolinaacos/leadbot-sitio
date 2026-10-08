@@ -689,7 +689,7 @@ function makeRobot() {
     // arriba es una copa que rodea la bola del hombro: el eje pasa por el
     // centro de la bola y el borde de la copa la envuelve alrededor.
     const CAP = 0.215;
-    const upperGeo = new THREE.LatheGeometry(new THREE.SplineCurve([[0, -0.7], [0.1, -0.694], [0.16, -0.66], [0.2, -0.58], [0.225, -0.44], [0.235, -0.28], [0.24, -0.12], [0.242, 0.0], [0.236, 0.08], [0.222, 0.12], [0.1, 0.13], [0, 0.13]].map(([x, y]) => new THREE.Vector2(x, y))).getPoints(90), seg);
+    const upperGeo = new THREE.LatheGeometry(new THREE.SplineCurve([[0, -0.44], [0.1, -0.435], [0.16, -0.41], [0.2, -0.36], [0.225, -0.28], [0.235, -0.2], [0.24, -0.12], [0.242, 0.0], [0.236, 0.08], [0.222, 0.12], [0.1, 0.13], [0, 0.13]].map(([x, y]) => new THREE.Vector2(x, y))).getPoints(90), seg);
     {
       const pos = upperGeo.attributes.position;
       const v = new THREE.Vector3();
@@ -714,14 +714,15 @@ function makeRobot() {
       upperGeo.computeVertexNormals();
     }
     add(limb, upperGeo, white);
-    add(limb, ring(0.172, 0.009), chestMaterial, [0, -0.63, 0]).rotation.x = Math.PI / 2;
+    add(limb, ring(0.165, 0.009), chestMaterial, [0, -0.39, 0]).rotation.x = Math.PI / 2;
     // Codo: anillos oscuros.
     // Tapa oscura al final del brazo.
-    add(limb, new THREE.CylinderGeometry(0.1, 0.09, 0.04, 32), dark, [0, -0.7, 0]);
+    add(limb, new THREE.CylinderGeometry(0.1, 0.09, 0.04, 32), dark, [0, -0.445, 0]);
     // Codo: brazo y antebrazo separados, unidos por cables (dan la ilusión
     // de articulación) y una varilla metálica al centro.
     const elbow = new THREE.Group();
-    elbow.position.set(0, -0.79, 0);
+    elbow.position.set(0, -0.54, 0);
+    elbow.scale.setScalar(1.3); // antebrazo y mano más grandes
     // Un poco doblado hacia adelante y de vuelta hacia el cuerpo.
     elbow.rotation.set(-0.3, 0, -side * 0.35);
     limb.add(elbow);
