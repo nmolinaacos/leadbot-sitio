@@ -695,7 +695,12 @@ function makeRobot() {
       const v = new THREE.Vector3();
       for (let i = 0; i < pos.count; i++) {
         v.fromBufferAttribute(pos, i);
-        if (v.length() < CAP) { v.setLength(CAP); pos.setXYZ(i, v.x, v.y, v.z); }
+        // Del lado que mira al torso, la copa es un poco más corta (no choca).
+        const inner = Math.max(0, -v.x * side) / 0.24;
+        const cut = -0.035 - 0.085 * inner * inner;
+        if (v.y > cut) v.y = cut;
+        if (v.length() < CAP) v.setLength(CAP);
+        pos.setXYZ(i, v.x, v.y, v.z);
       }
       upperGeo.computeVertexNormals();
     }
