@@ -1,288 +1,405 @@
-// Leadbot: página de inicio en vidrio claro.
-// - Hero: video de fondo (se pausa con el botón o con movimiento reducido) y
-//   una conversación que fluye sola, canal por canal, en burbujas de vidrio.
-// - "Cómo funciona": el celular avanza por los tres pasos cuando entra en pantalla.
-// - El resto aparece con un fundido suave al hacer scroll.
-// Sin JavaScript todo queda visible (las clases de animación dependen de .js).
+// Leadbot: "Radiografía de un mensaje".
+// Una línea de tiempo (GSAP) atada al scroll recorre una escena fija: el scroll
+// es la cámara. El tiempo de la línea va de 0 a FIN; render() calcula todo lo
+// que depende del instante exacto (luz del haz, reloj, enfoque de las
+// estaciones, escritura, contadores), así que avanzar o retroceder siempre deja
+// la escena coherente. Lenis suaviza el scroll y da la velocidad para el
+// desenfoque de movimiento.
+// Sin la clase .pelicula (sin JS o con "reducir movimiento") no corre nada de
+// esto: queda la historia en texto.
 
-const reducido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const espera = (ms) => new Promise((r) => setTimeout(r, ms));
-// ?depurar: ignora si la pestaña está oculta (para revisar con el navegador automatizado).
-const depurar = new URLSearchParams(location.search).has('depurar');
-const oculta = () => document.hidden && !depurar;
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const limitar = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const tramo = (t, a, b) => limitar((t - a) / (b - a));
+const suave = (p) => p * p * (3 - 2 * p);
 
-/* ---------- Video del hero ---------- */
-const video = document.querySelector('.hero-video');
-const pausa = document.querySelector('.pausa');
-
-function ponerPausa(pausado) {
-  pausa.setAttribute('aria-pressed', String(pausado));
-  pausa.setAttribute('aria-label', pausado ? 'Reproducir el video de fondo' : 'Pausar el video de fondo');
-}
-
-if (video) {
-  // El usuario pausó (o pidió menos movimiento): no se reproduce solo.
-  const pausadoPorUsuario = () => pausa.getAttribute('aria-pressed') === 'true';
-  const intentar = () => { if (!pausadoPorUsuario()) video.play().catch(() => {}); };
-  if (reducido) ponerPausa(true);
-  else intentar();
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) intentar(); });
-  pausa.addEventListener('click', () => {
-    if (video.paused) {
-      video.play();
-      ponerPausa(false);
-    } else {
-      video.pause();
-      ponerPausa(true);
-    }
-  });
-  // No gastar batería reproduciendo un video que no se ve.
-  new IntersectionObserver(([e]) => {
-    if (pausadoPorUsuario()) return;
-    if (e.isIntersecting) intentar();
-    else video.pause();
-  }).observe(video);
-}
-
-/* ---------- Conversación del hero ---------- */
-const CONVERSACIONES = [
-  {
-    canal: 'whatsapp', nombre: 'WhatsApp', quien: 'Laura G.', hora: 'Domingo · 3:18 p. m.',
-    mensajes: [
-      ['cliente', 'Hola, ¿la silla Nova tiene envío a Medellín?'],
-      ['bot', '¡Hola Laura! Sí, llega en 2 días hábiles y el envío es gratis. Cuesta $650.000.'],
-      ['cliente', 'Perfecto, me la llevo 🙌'],
-      ['bot', 'Listo. Te dejo el link de pago y apenas se confirme la despachamos.'],
-      ['estado', 'Pedido #1042 · pagado'],
-    ],
-  },
-  {
-    canal: 'instagram', nombre: 'Instagram', quien: '@andres.dev', hora: 'Domingo · 3:26 p. m.',
-    mensajes: [
-      ['cliente', '¿Tienen teclados blancos?'],
-      ['bot', 'Sí, el Kraken TKL en blanco está disponible a $289.000. Te envío las fotos 👇'],
-      ['cliente', 'Uff, qué bonito. ¿Viene con switch rojo?'],
-      ['bot', 'Sí, rojo lineal. ¿Te lo separo para envío a Bogotá?'],
-      ['estado', 'Venta en curso'],
-    ],
-  },
-  {
-    canal: 'messenger', nombre: 'Messenger', quien: 'Carolina R.', hora: 'Domingo · 3:41 p. m.',
-    mensajes: [
-      ['cliente', 'Necesito factura a nombre de mi empresa, ¿se puede?'],
-      ['bot', 'Claro. Le aviso a alguien del equipo para que te ayude con los datos de la factura.'],
-      ['estado-alerta', 'Te avisamos a ti · cuando quieras'],
-    ],
-  },
-];
-
-const chat = document.querySelector('.hero-chat');
-const hilo = chat?.querySelector('.chat-hilo');
-
-function burbuja(tipo, texto) {
-  const p = document.createElement('p');
-  if (tipo.startsWith('estado')) {
-    p.className = 'burbuja estado entra' + (tipo === 'estado-alerta' ? ' alerta' : '');
-  } else {
-    p.className = `burbuja ${tipo} entra`;
-  }
-  p.textContent = texto;
-  return p;
-}
-
-function escribiendo() {
-  const p = document.createElement('p');
-  p.className = 'burbuja bot escribiendo entra';
-  p.setAttribute('aria-hidden', 'true');
-  p.innerHTML = '<span></span><span></span><span></span>';
-  return p;
-}
-
-function ponerCabeza(c) {
-  const canal = chat.querySelector('.chat-canal');
-  canal.dataset.canal = c.canal;
-  canal.textContent = c.nombre;
-  chat.querySelector('.chat-quien').textContent = c.quien;
-  chat.querySelector('.chat-hora').textContent = c.hora;
-}
-
-let heroVisible = true;
-async function cuandoVisible() {
-  while (!heroVisible || oculta()) await espera(400);
-}
-
-// Movimiento natural: los tiempos dependen del largo del mensaje y varían un
-// poco cada vez, como cuando alguien escribe de verdad.
-const variar = (ms) => ms * (0.85 + Math.random() * 0.3);
-const SUAVE = 'cubic-bezier(0.22, 1, 0.36, 1)';
-
-// Cambia el contenido de un hilo y desliza lo que ya estaba a su nueva
-// posición (FLIP), en vez de que salte de golpe.
-// `extra`: otros elementos que se mueven con el hilo (la cabecera del chat).
-function deslizar(contenedor, cambio, extra = []) {
-  const antes = new Map([...contenedor.children, ...extra].map((el) => [el, el.getBoundingClientRect().top]));
-  cambio();
-  for (const el of [...contenedor.children, ...extra]) {
-    const arriba = antes.get(el);
-    if (arriba === undefined) continue;
-    const dy = arriba - el.getBoundingClientRect().top;
-    if (Math.abs(dy) < 0.5) continue;
-    el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0)' }], { duration: 700, easing: SUAVE });
-  }
-}
-
-async function reproducirChat() {
-  const cabeza = chat.querySelector('.chat-cabeza');
-  for (let i = 0; ; i = (i + 1) % CONVERSACIONES.length) {
-    const c = CONVERSACIONES[i];
-    ponerCabeza(c);
-    hilo.replaceChildren();
-    chat.classList.remove('sale');
-    await espera(700);
-    for (const [tipo, texto] of c.mensajes) {
-      await cuandoVisible();
-      const nueva = burbuja(tipo, texto);
-      if (tipo === 'bot') {
-        const dots = escribiendo();
-        deslizar(hilo, () => hilo.append(dots), [cabeza]);
-        await espera(variar(Math.min(2400, 700 + texto.length * 18)));
-        // Los puntos se convierten en el mensaje: crece en su lugar.
-        deslizar(hilo, () => dots.replaceWith(nueva), [cabeza]);
-        await espera(variar(Math.min(2600, 1300 + texto.length * 12)));
-      } else if (tipo === 'cliente') {
-        deslizar(hilo, () => hilo.append(nueva), [cabeza]);
-        // El bot "lee" antes de empezar a escribir.
-        await espera(variar(Math.min(1600, 600 + texto.length * 10)));
-      } else {
-        await espera(400);
-        deslizar(hilo, () => hilo.append(nueva), [cabeza]);
-        await espera(1200);
-      }
-    }
-    await espera(variar(2600));
-    chat.classList.add('sale');
-    await espera(800);
-  }
-}
-
-if (chat && !reducido) {
-  new IntersectionObserver(([e]) => { heroVisible = e.isIntersecting; }).observe(chat);
-  reproducirChat();
-}
-
-/* ---------- Aparición al hacer scroll ---------- */
-const observarUnaVez = (el, alVer, opciones = { threshold: 0.2 }) => {
-  const io = new IntersectionObserver((entradas) => {
-    for (const e of entradas) {
-      if (e.isIntersecting) {
-        alVer(e.target);
-        io.unobserve(e.target);
-      }
-    }
-  }, opciones);
-  io.observe(el);
-};
-
-document.querySelectorAll('.revela').forEach((el) => observarUnaVez(el, (t) => t.classList.add('visible'), { threshold: 0.15 }));
-
-/* ---------- La noche: avisos y contador ---------- */
-const avisos = document.querySelector('.avisos');
-const contador = document.querySelector('.contador-num');
-if (avisos) {
-  observarUnaVez(avisos, () => {
-    avisos.classList.add('visible');
-    if (reducido) return;
-    const total = avisos.children.length;
-    for (let n = 0; n <= total; n++) setTimeout(() => { contador.textContent = n; }, n * 250);
-  }, { threshold: 0.3 });
-  if (!reducido) contador.textContent = '0';
-}
-
-/* ---------- Cómo funciona: pestañas con su escena ---------- */
-// Arranca en el paso 1 y avanza solo mientras la sección está en pantalla; si
-// la persona elige un paso, se queda ahí.
-const como = document.querySelector('.como');
-const pasos = [...document.querySelectorAll('.paso')];
-const escenas = [...document.querySelectorAll('.escena')];
-const DURACION = 6500;
-
-function elegirPaso(n, { foco = false } = {}) {
-  pasos.forEach((p, i) => {
-    const activo = i === n;
-    p.setAttribute('aria-selected', String(activo));
-    p.tabIndex = activo ? 0 : -1;
-    if (activo && foco) p.focus();
-  });
-  escenas.forEach((e, i) => {
-    if (i === n) {
-      e.hidden = false;
-      e.classList.remove('activa');
-      void e.offsetWidth; // reinicia la entrada escalonada
-      e.classList.add('activa');
-    } else {
-      e.classList.remove('activa');
-      e.hidden = true;
-    }
-  });
-}
-
-if (como) {
-  let actual = 0;
-  let temporizador = null;
-  let manual = reducido;
-  let enPantalla = false;
-  como.style.setProperty('--duracion', `${DURACION}ms`);
-
-  const programar = () => {
-    clearTimeout(temporizador);
-    como.classList.toggle('auto', !manual);
-    if (manual || !enPantalla) return;
-    temporizador = setTimeout(() => {
-      actual = (actual + 1) % pasos.length;
-      elegirPaso(actual);
-      programar();
-    }, DURACION);
-  };
-
-  elegirPaso(0);
-
-  pasos.forEach((p, i) => {
-    p.addEventListener('click', () => {
-      manual = true;
-      actual = i;
-      elegirPaso(i);
-      programar();
-    });
-    // Flechas para moverse entre pestañas.
-    p.addEventListener('keydown', (e) => {
-      const dir = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 0;
-      if (!dir) return;
-      e.preventDefault();
-      manual = true;
-      actual = (i + dir + pasos.length) % pasos.length;
-      elegirPaso(actual, { foco: true });
-      programar();
-    });
-  });
-
-  new IntersectionObserver(([e]) => {
-    const entra = e.isIntersecting && !enPantalla;
-    enPantalla = e.isIntersecting;
-    como.classList.toggle('en-pausa', !enPantalla);
-    // Al llegar a la sección por primera vez (o al volver), empieza desde el paso 1.
-    if (entra && !manual) {
-      actual = 0;
-      elegirPaso(0);
-    }
-    programar();
-  }, { threshold: 0.45 }).observe(como);
-}
-
-/* ---------- Planes: mensual o anual ---------- */
-document.querySelectorAll('[data-periodo]').forEach((boton) => {
+/* ---------- Planes: mensual o anual (funciona siempre) ---------- */
+$$('[data-periodo]').forEach((boton) => {
   boton.addEventListener('click', () => {
     const periodo = boton.dataset.periodo;
-    document.querySelectorAll('[data-periodo]').forEach((b) => b.setAttribute('aria-pressed', String(b === boton)));
-    document.querySelectorAll('[data-mensual]').forEach((el) => { el.textContent = el.dataset[periodo]; });
+    $$('[data-periodo]').forEach((b) => b.setAttribute('aria-pressed', String(b === boton)));
+    $$('[data-mensual]').forEach((el) => { el.textContent = el.dataset[periodo]; });
   });
 });
+
+if (document.documentElement.classList.contains('pelicula') && window.gsap && window.ScrollTrigger && window.Lenis) {
+  pelicula();
+} else {
+  document.documentElement.classList.remove('pelicula');
+}
+
+function pelicula() {
+  gsap.registerPlugin(ScrollTrigger);
+
+  /* ---------- Scroll suave ---------- */
+  const lenis = new Lenis({ lerp: 0.085, smoothWheel: true });
+  lenis.on('scroll', ScrollTrigger.update);
+  gsap.ticker.add((t) => lenis.raf(t * 1000));
+  gsap.ticker.lagSmoothing(0);
+  $$('a[href^="#"]').forEach((a) => a.addEventListener('click', (e) => {
+    const destino = $(a.getAttribute('href'));
+    if (!destino) return;
+    e.preventDefault();
+    lenis.scrollTo(destino, { offset: -20, duration: 1.4 });
+  }));
+
+  /* ---------- Grano de lente: una textura de ruido generada una vez ---------- */
+  const lienzo = document.createElement('canvas');
+  lienzo.width = lienzo.height = 160;
+  const cx = lienzo.getContext('2d');
+  const img = cx.createImageData(160, 160);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const v = Math.random() * 255;
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+    img.data[i + 3] = 255;
+  }
+  cx.putImageData(img, 0, 0);
+  $('.grano').style.backgroundImage = `url(${lienzo.toDataURL()})`;
+
+  /* ---------- Piezas ---------- */
+  const camara = $('.camara');
+  const telefono = $('.telefono');
+  const mensaje = $('.mensaje');
+  const tokens = $$('.tk', mensaje);
+  const claves = tokens.filter((t) => t.classList.contains('clave'));
+  const rellenos = tokens.filter((t) => !t.classList.contains('clave'));
+  const haz = $('.haz');
+  const medidorNum = $('.medidor-num');
+  const medidorBarra = $('.medidor-barra i');
+  const riel = $('.riel');
+  const estaciones = $$('.estacion');
+  const fichas = $$('.ficha');
+  const sello = $('.ficha.elegida em');
+  const celdas = $$('.matriz .c');
+  const objetivo = $('.matriz .objetivo');
+  const ruta = $('.mapa .ruta');
+  const largoRuta = ruta.getTotalLength();
+  const reglas = $$('.reglas li');
+  const cursorMs = $('.regla-cursor');
+  const barrido = $('#barrido-blur');
+  const respuestaTexto = $('.respuesta-texto');
+  const oResp = $('.o-resp');
+  const muro = $('.muro');
+  const nocheNum = $('.noche-num');
+  const hud = $('.hud');
+  const hudEscena = $('.hud-escena');
+  const hudReloj = $('.hud-reloj');
+  const hudRelojNum = $('.hud-reloj b');
+  const hudBarra = $('.hud-barra i');
+  const saltar = $('.saltar');
+
+  ruta.style.strokeDasharray = largoRuta;
+  ruta.style.strokeDashoffset = largoRuta;
+
+  /* ---------- Muro de la noche ---------- */
+  const columnas = () => (innerWidth <= 760 ? 12 : 22);
+  let celdasMuro = [];
+  let celdaHumana = null;
+  function armarMuro() {
+    muro.style.setProperty('--cols', columnas());
+    muro.innerHTML = '';
+    const cols = columnas();
+    const filas = 16;
+    const lista = [];
+    for (let i = 0; i < cols * filas; i++) {
+      const c = document.createElement('i');
+      muro.append(c);
+      lista.push(c);
+    }
+    // La que te pasa a ti queda a la vista, cerca del centro y hacia el frente.
+    celdaHumana = lista[(filas - 5) * cols + Math.floor(cols * 0.62)];
+    // Las demás se encienden en un orden mezclado, no de corrido.
+    celdasMuro = lista.filter((c) => c !== celdaHumana)
+      .map((c) => [Math.random(), c]).sort((a, b) => a[0] - b[0]).map(([, c]) => c);
+  }
+  armarMuro();
+
+  /* ---------- La respuesta, en segmentos (los resaltados son datos) ---------- */
+  const RESPUESTA = [
+    ['¡Hola Laura! Sí, los ', false], ['Aura en blanco talla 38', true], [' están disponibles. Cuestan ', false],
+    ['$289.000', true], [' y el envío a ', false], ['Pasto', true], [' sale en ', false], ['$18.000', true],
+    ['; llegan en 3 a 4 días hábiles. ¿Te envío el link de pago?', false],
+  ];
+  const largoRespuesta = RESPUESTA.reduce((n, [s]) => n + s.length, 0);
+  let escritos = -1;
+  function escribir(n) {
+    if (n === escritos) return;
+    escritos = n;
+    let quedan = n;
+    let html = '';
+    for (const [s, marca] of RESPUESTA) {
+      if (quedan <= 0) break;
+      const parte = s.slice(0, quedan);
+      quedan -= parte.length;
+      html += marca ? `<mark>${parte}</mark>` : parte;
+    }
+    respuestaTexto.innerHTML = `${html}<span class="cursor"></span>`;
+  }
+
+  /* ---------- Posiciones de las palabras flotando (fracciones de la pantalla) ---------- */
+  // [x, y, profundidad]; las de relleno se van al fondo.
+  const NUBE = [
+    [0.06, 0.2, -420], [0.3, 0.13, -520], [0.08, 0.36, 90], [0.52, 0.28, 10],
+    [0.66, 0.17, -460], [0.2, 0.56, 50], [0.6, 0.48, -30], [0.34, 0.7, 70],
+  ];
+  const nubeX = (i, el) => () => {
+    const W = innerWidth;
+    const izquierda = (W - mensaje.offsetWidth) / 2 + el.offsetLeft;
+    return Math.min(NUBE[i][0] * W, W * 0.95 - el.offsetWidth) - izquierda;
+  };
+  const nubeY = (i, el) => () => {
+    const H = innerHeight;
+    const arriba = H / 2 - mensaje.offsetHeight / 2 + el.offsetTop;
+    return NUBE[i][1] * H - arriba;
+  };
+
+  /* ---------- Riel: posición que centra cada estación ---------- */
+  const centroEst = (i) => estaciones[i].offsetLeft + estaciones[i].offsetWidth / 2;
+  const xEstacion = (i) => innerWidth / 2 - centroEst(i);
+
+  /* ---------- Línea de tiempo ---------- */
+  const FIN = 114;
+  const movil = () => innerWidth <= 760;
+  const tl = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut' } });
+  gsap.set(mensaje, { xPercent: -50, yPercent: -50, x: 0, y: 0, scale: 0.3 });
+  gsap.set(['.respuesta', '.opcion'], { yPercent: -50, y: 0 });
+  gsap.set('.final-3s', { yPercent: movil() ? 0 : -50, y: 0 });
+  gsap.set($$('.ramas path'), { attr: { pathLength: 1 }, strokeDasharray: 1, strokeDashoffset: 1 });
+
+  // 0 → 1 · El titular se va; la cámara atraviesa la pantalla del celular.
+  tl.to('.titular-intro', { y: -60, opacity: 0, duration: 4, ease: 'power1.in' }, 4)
+    .to(telefono, { scale: 7, filter: 'blur(16px)', opacity: 0, duration: 9, ease: 'power3.in' }, 6)
+    .to(mensaje, { opacity: 1, scale: 1, duration: 6.5, ease: 'power3.out' }, 9);
+
+  // 2 · Las palabras se separan en profundidad; el haz las lee.
+  tokens.forEach((el, i) => {
+    const relleno = rellenos.includes(el);
+    tl.to(el, {
+      x: nubeX(i, el), y: nubeY(i, el), z: NUBE[i][2],
+      filter: relleno ? 'blur(5px)' : 'blur(0px)', opacity: relleno ? 0.32 : 1,
+      duration: 4.5, ease: 'power3.inOut',
+    }, 16 + i * 0.18);
+  });
+  tl.to(haz, { opacity: 1, duration: 1 }, 18.5)
+    .to('.medidor', { opacity: 1, duration: 1.2 }, 20)
+    .fromTo('.lateral-leer', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 1.5 }, 21)
+    .to('.lateral-leer', { opacity: 0, y: -10, duration: 1 }, 28.5)
+    .to(haz, { opacity: 0, duration: 1 }, 28.2);
+
+  // 2 → 3 · La cámara gira a la derecha y entra al riel.
+  tl.to(rellenos, { opacity: 0, duration: 1.2 }, 28.6)
+    .to(claves, {
+      x: (i, el) => gsap.getProperty(el, 'x') - innerWidth * 0.35,
+      rotationY: 50, opacity: 0, filter: 'blur(8px)', duration: 2.2, ease: 'power2.in', stagger: 0.1,
+    }, 29.2)
+    .to('.medidor', { opacity: 0, duration: 1 }, 30)
+    .to('.riel-caja', { opacity: 1, duration: 2 }, 31.4)
+    .fromTo(riel, { x: () => xEstacion(0) + innerWidth * 0.6 }, { x: () => xEstacion(0), duration: 3, ease: 'power2.out' }, 31)
+    // Viaja, se detiene en cada estación mientras trabaja, y sigue.
+    .to(riel, { x: () => xEstacion(1), duration: 2.6, ease: 'power2.inOut' }, 39.4)
+    .to(riel, { x: () => xEstacion(2), duration: 2.4, ease: 'power2.inOut' }, 48.4)
+    .to(riel, { x: () => xEstacion(3), duration: 2.4, ease: 'power2.inOut' }, 56.8)
+    .to(riel, { x: () => xEstacion(3) - innerWidth * 0.6, duration: 3, ease: 'power2.in' }, 66)
+    .to('.riel-caja', { opacity: 0, duration: 2 }, 67.5);
+
+  // 4 · La decisión.
+  tl.to('.decision', { opacity: 1, duration: 1.5 }, 69)
+    .to('.ramas .tronco', { strokeDashoffset: 0, duration: 1.2, ease: 'none' }, 70)
+    .to('.ramas .rama-l', { strokeDashoffset: 0, duration: 1.4, ease: 'power1.out', stagger: 0.15 }, 71)
+    .fromTo('.opcion', { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 1.2, stagger: 0.2 }, 71.5)
+    .fromTo('.lateral-decidir', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 1.2 }, 72)
+    .to(['.o-dato', '.o-hum'], { opacity: 0.3, filter: 'blur(4px)', scale: 0.94, x: -20, duration: 2, ease: 'power2.out' }, 74.5)
+    .to(['.r-dato', '.r-hum'], { opacity: 0.2, duration: 2 }, 74.5)
+    .to('.o-resp', { scale: 1.05, duration: 2, ease: 'power2.out' }, 74.5)
+    .to('.decision', { opacity: 0, duration: 1.5 }, 77.5);
+
+  // 5 · Los datos vuelan a la burbuja mientras se escribe la respuesta.
+  tl.to('.redaccion', { opacity: 1, duration: 1.2 }, 78)
+    .fromTo('.dato', { x: -80, opacity: 0 }, { x: 0, opacity: 1, duration: 1.4, stagger: 0.25, ease: 'back.out(1.4)' }, 78.2)
+    .fromTo('.respuesta', { scale: 0.92, opacity: 0 }, { scale: 1, opacity: 1, duration: 1.6, ease: 'power3.out' }, 78.6)
+    .fromTo('.lateral-escribir', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 1.2 }, 79.5)
+    .to('.dato', {
+      x: () => innerWidth * (movil() ? 0.2 : 0.42), y: (i) => (1 - i) * 30, scale: 0.6, opacity: 0,
+      duration: 2.2, stagger: 0.9, ease: 'power3.in',
+    }, 81.5)
+    .to('.lateral-escribir', { opacity: 0, duration: 1 }, 87);
+
+  // 6 · Zoom hacia atrás: volvemos al celular.
+  tl.to('.respuesta', { scale: 0.22, x: () => -innerWidth * 0.18, opacity: 0, filter: 'blur(6px)', duration: 3, ease: 'power3.in' }, 88)
+    .to('.redaccion', { opacity: 0, duration: 1 }, 90)
+    .set(['.noti', '.tel-hora'], { opacity: 0 }, 88)
+    .fromTo(telefono, { scale: 3.4, filter: 'blur(14px)', opacity: 0 },
+      { scale: 1, filter: 'blur(0px)', opacity: 1, duration: 4, ease: 'power3.out', immediateRender: false }, 88.5)
+    .to('.tb.bot', { opacity: 1, duration: 0.8 }, 91)
+    .fromTo('.tb.cli', { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.8, immediateRender: false }, 92.5)
+    .fromTo('.tb.pedido', { opacity: 0, y: 14, scale: 0.96 }, { opacity: 1, y: 0, scale: 1, duration: 1, ease: 'back.out(1.6)', immediateRender: false }, 94)
+    .fromTo('.final-3s', { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 1.4, immediateRender: false }, 93.5);
+
+  // 7 · La cámara se aleja: una conversación entre cientos.
+  tl.to('.final-3s', { opacity: 0, duration: 1 }, 96.5)
+    .to(telefono, { scale: 0.18, y: () => innerHeight * 0.05, opacity: 0, duration: 3.5, ease: 'power3.in' }, 96.5)
+    .to('.noche', { opacity: 1, duration: 2 }, 97.5)
+    .fromTo(muro, { rotationX: 66, z: -200 }, { rotationX: 54, z: 40, duration: 15, ease: 'none', immediateRender: false }, 97.5)
+    .fromTo('.globo-humano', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 1.5, immediateRender: false }, 107.5)
+    .to({}, { duration: FIN - 109 }, 109);
+
+  /* ---------- Lo que depende del instante exacto ---------- */
+  // Tiempo de la línea → segundos reales del bot (la cámara lenta).
+  const TIEMPOS = [[0, 0], [6, 0], [16, 0.12], [30, 0.41], [32, 0.62], [68, 2.14], [78, 2.38], [88, 2.95], [96, 3.1]];
+  const reloj = (t) => {
+    for (let i = 1; i < TIEMPOS.length; i++) {
+      const [t1, s1] = TIEMPOS[i];
+      const [t0, s0] = TIEMPOS[i - 1];
+      if (t <= t1) return s0 + (s1 - s0) * tramo(t, t0, t1);
+    }
+    return 3.1;
+  };
+  const ESCENAS = [
+    [0, 'Recibido · WhatsApp · 11:47 p. m.'], [16, 'Lectura · intención'], [31, 'Razonamiento · 1/4 catálogo'],
+    [42, 'Razonamiento · 2/4 existencias'], [50, 'Razonamiento · 3/4 envío'], [58, 'Razonamiento · 4/4 reglas'],
+    [69, 'Decisión'], [78, 'Redactando · tu tono'], [88, 'Enviado ✓✓'], [96.5, 'Toda la noche · 11:00 p. m. → 7:00 a. m.'],
+  ];
+  let escenaActual = '';
+  const formato = new Intl.NumberFormat('es-CO', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+  const ABANICO = [[-38, -62, -9], [0, -78, 0], [38, -62, 9]];
+
+  let velocidad = 0; // px/s del scroll, suavizada
+  function render() {
+    const t = tl.time();
+    const W = innerWidth;
+
+    // HUD
+    const nombre = ESCENAS.filter(([d]) => t >= d).pop()[1];
+    if (nombre !== escenaActual) { escenaActual = nombre; hudEscena.textContent = nombre; }
+    hudRelojNum.textContent = formato.format(reloj(t));
+    hudReloj.classList.toggle('listo', t >= 95);
+    hudBarra.style.transform = `scaleX(${(t / FIN).toFixed(4)})`;
+
+    // 2 · El haz barre la pantalla y enciende las palabras clave que toca.
+    const xHaz = W * (-0.05 + 1.1 * tramo(t, 19, 28));
+    haz.style.transform = `translateX(${xHaz.toFixed(1)}px)`;
+    if (t > 15 && t < 31) {
+      for (const el of claves) {
+        const r = el.getBoundingClientRect();
+        const centro = r.left + r.width / 2;
+        const pasado = t > 19 && xHaz >= r.left;
+        const cerca = 1 - limitar(Math.abs(xHaz - centro) / (r.width / 2 + 120));
+        el.style.setProperty('--etq', pasado ? 1 : 0);
+        el.style.setProperty('--luz', pasado ? Math.max(0.35, cerca).toFixed(3) : 0);
+      }
+    }
+    const confianza = 0.94 * suave(tramo(t, 21, 28));
+    medidorNum.textContent = confianza.toFixed(2).replace('.', ',');
+    medidorBarra.style.transform = `scaleX(${confianza.toFixed(4)})`;
+
+    // 3 · Profundidad de campo por distancia al centro y curvatura del riel.
+    if (t > 30 && t < 70) {
+      const x = gsap.getProperty(riel, 'x');
+      estaciones.forEach((est, i) => {
+        const d = (x + centroEst(i) - W / 2) / W;
+        const ad = Math.abs(d);
+        est.style.filter = `blur(${Math.min(10, ad * 18).toFixed(2)}px)`;
+        est.style.opacity = (1 - Math.min(0.7, ad * 0.9)).toFixed(3);
+        est.style.transform = `perspective(1200px) rotateY(${limitar(-d * 40, -28, 28).toFixed(2)}deg) scale(${(1 - Math.min(0.14, ad * 0.18)).toFixed(3)})`;
+      });
+      cursorMs.style.left = `${(tramo(t, 32, 68) * 100).toFixed(2)}%`;
+    }
+
+    // 3a · Las fichas se abren en abanico; la que coincide pasa al frente.
+    const pA = suave(tramo(t, 34.5, 39.5));
+    ABANICO.forEach(([x, y, r], i) => {
+      fichas[i].style.transform = `translate(${x * pA}%, ${y * pA}%) rotate(${r * pA}deg) scale(${1 - 0.08 * pA})`;
+      fichas[i].style.opacity = 1 - 0.45 * pA;
+    });
+    fichas[3].style.transform = `translateY(${pA * 46}%) scale(${0.92 + 0.12 * pA})`;
+    fichas[3].style.zIndex = pA > 0.5 ? 5 : 0;
+    sello.style.opacity = tramo(t, 39, 40.5);
+
+    // 3b · Se recorren las celdas y se enciende blanco · talla 38.
+    celdas.forEach((c, i) => {
+      c.style.opacity = c === objetivo ? 1 : (0.35 + 0.65 * tramo(t, 42.5 + i * 0.35, 43.5 + i * 0.35)).toFixed(3);
+    });
+    objetivo.style.setProperty('--brillo', suave(tramo(t, 46.5, 48.5)).toFixed(3));
+
+    // 3c · Se dibuja la ruta.
+    ruta.style.strokeDashoffset = (largoRuta * (1 - suave(tramo(t, 51, 56.5)))).toFixed(1);
+
+    // 3d · Las reglas se marcan una a una.
+    reglas.forEach((li, i) => li.style.setProperty('--ok', suave(tramo(t, 59 + i * 1.6, 60 + i * 1.6)).toFixed(3)));
+    oResp.classList.toggle('elegida', t >= 75);
+
+    // 5 · La respuesta se escribe con el scroll (y se borra si regresas).
+    escribir(Math.round(largoRespuesta * tramo(t, 80, 87.2)));
+
+    // 7 · Las decisiones de la noche se encienden; una es para ti.
+    const pNoche = tramo(t, 98.5, 110);
+    const encendidas = Math.round(celdasMuro.length * 0.6 * pNoche);
+    celdasMuro.forEach((c, i) => {
+      const clase = i < encendidas ? 'on' : '';
+      if (c.className !== clase) c.className = clase;
+    });
+    celdaHumana.className = t >= 106 ? 'hum' : '';
+    nocheNum.textContent = Math.round(214 * pNoche);
+
+    // Desenfoque de movimiento del riel según la velocidad del scroll.
+    const enRiel = t > 31 && t < 69;
+    // (el filtro se quita en reposo: anula el vidrio esmerilado de las estaciones)
+    const desenfoque = enRiel ? Math.min(14, velocidad / 260) : 0;
+    barrido.setAttribute('stdDeviation', `${desenfoque.toFixed(2)} 0`);
+    riel.style.filter = desenfoque > 0.3 ? 'url(#barrido)' : 'none';
+  }
+  tl.eventCallback('onUpdate', render);
+
+  // La velocidad sube con el scroll y decae suave entre eventos.
+  lenis.on('scroll', (e) => { velocidad = Math.max(velocidad * 0.6, Math.abs(e.velocity) * 60); });
+  gsap.ticker.add(() => {
+    if (velocidad < 0.5) return;
+    velocidad *= 0.9;
+    render();
+  });
+
+  /* ---------- El scroll mueve la línea de tiempo ---------- */
+  ScrollTrigger.create({
+    trigger: '.pelicula-pista',
+    start: 'top top',
+    end: 'bottom bottom',
+    scrub: 0.5,
+    animation: tl,
+    invalidateOnRefresh: true,
+    onLeave: () => { hud.classList.add('fuera'); saltar.classList.add('fuera'); },
+    onEnterBack: () => { hud.classList.remove('fuera'); saltar.classList.remove('fuera'); },
+  });
+
+  /* ---------- Parallax de cámara con el mouse o el giroscopio ---------- */
+  const giroX = gsap.quickTo(camara, 'rotationY', { duration: 1.2, ease: 'power3.out' });
+  const giroY = gsap.quickTo(camara, 'rotationX', { duration: 1.2, ease: 'power3.out' });
+  addEventListener('pointermove', (e) => {
+    if (e.pointerType !== 'mouse') return;
+    giroX((e.clientX / innerWidth - 0.5) * 4);
+    giroY(-(e.clientY / innerHeight - 0.5) * 3);
+  });
+  addEventListener('deviceorientation', (e) => {
+    if (e.gamma == null) return;
+    giroX(limitar(e.gamma / 12, -3, 3));
+    giroY(limitar((e.beta - 45) / -18, -2.5, 2.5));
+  });
+
+  let columnasActuales = columnas();
+  addEventListener('resize', () => {
+    if (columnas() !== columnasActuales) { columnasActuales = columnas(); armarMuro(); }
+  });
+
+  render();
+  if (new URLSearchParams(location.search).has('depurar')) window.__pelicula = { tl, render, FIN };
+
+  // Para revisar escenas sueltas: ?t=40 salta a ese instante de la película.
+  const tPrueba = parseFloat(new URLSearchParams(location.search).get('t'));
+  if (!Number.isNaN(tPrueba)) {
+    requestAnimationFrame(() => {
+      const st = ScrollTrigger.getAll()[0];
+      const y = st.start + (st.end - st.start) * (tPrueba / FIN);
+      lenis.scrollTo(y, { immediate: true });
+    });
+  }
+}

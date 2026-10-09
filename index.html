@@ -3,23 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Leadbot · Tu negocio vende mientras descansas</title>
-  <meta name="description" content="Leadbot responde por WhatsApp, Instagram y Messenger con tu catálogo, envía fotos y precios, toma pedidos y te avisa cuando hace falta una persona. Para comercios en Colombia.">
-  <meta name="theme-color" content="#eef6f7">
-  <meta property="og:title" content="Leadbot · Tu negocio vende mientras descansas">
-  <meta property="og:description" content="Un asistente que vende por WhatsApp, Instagram y Messenger, a cualquier hora.">
+  <title>Leadbot · Cada mensaje es una venta</title>
+  <meta name="description" content="Leadbot responde por WhatsApp, Instagram y Messenger con tu catálogo, revisa existencias, cotiza el envío y toma el pedido en segundos. Para comercios en Colombia.">
+  <meta name="theme-color" content="#070d0f">
+  <meta property="og:title" content="Leadbot · Cada mensaje es una venta">
+  <meta property="og:description" content="Mira en cámara lenta cómo Leadbot lee, decide y responde un mensaje en 3,1 segundos.">
   <meta property="og:url" content="https://leadbot.com.co/">
   <meta property="og:type" content="website">
-  <meta property="og:image" content="https://leadbot.com.co/assets/video/descanso.jpg">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="icon" href="favicon.png" sizes="64x64">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@500&display=swap">
-  <link rel="preload" as="image" href="assets/video/descanso.jpg">
-  <link rel="stylesheet" href="assets/landing.css?v=202610091945">
-  <script>document.documentElement.classList.add('js');</script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="assets/vendor/lenis/lenis.css">
+  <link rel="stylesheet" href="assets/landing.css?v=202610101030">
+  <script>
+    // La película solo corre con JavaScript y sin "reducir movimiento".
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('pelicula');
+  </script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -27,143 +29,187 @@
       <linearGradient id="g-marca" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5ccfca"/><stop offset="1" stop-color="#14949d"/></linearGradient>
       <symbol id="logo" viewBox="0 0 28 28"><path d="M7 3h14a5 5 0 0 1 5 5v8a5 5 0 0 1-5 5h-6.5L9 25.5V21H7a5 5 0 0 1-5-5V8a5 5 0 0 1 5-5Z" fill="url(#g-marca)"/><circle cx="9.5" cy="12" r="1.6" fill="#fff" fill-opacity=".45"/><circle cx="14" cy="12" r="1.6" fill="#fff" fill-opacity=".7"/><circle cx="18.5" cy="12" r="1.6" fill="#fff"/></symbol>
       <symbol id="ok" viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <!-- Desenfoque de movimiento horizontal: su intensidad sigue la velocidad del scroll. -->
+      <filter id="barrido" x="-20%" y="-5%" width="140%" height="110%"><feGaussianBlur id="barrido-blur" stdDeviation="0 0"/></filter>
     </defs>
   </svg>
 
   <header class="nav">
     <a class="marca" href="#inicio" aria-label="Leadbot, inicio"><svg aria-hidden="true"><use href="#logo"/></svg><b>Lead<span>bot</span></b></a>
     <nav aria-label="Secciones">
-      <a href="#como">Cómo funciona</a>
-      <a href="#funciones">Qué hace</a>
       <a href="#planes">Planes</a>
       <a class="nav-cta" href="#contacto">Hablemos</a>
     </nav>
   </header>
 
+  <!-- HUD de la película: escena actual, reloj en cámara lenta y salto. -->
+  <div class="hud" aria-hidden="true">
+    <span class="hud-escena">Recibido · WhatsApp</span>
+    <span class="hud-reloj">T+<b>0,000</b> s</span>
+    <span class="hud-barra"><i></i></span>
+  </div>
+  <a class="saltar" href="#funciones">Saltar a planes ↓</a>
+
   <main>
-    <!-- Hero: alguien descansa; la conversación fluye sola en vidrio. -->
-    <section class="hero" id="inicio">
-      <div class="hero-fondo" aria-hidden="true">
-        <video class="hero-video" muted playsinline loop preload="metadata" poster="assets/video/descanso.jpg">
-          <source src="assets/video/descanso-movil.mp4" type="video/mp4" media="(max-width: 760px)">
-          <source src="assets/video/descanso.mp4" type="video/mp4">
-        </video>
+    <!-- La historia en texto: es lo que leen Google y los lectores de pantalla, y lo que ve quien pidió menos movimiento. -->
+    <section class="historia" id="inicio">
+      <div class="historia-texto">
+        <p class="etq">Ventas por chat para comercios en Colombia</p>
+        <h1>Cada mensaje es una venta. <em>Leadbot decide en 3 segundos.</em></h1>
+        <p class="bajada">Esto es lo que pasa en los 3,1 segundos desde que tu cliente escribe hasta que Leadbot le responde, contado en cámara lenta.</p>
+        <ol class="pasos-texto">
+          <li><b>Llega un mensaje a las 11:47 p. m.</b> «Buenas, ¿los tenis Aura en talla 38 los tienen en blanco? ¿Cuánto vale el envío a Pasto?»</li>
+          <li><b>Lo lee y entiende la intención.</b> Producto: tenis Aura. Talla: 38. Color: blanco. Quiere comprar y cotizar el envío. Confianza: 0,94.</li>
+          <li><b>Consulta tu catálogo.</b> Encuentra los tenis Aura a $289.000.</li>
+          <li><b>Revisa existencias.</b> Blanco talla 38: 6 pares.</li>
+          <li><b>Cotiza el envío.</b> Rionegro → Pasto: $18.000, 3 a 4 días hábiles.</li>
+          <li><b>Revisa sus reglas.</b> Precio sacado del catálogo, talla confirmada en inventario, no necesita a una persona.</li>
+          <li><b>Decide.</b> Responder y ofrecer el link de pago. Si no estuviera seguro, te lo pasaría a ti.</li>
+          <li><b>Responde con tus datos reales.</b> «¡Hola Laura! Sí, los Aura en blanco talla 38 están disponibles…»</li>
+          <li><b>Laura compra.</b> Pedido #1042 por $307.000, listo para despachar.</li>
+          <li><b>Y así toda la noche.</b> En una noche de ejemplo, 214 decisiones; una te la pasó a ti.</li>
+        </ol>
       </div>
-
-      <div class="hero-copia">
-        <p class="kicker">Ventas por chat para comercios en Colombia</p>
-        <h1>Tu negocio vende <em>mientras descansas.</em></h1>
-        <p class="bajada">Leadbot responde WhatsApp, Instagram y Messenger con tu catálogo, envía fotos y precios y toma el pedido. Tú entras solo cuando quieres.</p>
-        <div class="acciones">
-          <a class="boton primario" href="#contacto">Quiero probarlo</a>
-          <a class="boton vidrio" href="#como">Mira cómo funciona</a>
-        </div>
-      </div>
-
-      <div class="hero-chat" aria-label="Ejemplo: Leadbot atendiendo una conversación">
-        <div class="chat-cabeza"><span class="chat-canal" data-canal="whatsapp">WhatsApp</span><b class="chat-quien">Laura G.</b><small class="chat-hora">Domingo · 3:18 p. m.</small></div>
-        <div class="chat-hilo">
-          <p class="burbuja cliente">Hola, ¿la silla Nova tiene envío a Medellín?</p>
-          <p class="burbuja bot">¡Hola Laura! Sí, llega en 2 días hábiles y el envío es gratis. Cuesta $650.000.</p>
-        </div>
-      </div>
-
-      <button class="pausa" type="button" aria-pressed="false" aria-label="Pausar el video de fondo"><span aria-hidden="true"></span></button>
     </section>
 
-    <!-- Mientras tanto: los mensajes que llegan cuando no estás. -->
-    <section class="noche" id="noche">
-      <div class="noche-texto revela">
-        <p class="reloj"><span>11:47</span> p.&nbsp;m.</p>
-        <h2>Tu tienda cerró. <em>Tus clientes no.</em></h2>
-        <p class="bajada">Muchos mensajes llegan cuando ya no estás frente al celular. Cada uno sin responder es una venta que se va a otra tienda.</p>
-        <p class="contador"><b class="contador-num">5</b> mensajes esperando respuesta</p>
-      </div>
-      <ul class="avisos" aria-label="Mensajes de ejemplo que llegan de noche">
-        <li class="aviso"><span class="canal-punto wa"></span><b>WhatsApp</b><p>¿Tienen la silla en negro?</p><time>11:47</time></li>
-        <li class="aviso"><span class="canal-punto ig"></span><b>Instagram</b><p>Precio porfa 🙏</p><time>11:49</time></li>
-        <li class="aviso"><span class="canal-punto ms"></span><b>Messenger</b><p>¿Hacen envíos a Pasto?</p><time>11:52</time></li>
-        <li class="aviso"><span class="canal-punto wa"></span><b>WhatsApp</b><p>Hola, ¿siguen atendiendo?</p><time>11:58</time></li>
-        <li class="aviso"><span class="canal-punto ig"></span><b>Instagram</b><p>Info del escritorio</p><time>12:04</time></li>
-      </ul>
-    </section>
+    <!-- La película: una escena fija que la cámara recorre con el scroll. -->
+    <div class="pelicula-pista" aria-hidden="true">
+      <div class="escenario">
+        <div class="luz" ></div>
+        <div class="camara">
 
-    <!-- Cómo funciona: tres pasos; cada uno muestra su propia escena. -->
-    <section class="como" id="como">
-      <div class="como-pasos">
-        <p class="kicker">Leadbot responde en segundos</p>
-        <h2 class="seccion-titulo">Así atiende <em>por ti</em></h2>
-        <div class="pasos" role="tablist" aria-label="Cómo funciona Leadbot">
-          <button class="paso" type="button" role="tab" id="paso-0" aria-controls="escena-0" aria-selected="true"><span class="paso-num">01</span><span class="paso-texto"><b>Conoce tu catálogo</b><span>Precios, colores, tallas y lo que está agotado. Nunca inventa un producto.</span></span><i class="paso-barra" aria-hidden="true"></i></button>
-          <button class="paso" type="button" role="tab" id="paso-1" aria-controls="escena-1" aria-selected="false" tabindex="-1"><span class="paso-num">02</span><span class="paso-texto"><b>Muestra fotos y precios</b><span>Envía las fotos del color que pidió el cliente y tu catálogo en PDF.</span></span><i class="paso-barra" aria-hidden="true"></i></button>
-          <button class="paso" type="button" role="tab" id="paso-2" aria-controls="escena-2" aria-selected="false" tabindex="-1"><span class="paso-num">03</span><span class="paso-texto"><b>Toma el pedido</b><span>Pide los datos de envío, arma el resumen y te lo deja listo para despachar.</span></span><i class="paso-barra" aria-hidden="true"></i></button>
-        </div>
-      </div>
-
-      <div class="como-escenas">
-        <!-- 1. El catálogo que el bot consulta. -->
-        <div class="escena activa" id="escena-0" role="tabpanel" aria-labelledby="paso-0">
-          <div class="catalogo">
-            <div class="catalogo-cabeza"><b>Catálogo</b><span>Todo Juegos · 48 productos</span></div>
-            <ul class="catalogo-lista">
-              <li class="item"><span class="miniatura"><svg viewBox="0 0 40 40"><rect x="14" y="5" width="12" height="17" rx="3" fill="#1a272c"/><rect x="10" y="21" width="20" height="4" rx="2" fill="#1a272c"/><rect x="19" y="25" width="2" height="7" fill="#5d7077"/><rect x="13" y="32" width="14" height="2" rx="1" fill="#5d7077"/></svg></span><span class="item-nombre"><b>Silla Nova</b><span class="colores"><i style="--c:#1a272c"></i><i style="--c:#9aa6aa"></i><i style="--c:#d6457f"></i></span></span><span class="item-precio">$650.000</span><span class="stock ok">25 en stock</span></li>
-              <li class="item"><span class="miniatura"><svg viewBox="0 0 40 40"><rect x="5" y="14" width="30" height="12" rx="3" fill="#eef3f4" stroke="#9aa6aa"/><g fill="#9aa6aa"><rect x="8" y="17" width="3" height="2.5" rx=".6"/><rect x="12.5" y="17" width="3" height="2.5" rx=".6"/><rect x="17" y="17" width="3" height="2.5" rx=".6"/><rect x="21.5" y="17" width="3" height="2.5" rx=".6"/><rect x="26" y="17" width="3" height="2.5" rx=".6"/><rect x="11" y="21" width="18" height="2.5" rx=".6"/></g></svg></span><span class="item-nombre"><b>Teclado Kraken TKL</b><span class="colores"><i style="--c:#f4f6f7"></i><i style="--c:#1a272c"></i></span></span><span class="item-precio">$289.000</span><span class="stock ok">18 en stock</span></li>
-              <li class="item"><span class="miniatura"><svg viewBox="0 0 40 40"><rect x="13" y="8" width="14" height="24" rx="7" fill="#1a272c"/><rect x="19.4" y="11" width="1.2" height="5" rx=".6" fill="#5ccfca"/></svg></span><span class="item-nombre"><b>Mouse Falcon</b><span class="colores"><i style="--c:#1a272c"></i></span></span><span class="item-precio">$189.000</span><span class="stock agotado">Agotado</span></li>
-              <li class="item"><span class="miniatura"><svg viewBox="0 0 40 40"><rect x="6" y="15" width="28" height="10" rx="2" fill="#2e3f45"/><rect x="6" y="15" width="28" height="3" rx="1.5" fill="url(#g-marca)"/></svg></span><span class="item-nombre"><b>Barra de luz RGB</b><span class="colores"><i style="--c:#5ccfca"></i></span></span><span class="item-precio">$129.000</span><span class="stock ok">7 en stock</span></li>
-            </ul>
+          <!-- 0 · Llega un mensaje -->
+          <div class="titular-intro">
+            <p class="etq">Ventas por chat para comercios en Colombia</p>
+            <p class="titular">Cada mensaje es una venta. <em>Leadbot decide en 3 segundos.</em></p>
+            <p class="desliza">Desliza para verlo en cámara lenta</p>
           </div>
-          <p class="burbuja cliente item">¿Tienen el Mouse Falcon?</p>
-          <p class="burbuja bot item">Ahora está agotado 😕 Te aviso apenas llegue. ¿Te muestro el Viper, que es parecido?</p>
-        </div>
-
-        <!-- 2. Fotos, precio y catálogo en PDF dentro del chat. -->
-        <div class="escena" id="escena-1" role="tabpanel" aria-labelledby="paso-1" hidden>
-          <p class="burbuja cliente item">Hola, ¿tienen la silla Nova en negro?</p>
-          <p class="burbuja bot item">¡Hola Laura! Sí, la Nova en negro está disponible 👇</p>
-          <div class="burbuja bot foto item"><svg viewBox="0 0 160 110" aria-hidden="true"><rect width="160" height="110" rx="10" fill="#e8f2f3"/><rect x="62" y="10" width="36" height="50" rx="9" fill="#1a272c"/><rect x="66" y="16" width="28" height="18" rx="5" fill="#2e3f45"/><rect x="50" y="56" width="60" height="12" rx="5" fill="#1a272c"/><rect x="77" y="68" width="6" height="20" fill="#5d7077"/><rect x="58" y="88" width="44" height="5" rx="2.5" fill="#5d7077"/><circle cx="60" cy="96" r="3" fill="#5d7077"/><circle cx="100" cy="96" r="3" fill="#5d7077"/></svg></div>
-          <p class="burbuja bot item">Cuesta <b>$650.000</b> y el envío a Medellín es gratis.</p>
-          <div class="burbuja bot pdf item"><span class="pdf-icono">PDF</span><span><b>Catalogo-Todo-Juegos.pdf</b><small>5 páginas · 120 KB</small></span></div>
-        </div>
-
-        <!-- 3. El pedido listo y el aviso al dueño. -->
-        <div class="escena" id="escena-2" role="tabpanel" aria-labelledby="paso-2" hidden>
-          <div class="aviso-dueno item"><span class="aviso-icono"><svg aria-hidden="true"><use href="#logo"/></svg></span><span><b>Nuevo pedido · $650.000</b><small>Laura G. pagó por WhatsApp · hace 1 min</small></span></div>
-          <div class="pedido item">
-            <div class="pedido-cabeza"><b>Pedido #1042</b><span class="estado-pill">Listo para despachar</span></div>
-            <dl class="pedido-datos">
-              <dt>Cliente</dt><dd>Laura Gómez · 300 555 0142</dd>
-              <dt>Envío</dt><dd>Cra. 43A # 1-50, Medellín</dd>
-            </dl>
-            <ul class="pedido-items">
-              <li><span>Silla Nova, negro × 1</span><span>$650.000</span></li>
-              <li><span>Envío a Medellín</span><span>Gratis</span></li>
-              <li class="total"><span>Total pagado</span><span>$650.000</span></li>
-            </ul>
+          <div class="telefono">
+            <div class="pantalla">
+              <span class="isla"></span>
+              <p class="tel-hora">11:47</p>
+              <div class="noti noti-entra"><b>WhatsApp · Laura G. · ahora</b>Buenas, ¿los tenis Aura en talla 38 los tienen en blanco? ¿Cuánto vale el envío a Pasto?</div>
+              <div class="tel-chat">
+                <p class="tb bot">¡Hola Laura! Sí, los Aura en blanco talla 38 están disponibles. Cuestan $289.000 y el envío a Pasto sale en $18.000…<small>11:47 p. m. ✓✓</small></p>
+                <p class="tb cli">¡Me los llevo! 🙌<small>11:48 p. m.</small></p>
+                <div class="tb pedido"><b>Pedido #1042</b><span>Tenis Aura · blanco · T38</span><span>Envío a Pasto · $18.000</span><span class="total">Total · $307.000</span><span class="sello">Listo para despachar</span></div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    </section>
 
-    <!-- Qué hace. -->
+          <!-- 1 y 2 · El mensaje gigante que se descompone -->
+          <p class="mensaje"><span class="tk relleno">Buenas,</span> <span class="tk relleno">¿los</span> <span class="tk clave" data-etq="Producto">tenis Aura</span> <span class="tk clave" data-etq="Variante · talla">en talla 38</span> <span class="tk relleno">los tienen</span> <span class="tk clave" data-etq="Variante · color">en blanco?</span> <span class="tk clave" data-etq="Precio">¿Cuánto vale</span> <span class="tk clave" data-etq="Cotizar envío · Nariño">el envío a Pasto?</span></p>
+          <div class="haz"></div>
+          <div class="medidor vidrio">
+            <p><span>Intención</span><b>Comprar</b></p>
+            <p class="medidor-barra"><i></i></p>
+            <p><span>Confianza</span><b class="medidor-num">0,00</b></p>
+            <p><span>Necesita</span><b>Existencias · precio · envío</b></p>
+          </div>
+          <p class="lateral lateral-leer">Primero entiende qué quiere tu cliente. <em>No busca palabras sueltas: entiende la intención.</em></p>
+
+          <!-- 3 · El riel lateral -->
+          <div class="riel-caja">
+            <div class="riel-linea"></div>
+            <div class="riel">
+              <section class="estacion" data-n="0">
+                <p class="est-etq">3a · Catálogo</p>
+                <h3>Busca en tus 36 productos</h3>
+                <div class="abanico">
+                  <div class="ficha f1"><i class="foto tenis-gris"></i><b>Botín Sierra</b><span>$339.000</span></div>
+                  <div class="ficha f2"><i class="foto tenis-negro"></i><b>Tenis Brisa</b><span>$249.000</span></div>
+                  <div class="ficha f3"><i class="foto tenis-crema"></i><b>Mocasín Lago</b><span>$219.000</span></div>
+                  <div class="ficha elegida"><i class="foto tenis-blanco"></i><b>Tenis Aura</b><span>$289.000</span><em>Coincide</em></div>
+                </div>
+              </section>
+              <section class="estacion" data-n="1">
+                <p class="est-etq">3b · Existencias</p>
+                <h3>Tenis Aura por talla y color</h3>
+                <div class="matriz">
+                  <span></span><span class="cab">36</span><span class="cab">37</span><span class="cab">38</span><span class="cab">39</span><span class="cab">40</span>
+                  <span class="fila">Blanco</span><span class="c" data-u="4">4</span><span class="c" data-u="2">2</span><span class="c objetivo" data-u="6">6</span><span class="c cero" data-u="0">0</span><span class="c" data-u="3">3</span>
+                  <span class="fila">Negro</span><span class="c" data-u="5">5</span><span class="c" data-u="7">7</span><span class="c" data-u="1">1</span><span class="c" data-u="4">4</span><span class="c cero" data-u="0">0</span>
+                </div>
+                <p class="est-res"><b>Blanco · talla 38</b> · 6 pares disponibles</p>
+              </section>
+              <section class="estacion" data-n="2">
+                <p class="est-etq">3c · Envío</p>
+                <h3>Cotiza la ruta a Pasto</h3>
+                <svg class="mapa" viewBox="0 0 220 230" role="img" aria-label="Ruta de Rionegro a Pasto">
+                  <path class="pais" d="M92 8 L120 14 L132 6 L150 22 L146 40 L170 46 L196 62 L188 84 L204 102 L196 124 L170 132 L160 160 L140 176 L132 204 L110 222 L98 206 L82 196 L62 200 L40 186 L30 166 L44 148 L36 126 L50 104 L44 80 L58 64 L70 40 L84 30 Z"/>
+                  <path class="ruta" d="M86 86 C 80 112, 72 140, 66 168 S 58 188, 56 192"/>
+                  <circle class="punto" cx="86" cy="86" r="4"/><circle class="punto destino" cx="56" cy="192" r="4"/>
+                  <text x="94" y="84">Rionegro</text><text x="64" y="204">Pasto</text>
+                </svg>
+                <p class="est-res"><b>$18.000</b> · 3 a 4 días hábiles</p>
+              </section>
+              <section class="estacion" data-n="3">
+                <p class="est-etq">3d · Reglas</p>
+                <h3>Antes de responder, se revisa</h3>
+                <ul class="reglas">
+                  <li><i></i>El precio sale de tu catálogo</li>
+                  <li><i></i>La talla está en inventario</li>
+                  <li><i></i>No inventa nada que no sepa</li>
+                  <li><i></i>No necesita a una persona</li>
+                </ul>
+              </section>
+            </div>
+            <div class="regla-ms"><span>0,62 s</span><span>1,00 s</span><span>1,38 s</span><span>1,76 s</span><span>2,14 s</span><i class="regla-cursor"></i></div>
+          </div>
+
+          <!-- 4 · La decisión -->
+          <div class="decision">
+            <svg class="ramas" viewBox="0 0 600 300" preserveAspectRatio="none">
+              <path class="tronco" d="M0 150 H230"/>
+              <path class="rama-l r-dato" d="M230 150 C 300 150, 300 50, 370 50"/>
+              <path class="rama-l r-resp" d="M230 150 H370"/>
+              <path class="rama-l r-hum" d="M230 150 C 300 150, 300 250, 370 250"/>
+            </svg>
+            <div class="opcion o-dato vidrio"><b>Pedir un dato</b><small>No falta información</small></div>
+            <div class="opcion o-resp vidrio"><b>Responder y ofrecer el pago</b><small>Confianza 0,94</small></div>
+            <div class="opcion o-hum vidrio"><b>Pasar a una persona</b><small>No hace falta esta vez</small></div>
+            <p class="lateral lateral-decidir">Decide qué hacer. <em>Y si no está seguro, te lo pasa a ti.</em></p>
+          </div>
+
+          <!-- 5 · Escribe la respuesta -->
+          <div class="redaccion">
+            <span class="dato d1">TENIS AURA · $289.000</span>
+            <span class="dato d2">BLANCO · T38 · 6 PARES</span>
+            <span class="dato d3">PASTO · $18.000 · 3–4 DÍAS</span>
+            <div class="respuesta"><p class="respuesta-texto"></p></div>
+            <p class="lateral lateral-escribir">Responde con tus precios reales <em>y como habla tu negocio.</em></p>
+          </div>
+
+          <!-- 7 · Toda la noche -->
+          <div class="noche">
+            <div class="muro"></div>
+            <div class="noche-texto">
+              <p class="noche-cifra"><b class="noche-num">0</b> decisiones</p>
+              <p class="noche-sub">mientras tu tienda estuvo cerrada. <span class="ambar">1 te la pasó a ti.</span></p>
+              <p class="noche-nota">Ejemplo de una noche de un comercio.</p>
+            </div>
+            <div class="globo-humano vidrio"><small>Instagram · 2:14 a. m.</small><p>«Necesito factura a nombre de mi empresa»</p><b>→ Te avisamos a ti, con todo el contexto</b></div>
+          </div>
+
+          <p class="final-3s">Respondió en <em>3,1&nbsp;s.</em><br>A las 11:47 p. m.</p>
+        </div>
+        <div class="grano"></div>
+      </div>
+    </div>
+
+    <!-- Qué hace -->
     <section class="funciones" id="funciones">
-      <h2 class="seccion-titulo revela">Todo lo que hace <em>mientras descansas</em></h2>
+      <p class="etq">Lo que viste, todos los días</p>
+      <h2 class="seccion-titulo">Todo lo que hace <em>mientras no estás</em></h2>
       <div class="rejilla">
-        <article class="tile revela"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z M14 3v5h5 M10 13h6 M10 17h6"/></svg><h3>Catálogo en PDF</h3><p>Se arma solo con tus productos, fotos por color y precios. Se actualiza cuando cambias algo.</p></article>
-        <article class="tile revela"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v9H3z M14 10h4l3 3v3h-7 M7 19a2 2 0 1 0 0-.01 M17 19a2 2 0 1 0 0-.01"/></svg><h3>Pedidos y envíos</h3><p>Toma los datos, calcula el envío por ciudad y deja el pedido listo para despachar a toda Colombia.</p></article>
-        <article class="tile revela"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z M8 10h8"/></svg><h3>Recupera ventas</h3><p>Le escribe al cliente que dejó un pedido a medias y le avisa cuando llega lo que estaba agotado.</p></article>
-        <article class="tile revela"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21c1-4 4-6 8-6s7 2 8 6"/></svg><h3>Tú decides cuándo entras</h3><p>Si el cliente pide una persona o algo no está claro, te avisa en el celular y tú tomas la conversación.</p></article>
-        <article class="tile revela"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z M9 12l2 2 4-4"/></svg><h3>Datos protegidos</h3><p>Aviso de privacidad, opción de no recibir más mensajes y tokens cifrados. Cumple la Ley 1581.</p></article>
-        <article class="tile revela"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><h3>Sabes qué funciona</h3><p>Qué anuncio trajo a cada cliente, cuánto se vendió por chat y en qué conversaciones se cayó la venta.</p></article>
+        <article class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z M14 3v5h5 M10 13h6 M10 17h6"/></svg><h3>Catálogo en PDF</h3><p>Se arma solo con tus productos, fotos por color y precios. Se actualiza cuando cambias algo.</p></article>
+        <article class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v9H3z M14 10h4l3 3v3h-7 M7 19a2 2 0 1 0 0-.01 M17 19a2 2 0 1 0 0-.01"/></svg><h3>Pedidos y envíos</h3><p>Toma los datos, calcula el envío por ciudad y deja el pedido listo para despachar a toda Colombia.</p></article>
+        <article class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z M8 10h8"/></svg><h3>Recupera ventas</h3><p>Le escribe al cliente que dejó un pedido a medias y le avisa cuando llega lo que estaba agotado.</p></article>
+        <article class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21c1-4 4-6 8-6s7 2 8 6"/></svg><h3>Tú decides cuándo entras</h3><p>Si el cliente pide una persona o algo no está claro, te avisa en el celular y tú tomas la conversación.</p></article>
+        <article class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z M9 12l2 2 4-4"/></svg><h3>Datos protegidos</h3><p>Aviso de privacidad, opción de no recibir más mensajes y tokens cifrados. Cumple la Ley 1581.</p></article>
+        <article class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><h3>Sabes qué funciona</h3><p>Qué anuncio trajo a cada cliente, cuánto se vendió por chat y en qué conversaciones se cayó la venta.</p></article>
       </div>
-    </section>
-
-    <!-- La frase, sobre la misma escena de descanso. -->
-    <section class="frase">
-      <div class="frase-fondo" aria-hidden="true"></div>
-      <blockquote class="frase-caja revela">
-        <p>El bot vende por ti un domingo en la tarde. Tú decides en qué momento entra una persona.</p>
-      </blockquote>
-    </section>
+        </section>
 
     <!-- Planes. -->
     <section class="planes" id="planes">
@@ -211,16 +257,14 @@
       </ul>
     </section>
 
-    <!-- Cierre. -->
+    <!-- Cierre -->
     <section class="cierre" id="contacto">
-      <div class="cierre-caja revela">
-        <p class="kicker">Acceso por invitación</p>
-        <h2>Ponlo a vender y <em>tómate la tarde.</em></h2>
-        <p class="bajada">Estamos sumando comercios en Colombia. Escríbenos y te mostramos Leadbot con tus propios productos.</p>
-        <div class="acciones">
-          <a class="boton primario" href="https://wa.me/573233272083?text=Hola%2C%20quiero%20conocer%20Leadbot" target="_blank" rel="noopener">Escríbenos por WhatsApp</a>
-          <a class="boton vidrio" href="mailto:contacto@leadbot.com.co?subject=Quiero%20conocer%20Leadbot">contacto@leadbot.com.co</a>
-        </div>
+      <p class="etq">Acceso por invitación</p>
+      <h2>Lo que viste pasa <em>214 veces</em> en una noche. Ponlo a trabajar en tu tienda.</h2>
+      <p class="bajada">Estamos sumando comercios en Colombia. Escríbenos y te mostramos Leadbot con tus propios productos.</p>
+      <div class="acciones">
+        <a class="boton primario" href="https://wa.me/573233272083?text=Hola%2C%20quiero%20conocer%20Leadbot" target="_blank" rel="noopener">Escríbenos por WhatsApp</a>
+        <a class="boton vidrio" href="mailto:contacto@leadbot.com.co?subject=Quiero%20conocer%20Leadbot">contacto@leadbot.com.co</a>
       </div>
     </section>
   </main>
@@ -239,6 +283,9 @@
     </nav>
   </footer>
 
-  <script src="assets/landing.js?v=202610091945" defer></script>
+  <script src="assets/vendor/lenis/lenis.min.js"></script>
+  <script src="assets/vendor/gsap/gsap.min.js"></script>
+  <script src="assets/vendor/gsap/ScrollTrigger.min.js"></script>
+  <script src="assets/landing.js?v=202610101030" defer></script>
 </body>
 </html>
