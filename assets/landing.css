@@ -119,7 +119,7 @@ em { font-style: normal; color: var(--senal); }
 
 /* ---------- La película ---------- */
 .pelicula-pista { display: none; }
-.pelicula .pelicula-pista { display: block; position: relative; height: 1400vh; }
+.pelicula .pelicula-pista { display: block; position: relative; height: 925vh; } /* JS la ajusta al recorrido real */
 .escenario {
   position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden; isolation: isolate;
   background: radial-gradient(90% 70% at 22% 8%, #11272b 0%, #0a1517 40%, var(--noche) 75%);

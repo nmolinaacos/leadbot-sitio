@@ -389,15 +389,46 @@ function pelicula() {
   });
 
   /* ---------- El scroll mueve la línea de tiempo ---------- */
-  ScrollTrigger.create({
+  // Cuánto scroll (en vh) le toca a cada tramo de la línea de tiempo. El inicio
+  // va rápido; el riel y la respuesta tienen más recorrido para verse con calma.
+  const RECORRIDO = [
+    [0, 0], [6, 25], [16.6, 70], [30, 110], [34, 30], [68, 260], [78, 70], [88, 90], [96, 70], [FIN, 100],
+  ];
+  const acumulado = [];
+  RECORRIDO.reduce((suma, [t, vh]) => { acumulado.push([t, suma + vh]); return suma + vh; }, 0);
+  const totalVh = acumulado[acumulado.length - 1][1];
+  $('.pelicula-pista').style.height = `${totalVh + 100}vh`;
+  // Progreso del scroll (0–1) → instante de la película, y al revés.
+  const aTiempo = (p) => {
+    const vh = p * totalVh;
+    for (let i = 1; i < acumulado.length; i++) {
+      const [t1, v1] = acumulado[i];
+      const [t0, v0] = acumulado[i - 1];
+      if (vh <= v1) return t0 + (t1 - t0) * tramo(vh, v0, v1);
+    }
+    return FIN;
+  };
+  const aProgreso = (t) => {
+    for (let i = 1; i < acumulado.length; i++) {
+      const [t1, v1] = acumulado[i];
+      const [t0, v0] = acumulado[i - 1];
+      if (t <= t1) return (v0 + (v1 - v0) * tramo(t, t0, t1)) / totalVh;
+    }
+    return 1;
+  };
+
+  const st = ScrollTrigger.create({
     trigger: '.pelicula-pista',
     start: 'top top',
     end: 'bottom bottom',
-    scrub: 0.5,
-    animation: tl,
-    invalidateOnRefresh: true,
+    onUpdate: (self) => gsap.to(tl, { time: aTiempo(self.progress), duration: 0.45, ease: 'power2.out', overwrite: true }),
     onLeave: () => { hud.classList.add('fuera'); saltar.classList.add('fuera'); },
     onEnterBack: () => { hud.classList.remove('fuera'); saltar.classList.remove('fuera'); },
+  });
+  // Al cambiar el tamaño de la pantalla se recalculan las posiciones que dependen de ella.
+  ScrollTrigger.addEventListener('refresh', () => {
+    const t = tl.time();
+    tl.time(0).invalidate().time(t);
   });
 
   /* ---------- Parallax de cámara con el mouse o el giroscopio ---------- */
@@ -426,8 +457,7 @@ function pelicula() {
   const tPrueba = parseFloat(new URLSearchParams(location.search).get('t'));
   if (!Number.isNaN(tPrueba)) {
     requestAnimationFrame(() => {
-      const st = ScrollTrigger.getAll()[0];
-      const y = st.start + (st.end - st.start) * (tPrueba / FIN);
+      const y = st.start + (st.end - st.start) * aProgreso(tPrueba);
       lenis.scrollTo(y, { immediate: true });
     });
   }
