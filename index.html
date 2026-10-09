@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@500&display=swap">
   <link rel="preload" as="image" href="assets/video/descanso.jpg">
-  <link rel="stylesheet" href="assets/landing.css?v=202610091900">
+  <link rel="stylesheet" href="assets/landing.css?v=202610091945">
   <script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
@@ -88,26 +88,58 @@
       </ul>
     </section>
 
-    <!-- Cómo funciona: tres pasos y el celular atendiendo. -->
+    <!-- Cómo funciona: tres pasos; cada uno muestra su propia escena. -->
     <section class="como" id="como">
       <div class="como-pasos">
         <p class="kicker">Leadbot responde en segundos</p>
         <h2 class="seccion-titulo">Así atiende <em>por ti</em></h2>
-        <ol>
-          <li class="paso activo"><h3>Conoce tu catálogo</h3><p>Precios, colores, tallas y lo que está agotado. Nunca inventa un producto.</p></li>
-          <li class="paso"><h3>Muestra fotos y precios</h3><p>Envía las fotos del color que pidió el cliente y tu catálogo en PDF.</p></li>
-          <li class="paso"><h3>Toma el pedido</h3><p>Pide los datos de envío, arma el resumen y te lo deja listo para despachar.</p></li>
-        </ol>
+        <div class="pasos" role="tablist" aria-label="Cómo funciona Leadbot">
+          <button class="paso" type="button" role="tab" id="paso-0" aria-controls="escena-0" aria-selected="true"><span class="paso-num">01</span><span class="paso-texto"><b>Conoce tu catálogo</b><span>Precios, colores, tallas y lo que está agotado. Nunca inventa un producto.</span></span><i class="paso-barra" aria-hidden="true"></i></button>
+          <button class="paso" type="button" role="tab" id="paso-1" aria-controls="escena-1" aria-selected="false" tabindex="-1"><span class="paso-num">02</span><span class="paso-texto"><b>Muestra fotos y precios</b><span>Envía las fotos del color que pidió el cliente y tu catálogo en PDF.</span></span><i class="paso-barra" aria-hidden="true"></i></button>
+          <button class="paso" type="button" role="tab" id="paso-2" aria-controls="escena-2" aria-selected="false" tabindex="-1"><span class="paso-num">03</span><span class="paso-texto"><b>Toma el pedido</b><span>Pide los datos de envío, arma el resumen y te lo deja listo para despachar.</span></span><i class="paso-barra" aria-hidden="true"></i></button>
+        </div>
       </div>
-      <div class="telefono" role="img" aria-label="Conversación de ejemplo entre un cliente y Leadbot">
-        <div class="telefono-top"><span class="avatar">TJ</span><div><b>Todo Juegos</b><small>en línea</small></div></div>
-        <div class="telefono-chat">
-          <p class="burbuja cliente" data-paso="0">Hola, ¿tienen la silla Nova en negro?</p>
-          <p class="burbuja bot" data-paso="0">¡Hola Laura! Sí, la Nova en negro está disponible 👇</p>
-          <div class="burbuja bot foto" data-paso="1"><svg viewBox="0 0 160 110" aria-hidden="true"><rect width="160" height="110" rx="10" fill="#e8f2f3"/><rect x="62" y="10" width="36" height="50" rx="9" fill="#1a272c"/><rect x="66" y="16" width="28" height="18" rx="5" fill="#2e3f45"/><rect x="50" y="56" width="60" height="12" rx="5" fill="#1a272c"/><rect x="77" y="68" width="6" height="20" fill="#5d7077"/><rect x="58" y="88" width="44" height="5" rx="2.5" fill="#5d7077"/><circle cx="60" cy="96" r="3" fill="#5d7077"/><circle cx="100" cy="96" r="3" fill="#5d7077"/></svg></div>
-          <p class="burbuja bot" data-paso="1">Cuesta <b>$650.000</b> y el envío a Medellín es gratis.</p>
-          <p class="burbuja cliente" data-paso="2">¡Me la llevo!</p>
-          <div class="burbuja bot pedido" data-paso="2"><b>Este es tu pedido 📦</b><span>Silla Nova, negro (x1) · $650.000</span><span>Envío a Medellín · Gratis</span><span class="total">Total · $650.000</span></div>
+
+      <div class="como-escenas">
+        <!-- 1. El catálogo que el bot consulta. -->
+        <div class="escena activa" id="escena-0" role="tabpanel" aria-labelledby="paso-0">
+          <div class="catalogo">
+            <div class="catalogo-cabeza"><b>Catálogo</b><span>Todo Juegos · 48 productos</span></div>
+            <ul class="catalogo-lista">
+              <li class="item"><span class="miniatura"><svg viewBox="0 0 40 40"><rect x="14" y="5" width="12" height="17" rx="3" fill="#1a272c"/><rect x="10" y="21" width="20" height="4" rx="2" fill="#1a272c"/><rect x="19" y="25" width="2" height="7" fill="#5d7077"/><rect x="13" y="32" width="14" height="2" rx="1" fill="#5d7077"/></svg></span><span class="item-nombre"><b>Silla Nova</b><span class="colores"><i style="--c:#1a272c"></i><i style="--c:#9aa6aa"></i><i style="--c:#d6457f"></i></span></span><span class="item-precio">$650.000</span><span class="stock ok">25 en stock</span></li>
+              <li class="item"><span class="miniatura"><svg viewBox="0 0 40 40"><rect x="5" y="14" width="30" height="12" rx="3" fill="#eef3f4" stroke="#9aa6aa"/><g fill="#9aa6aa"><rect x="8" y="17" width="3" height="2.5" rx=".6"/><rect x="12.5" y="17" width="3" height="2.5" rx=".6"/><rect x="17" y="17" width="3" height="2.5" rx=".6"/><rect x="21.5" y="17" width="3" height="2.5" rx=".6"/><rect x="26" y="17" width="3" height="2.5" rx=".6"/><rect x="11" y="21" width="18" height="2.5" rx=".6"/></g></svg></span><span class="item-nombre"><b>Teclado Kraken TKL</b><span class="colores"><i style="--c:#f4f6f7"></i><i style="--c:#1a272c"></i></span></span><span class="item-precio">$289.000</span><span class="stock ok">18 en stock</span></li>
+              <li class="item"><span class="miniatura"><svg viewBox="0 0 40 40"><rect x="13" y="8" width="14" height="24" rx="7" fill="#1a272c"/><rect x="19.4" y="11" width="1.2" height="5" rx=".6" fill="#5ccfca"/></svg></span><span class="item-nombre"><b>Mouse Falcon</b><span class="colores"><i style="--c:#1a272c"></i></span></span><span class="item-precio">$189.000</span><span class="stock agotado">Agotado</span></li>
+              <li class="item"><span class="miniatura"><svg viewBox="0 0 40 40"><rect x="6" y="15" width="28" height="10" rx="2" fill="#2e3f45"/><rect x="6" y="15" width="28" height="3" rx="1.5" fill="url(#g-marca)"/></svg></span><span class="item-nombre"><b>Barra de luz RGB</b><span class="colores"><i style="--c:#5ccfca"></i></span></span><span class="item-precio">$129.000</span><span class="stock ok">7 en stock</span></li>
+            </ul>
+          </div>
+          <p class="burbuja cliente item">¿Tienen el Mouse Falcon?</p>
+          <p class="burbuja bot item">Ahora está agotado 😕 Te aviso apenas llegue. ¿Te muestro el Viper, que es parecido?</p>
+        </div>
+
+        <!-- 2. Fotos, precio y catálogo en PDF dentro del chat. -->
+        <div class="escena" id="escena-1" role="tabpanel" aria-labelledby="paso-1" hidden>
+          <p class="burbuja cliente item">Hola, ¿tienen la silla Nova en negro?</p>
+          <p class="burbuja bot item">¡Hola Laura! Sí, la Nova en negro está disponible 👇</p>
+          <div class="burbuja bot foto item"><svg viewBox="0 0 160 110" aria-hidden="true"><rect width="160" height="110" rx="10" fill="#e8f2f3"/><rect x="62" y="10" width="36" height="50" rx="9" fill="#1a272c"/><rect x="66" y="16" width="28" height="18" rx="5" fill="#2e3f45"/><rect x="50" y="56" width="60" height="12" rx="5" fill="#1a272c"/><rect x="77" y="68" width="6" height="20" fill="#5d7077"/><rect x="58" y="88" width="44" height="5" rx="2.5" fill="#5d7077"/><circle cx="60" cy="96" r="3" fill="#5d7077"/><circle cx="100" cy="96" r="3" fill="#5d7077"/></svg></div>
+          <p class="burbuja bot item">Cuesta <b>$650.000</b> y el envío a Medellín es gratis.</p>
+          <div class="burbuja bot pdf item"><span class="pdf-icono">PDF</span><span><b>Catalogo-Todo-Juegos.pdf</b><small>5 páginas · 120 KB</small></span></div>
+        </div>
+
+        <!-- 3. El pedido listo y el aviso al dueño. -->
+        <div class="escena" id="escena-2" role="tabpanel" aria-labelledby="paso-2" hidden>
+          <div class="aviso-dueno item"><span class="aviso-icono"><svg aria-hidden="true"><use href="#logo"/></svg></span><span><b>Nuevo pedido · $650.000</b><small>Laura G. pagó por WhatsApp · hace 1 min</small></span></div>
+          <div class="pedido item">
+            <div class="pedido-cabeza"><b>Pedido #1042</b><span class="estado-pill">Listo para despachar</span></div>
+            <dl class="pedido-datos">
+              <dt>Cliente</dt><dd>Laura Gómez · 300 555 0142</dd>
+              <dt>Envío</dt><dd>Cra. 43A # 1-50, Medellín</dd>
+            </dl>
+            <ul class="pedido-items">
+              <li><span>Silla Nova, negro × 1</span><span>$650.000</span></li>
+              <li><span>Envío a Medellín</span><span>Gratis</span></li>
+              <li class="total"><span>Total pagado</span><span>$650.000</span></li>
+            </ul>
+          </div>
         </div>
       </div>
     </section>
@@ -207,6 +239,6 @@
     </nav>
   </footer>
 
-  <script src="assets/landing.js?v=202610091900" defer></script>
+  <script src="assets/landing.js?v=202610091945" defer></script>
 </body>
 </html>

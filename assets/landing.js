@@ -198,47 +198,84 @@ if (avisos) {
   if (!reducido) contador.textContent = '0';
 }
 
-/* ---------- Cómo funciona: el celular avanza por los pasos ---------- */
-const telefono = document.querySelector('.telefono');
+/* ---------- Cómo funciona: pestañas con su escena ---------- */
+// Arranca en el paso 1 y avanza solo mientras la sección está en pantalla; si
+// la persona elige un paso, se queda ahí.
+const como = document.querySelector('.como');
 const pasos = [...document.querySelectorAll('.paso')];
+const escenas = [...document.querySelectorAll('.escena')];
+const DURACION = 6500;
 
-const chatTelefono = telefono?.querySelector('.telefono-chat');
-
-function mostrarPaso(n) {
-  pasos.forEach((p, i) => p.classList.toggle('activo', i === n));
-}
-
-function verMensaje(m) {
-  if (m.classList.contains('ver')) return;
-  deslizar(chatTelefono, () => {
-    m.classList.add('ver');
-    if (!reducido) m.classList.add('entra');
+function elegirPaso(n, { foco = false } = {}) {
+  pasos.forEach((p, i) => {
+    const activo = i === n;
+    p.setAttribute('aria-selected', String(activo));
+    p.tabIndex = activo ? 0 : -1;
+    if (activo && foco) p.focus();
+  });
+  escenas.forEach((e, i) => {
+    if (i === n) {
+      e.hidden = false;
+      e.classList.remove('activa');
+      void e.offsetWidth; // reinicia la entrada escalonada
+      e.classList.add('activa');
+    } else {
+      e.classList.remove('activa');
+      e.hidden = true;
+    }
   });
 }
 
-async function recorrerPasos() {
-  for (let n = 0; n < pasos.length; n++) {
-    mostrarPaso(n);
-    for (const m of telefono.querySelectorAll(`[data-paso="${n}"]`)) {
-      await espera(variar(m.classList.contains('cliente') ? 700 : 1300));
-      verMensaje(m);
+if (como) {
+  let actual = 0;
+  let temporizador = null;
+  let manual = reducido;
+  let enPantalla = false;
+  como.style.setProperty('--duracion', `${DURACION}ms`);
+
+  const programar = () => {
+    clearTimeout(temporizador);
+    como.classList.toggle('auto', !manual);
+    if (manual || !enPantalla) return;
+    temporizador = setTimeout(() => {
+      actual = (actual + 1) % pasos.length;
+      elegirPaso(actual);
+      programar();
+    }, DURACION);
+  };
+
+  elegirPaso(0);
+
+  pasos.forEach((p, i) => {
+    p.addEventListener('click', () => {
+      manual = true;
+      actual = i;
+      elegirPaso(i);
+      programar();
+    });
+    // Flechas para moverse entre pestañas.
+    p.addEventListener('keydown', (e) => {
+      const dir = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 0;
+      if (!dir) return;
+      e.preventDefault();
+      manual = true;
+      actual = (i + dir + pasos.length) % pasos.length;
+      elegirPaso(actual, { foco: true });
+      programar();
+    });
+  });
+
+  new IntersectionObserver(([e]) => {
+    const entra = e.isIntersecting && !enPantalla;
+    enPantalla = e.isIntersecting;
+    como.classList.toggle('en-pausa', !enPantalla);
+    // Al llegar a la sección por primera vez (o al volver), empieza desde el paso 1.
+    if (entra && !manual) {
+      actual = 0;
+      elegirPaso(0);
     }
-    await espera(variar(1800));
-  }
-}
-
-function mostrarHasta(n) {
-  mostrarPaso(n);
-  telefono.querySelectorAll('[data-paso]').forEach((m) => { if (Number(m.dataset.paso) <= n) verMensaje(m); });
-}
-
-if (telefono) {
-  if (reducido) {
-    mostrarHasta(pasos.length - 1);
-  } else {
-    observarUnaVez(telefono, recorrerPasos, { threshold: 0.4 });
-  }
-  pasos.forEach((p, i) => p.addEventListener('click', () => mostrarHasta(i)));
+    programar();
+  }, { threshold: 0.45 }).observe(como);
 }
 
 /* ---------- Planes: mensual o anual ---------- */
