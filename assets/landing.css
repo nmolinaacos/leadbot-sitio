@@ -196,17 +196,20 @@ em { font-style: normal; color: var(--senal); }
 
 /* 1 y 2 · El mensaje */
 .mensaje {
-  left: 50%; top: 50%; width: min(1040px, 88vw); transform: translate(-50%, -50%);
-  font-size: clamp(30px, 5.2vw, 76px); line-height: 1.08; letter-spacing: -0.035em; font-weight: 400;
+  left: 50%; top: 50%; width: 88vw; transform: translate(-50%, -50%);
+  font-size: clamp(30px, 6.3vw, 118px); line-height: 1.08; letter-spacing: -0.035em; font-weight: 400;
   transform-style: preserve-3d; z-index: 4; opacity: 0;
 }
-/* La burbuja de la notificación acompaña al mensaje mientras crece y luego se disuelve. */
-.mensaje::before {
-  content: ""; position: absolute; inset: -0.35em -0.45em; z-index: -1; border-radius: 0.55em;
-  background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.2), 0 0.6em 1.4em -0.6em rgba(0, 0, 0, 0.7);
-  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
-  opacity: var(--burbuja, 0);
+/* La burbuja de la notificación: viaja con el mensaje mientras crece y se
+   disuelve cuando llena la pantalla, justo antes de que se separen las palabras.
+   Es un elemento aparte porque dentro del mensaje (en 3D) no se pinta. */
+.burbuja-mensaje {
+  left: 50%; top: 50%; z-index: 3; opacity: 0;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.07));
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.22), 0 40px 80px -30px rgba(0, 0, 0, 0.8);
+  -webkit-backdrop-filter: blur(18px) saturate(140%); backdrop-filter: blur(18px) saturate(140%);
+  will-change: transform, opacity;
 }
 .tk { display: inline-block; position: relative; will-change: transform, filter, opacity; }
 .tk.clave::after { /* etiqueta que aparece cuando el haz la toca */

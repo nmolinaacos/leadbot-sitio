@@ -177,15 +177,27 @@ function pelicula() {
     const r = noti.getBoundingClientRect();
     return { x: r.left + r.width / 2 - innerWidth / 2, y: r.top + r.height / 2 - innerHeight / 2 };
   };
+  const burbuja = $('.burbuja-mensaje');
+  // La burbuja envuelve al mensaje con el mismo margen que tiene la notificación.
+  const ajustarBurbuja = () => {
+    const pad = tamMensaje() * 0.45;
+    gsap.set(burbuja, {
+      width: mensaje.offsetWidth + pad * 2, height: mensaje.offsetHeight + pad * 1.6,
+      borderRadius: tamMensaje() * 0.55, xPercent: -50, yPercent: -50,
+    });
+  };
+  ajustarBurbuja();
+  ScrollTrigger.addEventListener('refreshInit', ajustarBurbuja);
   tl.to('.titular-intro', { y: -60, opacity: 0, duration: 4, ease: 'power1.in' }, 4)
     // Relevo: la notificación se despega y se funde con el mensaje grande, que
     // arranca del mismo tamaño y lugar.
     .to(noti, { scale: 1.25, y: () => -innerHeight * 0.03, opacity: 0, filter: 'blur(3px)', duration: 1.6, ease: 'power2.in' }, 6)
-    .fromTo(mensaje,
-      { x: () => desdeNoti().x, y: () => desdeNoti().y, scale: () => noti.offsetWidth / (mensaje.offsetWidth + tamMensaje() * 0.9), '--burbuja': 1 },
+    .fromTo([mensaje, burbuja],
+      { x: () => desdeNoti().x, y: () => desdeNoti().y, scale: () => noti.offsetWidth / burbuja.offsetWidth },
       { x: 0, y: 0, scale: 1, duration: 9, ease: 'power3.inOut', immediateRender: false }, 6)
-    .fromTo(mensaje, { opacity: 0 }, { opacity: 1, duration: 1.4, ease: 'none', immediateRender: false }, 6.2)
-    .to(mensaje, { '--burbuja': 0, duration: 3, ease: 'power1.in' }, 12.5)
+    .fromTo([mensaje, burbuja], { opacity: 0 }, { opacity: 1, duration: 1.4, ease: 'none', immediateRender: false }, 6.2)
+    // Ya llenó la pantalla: la burbuja se disuelve y quedan las palabras.
+    .to(burbuja, { opacity: 0, scale: 1.04, filter: 'blur(6px)', duration: 1.6, ease: 'power2.in' }, 15.2)
     .to(telefono, { scale: 0.9, filter: 'blur(10px) brightness(0.55)', opacity: 0, duration: 8, ease: 'power2.inOut' }, 6.5);
 
   // 2 · Las palabras se separan en profundidad; el haz las lee.
@@ -195,7 +207,7 @@ function pelicula() {
       x: nubeX(i, el), y: nubeY(i, el), z: NUBE[i][2],
       filter: relleno ? 'blur(5px)' : 'blur(0px)', opacity: relleno ? 0.32 : 1,
       duration: 4.5, ease: 'power3.inOut',
-    }, 16 + i * 0.18);
+    }, 16.6 + i * 0.18);
   });
   tl.to(haz, { opacity: 1, duration: 1 }, 18.5)
     .to('.medidor', { opacity: 1, duration: 1.2 }, 20)
