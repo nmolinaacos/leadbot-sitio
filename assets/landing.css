@@ -238,7 +238,17 @@ em { font-style: normal; color: var(--senal); }
 
 /* 3 · Riel lateral */
 .riel-caja { inset: 0; opacity: 0; z-index: 4; }
-.riel-linea { position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: linear-gradient(90deg, transparent, rgba(73, 227, 211, 0.55) 15%, rgba(73, 227, 211, 0.55) 85%, transparent); box-shadow: 0 0 12px rgba(73, 227, 211, 0.5); }
+/* El riel son tramos entre estaciones: cada uno sale del borde de una tarjeta
+   y llega al borde de la siguiente, sin pasar por encima del contenido. */
+.riel-linea { display: none; }
+.estacion { position: relative; }
+.estacion::before, .estacion::after {
+  content: ""; position: absolute; top: 50%; height: 1px; pointer-events: none;
+  width: calc((100vw - var(--ancho)) / 2 - 2vw);
+  background: rgba(73, 227, 211, 0.55); box-shadow: 0 0 10px rgba(73, 227, 211, 0.5);
+}
+.estacion::before { right: 100%; background: linear-gradient(90deg, rgba(73, 227, 211, 0.1), rgba(73, 227, 211, 0.6)); }
+.estacion::after { left: 100%; background: linear-gradient(90deg, rgba(73, 227, 211, 0.6), rgba(73, 227, 211, 0.1)); }
 .riel { position: absolute; top: 0; bottom: 0; left: 0; display: flex; align-items: center; gap: 0; will-change: transform; }
 .estacion {
   --ancho: min(520px, 84vw);
@@ -304,7 +314,7 @@ em { font-style: normal; color: var(--senal); }
 /* 4 · Decisión */
 .decision { inset: 0; opacity: 0; z-index: 4; }
 .ramas { position: absolute; left: 8vw; top: 50%; width: 52vw; height: 46vh; transform: translateY(-50%); overflow: visible; }
-.ramas path { fill: none; stroke-width: 1.6; stroke-linecap: round; }
+.ramas path { fill: none; stroke-width: 1.6; stroke-linecap: butt; }
 .ramas .tronco { stroke: var(--senal); }
 .ramas .rama-l { stroke: rgba(255, 255, 255, 0.25); }
 .ramas .r-resp { stroke: var(--senal); }

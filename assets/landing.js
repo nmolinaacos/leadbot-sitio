@@ -232,16 +232,17 @@ function pelicula() {
     .to(riel, { x: () => xEstacion(3) - innerWidth * 0.6, duration: 3, ease: 'power2.in' }, 66)
     .to('.riel-caja', { opacity: 0, duration: 2 }, 67.5);
 
-  // 4 · La decisión.
-  tl.to('.decision', { opacity: 1, duration: 1.5 }, 69)
-    .to('.ramas .tronco', { strokeDashoffset: 0, duration: 1.2, ease: 'none' }, 70)
-    .to('.ramas .rama-l', { strokeDashoffset: 0, duration: 1.4, ease: 'power1.out', stagger: 0.15 }, 71)
-    .fromTo('.opcion', { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 1.2, stagger: 0.2 }, 71.5)
-    .fromTo('.lateral-decidir', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 1.2 }, 72)
-    .to(['.o-dato', '.o-hum'], { opacity: 0.3, filter: 'blur(4px)', scale: 0.94, x: -20, duration: 2, ease: 'power2.out' }, 74.5)
-    .to(['.r-dato', '.r-hum'], { opacity: 0.2, duration: 2 }, 74.5)
-    .to('.o-resp', { scale: 1.05, duration: 2, ease: 'power2.out' }, 74.5)
-    .to('.decision', { opacity: 0, duration: 1.5 }, 77.5);
+  // 4 · La decisión: un solo trazo avanza y se divide en tres caminos a la vez,
+  // cada uno llega a su opción; luego se apagan los que no se eligen.
+  tl.to('.decision', { opacity: 1, duration: 1 }, 68.8)
+    .to('.ramas .tronco', { strokeDashoffset: 0, duration: 2.4, ease: 'none' }, 69.4)
+    .to('.ramas .rama-l', { strokeDashoffset: 0, duration: 2.4, ease: 'power1.out' }, 71.8)
+    .fromTo('.opcion', { opacity: 0, x: 24 }, { opacity: 1, x: 0, duration: 1, ease: 'power2.out' }, 73.6)
+    .fromTo('.lateral-decidir', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 1.2 }, 70)
+    .to(['.o-dato', '.o-hum'], { opacity: 0.3, filter: 'blur(4px)', scale: 0.94, x: -20, duration: 1.8, ease: 'power2.out' }, 75.4)
+    .to(['.r-dato', '.r-hum'], { opacity: 0.2, duration: 1.8 }, 75.4)
+    .to('.o-resp', { scale: 1.05, duration: 1.8, ease: 'power2.out' }, 75.4)
+    .to('.decision', { opacity: 0, duration: 1 }, 77.6);
 
   // 5 · Los datos vuelan a la burbuja mientras se escribe la respuesta.
   tl.to('.redaccion', { opacity: 1, duration: 1.2 }, 78)
@@ -356,7 +357,7 @@ function pelicula() {
 
     // 3d · Las reglas se marcan una a una.
     reglas.forEach((li, i) => li.style.setProperty('--ok', suave(tramo(t, 59 + i * 1.6, 60 + i * 1.6)).toFixed(3)));
-    oResp.classList.toggle('elegida', t >= 75);
+    oResp.classList.toggle('elegida', t >= 75.6);
 
     // 5 · La respuesta se escribe con el scroll (y se borra si regresas).
     escribir(Math.round(largoRespuesta * tramo(t, 80, 87.2)));
