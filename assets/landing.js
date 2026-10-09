@@ -111,27 +111,57 @@ async function cuandoVisible() {
   while (!heroVisible || oculta()) await espera(400);
 }
 
+// Movimiento natural: los tiempos dependen del largo del mensaje y varían un
+// poco cada vez, como cuando alguien escribe de verdad.
+const variar = (ms) => ms * (0.85 + Math.random() * 0.3);
+const SUAVE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+
+// Cambia el contenido de un hilo y desliza lo que ya estaba a su nueva
+// posición (FLIP), en vez de que salte de golpe.
+// `extra`: otros elementos que se mueven con el hilo (la cabecera del chat).
+function deslizar(contenedor, cambio, extra = []) {
+  const antes = new Map([...contenedor.children, ...extra].map((el) => [el, el.getBoundingClientRect().top]));
+  cambio();
+  for (const el of [...contenedor.children, ...extra]) {
+    const arriba = antes.get(el);
+    if (arriba === undefined) continue;
+    const dy = arriba - el.getBoundingClientRect().top;
+    if (Math.abs(dy) < 0.5) continue;
+    el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0)' }], { duration: 700, easing: SUAVE });
+  }
+}
+
 async function reproducirChat() {
+  const cabeza = chat.querySelector('.chat-cabeza');
   for (let i = 0; ; i = (i + 1) % CONVERSACIONES.length) {
     const c = CONVERSACIONES[i];
-    chat.classList.remove('sale');
     ponerCabeza(c);
     hilo.replaceChildren();
-    await espera(500);
+    chat.classList.remove('sale');
+    await espera(700);
     for (const [tipo, texto] of c.mensajes) {
       await cuandoVisible();
+      const nueva = burbuja(tipo, texto);
       if (tipo === 'bot') {
         const dots = escribiendo();
-        hilo.append(dots);
-        await espera(1100);
-        dots.remove();
+        deslizar(hilo, () => hilo.append(dots), [cabeza]);
+        await espera(variar(Math.min(2400, 700 + texto.length * 18)));
+        // Los puntos se convierten en el mensaje: crece en su lugar.
+        deslizar(hilo, () => dots.replaceWith(nueva), [cabeza]);
+        await espera(variar(Math.min(2600, 1300 + texto.length * 12)));
+      } else if (tipo === 'cliente') {
+        deslizar(hilo, () => hilo.append(nueva), [cabeza]);
+        // El bot "lee" antes de empezar a escribir.
+        await espera(variar(Math.min(1600, 600 + texto.length * 10)));
+      } else {
+        await espera(400);
+        deslizar(hilo, () => hilo.append(nueva), [cabeza]);
+        await espera(1200);
       }
-      hilo.append(burbuja(tipo, texto));
-      await espera(tipo === 'cliente' ? 1300 : 1800);
     }
-    await espera(2600);
+    await espera(variar(2600));
     chat.classList.add('sale');
-    await espera(600);
+    await espera(800);
   }
 }
 
@@ -172,31 +202,43 @@ if (avisos) {
 const telefono = document.querySelector('.telefono');
 const pasos = [...document.querySelectorAll('.paso')];
 
+const chatTelefono = telefono?.querySelector('.telefono-chat');
+
 function mostrarPaso(n) {
   pasos.forEach((p, i) => p.classList.toggle('activo', i === n));
-  telefono.querySelectorAll('[data-paso]').forEach((m) => {
-    const visible = Number(m.dataset.paso) <= n;
-    if (visible && !m.classList.contains('ver')) {
-      m.classList.add('ver');
-      if (!reducido) m.classList.add('entra');
-    }
+}
+
+function verMensaje(m) {
+  if (m.classList.contains('ver')) return;
+  deslizar(chatTelefono, () => {
+    m.classList.add('ver');
+    if (!reducido) m.classList.add('entra');
   });
 }
 
 async function recorrerPasos() {
   for (let n = 0; n < pasos.length; n++) {
     mostrarPaso(n);
-    await espera(2400);
+    for (const m of telefono.querySelectorAll(`[data-paso="${n}"]`)) {
+      await espera(variar(m.classList.contains('cliente') ? 700 : 1300));
+      verMensaje(m);
+    }
+    await espera(variar(1800));
   }
+}
+
+function mostrarHasta(n) {
+  mostrarPaso(n);
+  telefono.querySelectorAll('[data-paso]').forEach((m) => { if (Number(m.dataset.paso) <= n) verMensaje(m); });
 }
 
 if (telefono) {
   if (reducido) {
-    mostrarPaso(pasos.length - 1);
+    mostrarHasta(pasos.length - 1);
   } else {
     observarUnaVez(telefono, recorrerPasos, { threshold: 0.4 });
   }
-  pasos.forEach((p, i) => p.addEventListener('click', () => mostrarPaso(Math.max(i, 0))));
+  pasos.forEach((p, i) => p.addEventListener('click', () => mostrarHasta(i)));
 }
 
 /* ---------- Planes: mensual o anual ---------- */

@@ -215,7 +215,7 @@ p { margin: 0; }
   backdrop-filter: blur(20px) saturate(170%);
   border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.85), 0 10px 26px -16px rgba(10, 50, 60, 0.45);
-  transition: opacity 400ms var(--ease);
+  transition: opacity 700ms var(--ease);
 }
 .chat-cabeza b { font-weight: 600; }
 .chat-cabeza small { margin-left: auto; color: var(--ink-2); font-size: 12px; }
@@ -276,9 +276,17 @@ p { margin: 0; }
 .escribiendo span:nth-child(3) { animation-delay: 0.3s; }
 @keyframes punto { 0%, 100% { opacity: 0.25; transform: none; } 40% { opacity: 0.9; transform: translateY(-2px); } }
 
-.js .burbuja.entra { animation: entra 520ms var(--ease) both; }
-@keyframes entra { from { opacity: 0; transform: translateY(14px) scale(0.98); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
-.hero-chat.sale .chat-hilo, .hero-chat.sale .chat-cabeza { opacity: 0; transition: opacity 500ms var(--ease); }
+.js .burbuja.entra { animation: entra 750ms cubic-bezier(0.16, 1, 0.3, 1) both; transform-origin: bottom left; }
+.js .burbuja.bot.entra { transform-origin: bottom right; }
+.js .burbuja.estado.entra { transform-origin: bottom center; }
+@keyframes entra {
+  from { opacity: 0; transform: translateY(10px) scale(0.94); filter: blur(6px); }
+  60% { filter: blur(0); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+.chat-hilo { transition: opacity 700ms var(--ease), transform 700ms var(--ease); }
+.hero-chat.sale .chat-hilo { opacity: 0; transform: translateY(-12px); }
+.hero-chat.sale .chat-cabeza { opacity: 0; }
 
 .pausa {
   position: absolute;
