@@ -140,8 +140,8 @@ function pelicula() {
   /* ---------- Posiciones de las palabras flotando (fracciones de la pantalla) ---------- */
   // [x, y, profundidad]; las de relleno se van al fondo.
   const NUBE = [
-    [0.06, 0.2, -420], [0.3, 0.13, -520], [0.08, 0.36, 90], [0.52, 0.28, 10],
-    [0.66, 0.17, -460], [0.2, 0.56, 50], [0.6, 0.48, -30], [0.34, 0.7, 70],
+    [0.06, 0.15, -420], [0.3, 0.1, -520], [0.07, 0.29, 90], [0.5, 0.22, 10],
+    [0.68, 0.12, -460], [0.3, 0.46, 50], [0.58, 0.38, -30], [0.32, 0.6, 70],
   ];
   const nubeX = (i, el) => () => {
     const W = innerWidth;
@@ -172,39 +172,40 @@ function pelicula() {
   // 0 → 1 · El titular se va; la notificación se desprende del celular y crece
   // hasta llenar la pantalla. El celular se queda atrás y se apaga.
   const noti = $('.noti');
-  const tamMensaje = () => parseFloat(getComputedStyle(mensaje).fontSize);
   const desdeNoti = () => {
     const r = noti.getBoundingClientRect();
     return { x: r.left + r.width / 2 - innerWidth / 2, y: r.top + r.height / 2 - innerHeight / 2 };
   };
-  const burbuja = $('.burbuja-mensaje');
-  // La burbuja envuelve al mensaje con el mismo margen que tiene la notificación.
-  const ajustarBurbuja = () => {
-    const pad = tamMensaje() * 0.45;
-    gsap.set(burbuja, {
-      width: mensaje.offsetWidth + pad * 2, height: mensaje.offsetHeight + pad * 1.6,
-      borderRadius: tamMensaje() * 0.55, xPercent: -50, yPercent: -50,
-    });
+  // El mensaje copia las proporciones de la notificación (ancho en em) y toma
+  // el tamaño de letra que lo hace llenar la pantalla.
+  const ajustarMensaje = () => {
+    const fN = parseFloat(getComputedStyle(noti).fontSize);
+    const anchoEm = noti.offsetWidth / fN;
+    const altoEm = noti.offsetHeight / fN;
+    const f = Math.min((innerWidth * 0.92) / anchoEm, (innerHeight * 0.74) / altoEm);
+    mensaje.style.width = `${anchoEm}em`;
+    mensaje.style.fontSize = `${f}px`;
   };
-  ajustarBurbuja();
-  ScrollTrigger.addEventListener('refreshInit', ajustarBurbuja);
+  ajustarMensaje();
+  ScrollTrigger.addEventListener('refreshInit', ajustarMensaje);
   tl.to('.titular-intro', { y: -60, opacity: 0, duration: 4, ease: 'power1.in' }, 4)
-    // Relevo: la notificación se despega y se funde con el mensaje grande, que
-    // arranca del mismo tamaño y lugar.
-    .to(noti, { scale: 1.25, y: () => -innerHeight * 0.03, opacity: 0, filter: 'blur(3px)', duration: 1.6, ease: 'power2.in' }, 6)
-    .fromTo([mensaje, burbuja],
-      { x: () => desdeNoti().x, y: () => desdeNoti().y, scale: () => noti.offsetWidth / burbuja.offsetWidth },
+    // Relevo: la notificación se cambia por su copia grande, en el mismo lugar
+    // y del mismo tamaño, y esa copia crece hasta llenar la pantalla.
+    .set(noti, { opacity: 0 }, 6)
+    .set(mensaje, { opacity: 1 }, 6)
+    .fromTo(mensaje,
+      { x: () => desdeNoti().x, y: () => desdeNoti().y, scale: () => noti.offsetWidth / mensaje.offsetWidth },
       { x: 0, y: 0, scale: 1, duration: 9, ease: 'power3.inOut', immediateRender: false }, 6)
-    .fromTo([mensaje, burbuja], { opacity: 0 }, { opacity: 1, duration: 1.4, ease: 'none', immediateRender: false }, 6.2)
-    // Ya llenó la pantalla: la burbuja se disuelve y quedan las palabras.
-    .to(burbuja, { opacity: 0, scale: 1.04, filter: 'blur(6px)', duration: 1.6, ease: 'power2.in' }, 15.2)
+    // Ya llenó la pantalla: se apaga el encabezado, la burbuja se disuelve y quedan las palabras.
+    .to('.mensaje-cab', { opacity: 0, y: -12, duration: 1.2, ease: 'power1.in' }, 15)
+    .to('.mensaje-fondo', { opacity: 0, scale: 1.03, filter: 'blur(6px)', duration: 1.6, ease: 'power2.in' }, 15.2)
     .to(telefono, { scale: 0.9, filter: 'blur(10px) brightness(0.55)', opacity: 0, duration: 8, ease: 'power2.inOut' }, 6.5);
 
   // 2 · Las palabras se separan en profundidad; el haz las lee.
   tokens.forEach((el, i) => {
     const relleno = rellenos.includes(el);
     tl.to(el, {
-      x: nubeX(i, el), y: nubeY(i, el), z: NUBE[i][2],
+      x: nubeX(i, el), y: nubeY(i, el), z: NUBE[i][2], scale: 0.86,
       filter: relleno ? 'blur(5px)' : 'blur(0px)', opacity: relleno ? 0.32 : 1,
       duration: 4.5, ease: 'power3.inOut',
     }, 16.6 + i * 0.18);

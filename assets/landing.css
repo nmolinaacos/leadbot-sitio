@@ -194,30 +194,31 @@ em { font-style: normal; color: var(--senal); }
 .tb.pedido .total { color: var(--texto); font-weight: 500; margin-top: 2px; }
 .tb.pedido .sello { justify-self: start; margin-top: 4px; padding: 2px 7px; border-radius: 99px; font: 500 9.5px var(--mono); color: #04110f; background: var(--senal); }
 
-/* 1 y 2 · El mensaje */
+/* 1 y 2 · El mensaje: es la misma notificación, en grande. Sus medidas están
+   en em con las proporciones de .noti (y el texto tiene el mismo marcado), así
+   que al despegarse del celular se ve idéntica. JS le da el ancho en em y el
+   tamaño de letra para llenar la pantalla. */
 .mensaje {
-  left: 50%; top: 50%; width: 88vw; transform: translate(-50%, -50%);
-  font-size: clamp(30px, 6.3vw, 118px); line-height: 1.08; letter-spacing: -0.035em; font-weight: 400;
+  left: 50%; top: 50%; width: 18em; font-size: 60px;
+  padding: 0.88em 0.96em; border-radius: 1.44em; line-height: 1.4; color: var(--texto);
   transform-style: preserve-3d; z-index: 4; opacity: 0;
 }
-/* La burbuja de la notificación: viaja con el mensaje mientras crece y se
-   disuelve cuando llena la pantalla, justo antes de que se separen las palabras.
-   Es un elemento aparte porque dentro del mensaje (en 3D) no se pinta. */
-.burbuja-mensaje {
-  left: 50%; top: 50%; z-index: 3; opacity: 0;
-  background: linear-gradient(150deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.07));
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow: inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.22), 0 40px 80px -30px rgba(0, 0, 0, 0.8);
-  -webkit-backdrop-filter: blur(18px) saturate(140%); backdrop-filter: blur(18px) saturate(140%);
-  will-change: transform, opacity;
+.mensaje-fondo {
+  position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.1));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.2), 0 1em 2em -1em rgba(0, 0, 0, 0.7);
 }
+.mensaje-cab { position: relative; display: block; font: 500 0.8em/1.2 var(--mono); letter-spacing: 0.02em; color: var(--tenue); margin-bottom: 0.32em; }
+.mensaje-texto { position: relative; margin: 0; }
 .tk { display: inline-block; position: relative; will-change: transform, filter, opacity; }
-.tk.clave::after { /* etiqueta que aparece cuando el haz la toca */
+.noti .tk { will-change: auto; }
+.mensaje .tk.clave::after { /* etiqueta que aparece cuando el haz la toca */
   content: attr(data-etq); position: absolute; left: 0; top: 100%; margin-top: 0.18em;
   font: 500 clamp(9px, 0.9vw, 12px)/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--senal);
   white-space: nowrap; opacity: var(--etq, 0); transform: translateY(calc((1 - var(--etq, 0)) * 6px));
 }
-.tk.clave { border-radius: 0.12em; padding: 0 0.08em; background: rgba(73, 227, 211, calc(var(--luz, 0) * 0.08)); box-shadow: 0 0 calc(var(--luz, 0) * 40px) calc(var(--luz, 0) * -8px) rgba(73, 227, 211, 0.6), inset 0 0 0 1px rgba(73, 227, 211, calc(var(--luz, 0) * 0.45)); }
+.mensaje .tk.clave { border-radius: 0.12em; background: rgba(73, 227, 211, calc(var(--luz, 0) * 0.08)); box-shadow: 0 0 0 0.08em rgba(73, 227, 211, calc(var(--luz, 0) * 0.08)), 0 0 calc(var(--luz, 0) * 40px) calc(var(--luz, 0) * -8px) rgba(73, 227, 211, 0.6), 0 0 0 calc(0.08em + 1px) rgba(73, 227, 211, calc(var(--luz, 0) * 0.45)); }
 .haz {
   left: 0; top: -10%; bottom: -10%; width: 2px; z-index: 6; opacity: 0;
   background: linear-gradient(180deg, transparent, var(--senal) 25%, #c9fff8 50%, var(--senal) 75%, transparent);
@@ -419,8 +420,10 @@ main > section:not(.historia) > * { width: 100%; max-width: var(--max); margin-i
   .tel-hora { font-size: 34px; }
   .noti { font-size: 10px; padding: 8px; border-radius: 12px; }
   .noti b { font-size: 8.5px; }
+  /* Mismas proporciones que la notificación en celular. */
+  .mensaje { padding: 0.8em; border-radius: 1.2em; }
+  .mensaje-cab { font-size: 0.85em; margin-bottom: 0.4em; }
   .tb { font-size: 9.5px; padding: 6px 7px; }
-  .mensaje { font-size: clamp(28px, 8.4vw, 40px); }
   .medidor { left: var(--gutter); right: var(--gutter); width: auto; bottom: 74px; }
   .regla-ms { bottom: 74px; }
   .noche-texto { bottom: 70px; }
