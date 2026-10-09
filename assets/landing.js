@@ -163,14 +163,30 @@ function pelicula() {
   const movil = () => innerWidth <= 760;
   const tl = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut' } });
   gsap.set(mensaje, { xPercent: -50, yPercent: -50, x: 0, y: 0, scale: 0.3 });
+  // Filtro con las mismas funciones de principio a fin (si no, GSAP arranca el brillo en 0).
+  gsap.set(telefono, { filter: 'blur(0px) brightness(1)' });
   gsap.set(['.respuesta', '.opcion'], { yPercent: -50, y: 0 });
   gsap.set('.final-3s', { yPercent: movil() ? 0 : -50, y: 0 });
   gsap.set($$('.ramas path'), { attr: { pathLength: 1 }, strokeDasharray: 1, strokeDashoffset: 1 });
 
-  // 0 → 1 · El titular se va; la cámara atraviesa la pantalla del celular.
+  // 0 → 1 · El titular se va; la notificación se desprende del celular y crece
+  // hasta llenar la pantalla. El celular se queda atrás y se apaga.
+  const noti = $('.noti');
+  const tamMensaje = () => parseFloat(getComputedStyle(mensaje).fontSize);
+  const desdeNoti = () => {
+    const r = noti.getBoundingClientRect();
+    return { x: r.left + r.width / 2 - innerWidth / 2, y: r.top + r.height / 2 - innerHeight / 2 };
+  };
   tl.to('.titular-intro', { y: -60, opacity: 0, duration: 4, ease: 'power1.in' }, 4)
-    .to(telefono, { scale: 7, filter: 'blur(16px)', opacity: 0, duration: 9, ease: 'power3.in' }, 6)
-    .to(mensaje, { opacity: 1, scale: 1, duration: 6.5, ease: 'power3.out' }, 9);
+    // Relevo: la notificación se despega y se funde con el mensaje grande, que
+    // arranca del mismo tamaño y lugar.
+    .to(noti, { scale: 1.25, y: () => -innerHeight * 0.03, opacity: 0, filter: 'blur(3px)', duration: 1.6, ease: 'power2.in' }, 6)
+    .fromTo(mensaje,
+      { x: () => desdeNoti().x, y: () => desdeNoti().y, scale: () => noti.offsetWidth / (mensaje.offsetWidth + tamMensaje() * 0.9), '--burbuja': 1 },
+      { x: 0, y: 0, scale: 1, duration: 9, ease: 'power3.inOut', immediateRender: false }, 6)
+    .fromTo(mensaje, { opacity: 0 }, { opacity: 1, duration: 1.4, ease: 'none', immediateRender: false }, 6.2)
+    .to(mensaje, { '--burbuja': 0, duration: 3, ease: 'power1.in' }, 12.5)
+    .to(telefono, { scale: 0.9, filter: 'blur(10px) brightness(0.55)', opacity: 0, duration: 8, ease: 'power2.inOut' }, 6.5);
 
   // 2 · Las palabras se separan en profundidad; el haz las lee.
   tokens.forEach((el, i) => {
@@ -228,9 +244,9 @@ function pelicula() {
   // 6 · Zoom hacia atrás: volvemos al celular.
   tl.to('.respuesta', { scale: 0.22, x: () => -innerWidth * 0.18, opacity: 0, filter: 'blur(6px)', duration: 3, ease: 'power3.in' }, 88)
     .to('.redaccion', { opacity: 0, duration: 1 }, 90)
-    .set(['.noti', '.tel-hora'], { opacity: 0 }, 88)
-    .fromTo(telefono, { scale: 3.4, filter: 'blur(14px)', opacity: 0 },
-      { scale: 1, filter: 'blur(0px)', opacity: 1, duration: 4, ease: 'power3.out', immediateRender: false }, 88.5)
+    .set('.tel-hora', { opacity: 0 }, 88)
+    .fromTo(telefono, { scale: 3.4, filter: 'blur(14px) brightness(1)', opacity: 0 },
+      { scale: 1, filter: 'blur(0px) brightness(1)', opacity: 1, duration: 4, ease: 'power3.out', immediateRender: false }, 88.5)
     .to('.tb.bot', { opacity: 1, duration: 0.8 }, 91)
     .fromTo('.tb.cli', { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.8, immediateRender: false }, 92.5)
     .fromTo('.tb.pedido', { opacity: 0, y: 14, scale: 0.96 }, { opacity: 1, y: 0, scale: 1, duration: 1, ease: 'back.out(1.6)', immediateRender: false }, 94)
