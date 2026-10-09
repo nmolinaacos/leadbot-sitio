@@ -264,8 +264,9 @@ function pelicula() {
     .set('.tel-hora', { opacity: 0 }, 88)
     .fromTo(telefono, { scale: 3.4, filter: 'blur(14px) brightness(1)', opacity: 0 },
       { scale: 1, filter: 'blur(0px) brightness(1)', opacity: 1, duration: 4, ease: 'power3.out', immediateRender: false }, 88.5)
+    .set('.tb.inicial', { opacity: 1 }, 88.5)
     .to('.tb.bot', { opacity: 1, duration: 0.8 }, 91)
-    .fromTo('.tb.cli', { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.8, immediateRender: false }, 92.5)
+    .fromTo('.tb.cli:not(.inicial)', { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.8, immediateRender: false }, 92.5)
     .fromTo('.tb.pedido', { opacity: 0, y: 14, scale: 0.96 }, { opacity: 1, y: 0, scale: 1, duration: 1, ease: 'back.out(1.6)', immediateRender: false }, 94)
     .fromTo('.final-3s', { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 1.4, immediateRender: false }, 93.5);
 
