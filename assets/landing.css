@@ -319,6 +319,8 @@ em { font-style: normal; color: var(--senal); }
 .ramas .rama-l { stroke: rgba(255, 255, 255, 0.25); }
 .ramas .r-resp { stroke: var(--senal); }
 .ramas .r-hum { stroke: rgba(255, 178, 92, 0.5); }
+/* Punta de luz que va dibujando la línea, como una barra de carga. */
+.ramas .punta { fill: #d9fffa; opacity: 0; filter: drop-shadow(0 0 4px var(--senal)) drop-shadow(0 0 10px var(--senal)); }
 .opcion { left: calc(8vw + 52vw * 0.62); width: min(320px, 70vw); padding: 14px 16px; border-radius: 16px; display: grid; gap: 3px; transform: translateY(-50%); }
 .opcion b { font-weight: 500; font-size: 16px; }
 .opcion small { font: 400 11px var(--mono); color: var(--tenue); letter-spacing: 0.04em; }

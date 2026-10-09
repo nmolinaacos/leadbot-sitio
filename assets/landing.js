@@ -80,6 +80,9 @@ function pelicula() {
   const barrido = $('#barrido-blur');
   const respuestaTexto = $('.respuesta-texto');
   const oResp = $('.o-resp');
+  const tronco = $('.ramas .tronco');
+  const ramasL = $$('.ramas .rama-l');
+  const puntas = $$('.ramas .punta');
   const muro = $('.muro');
   const nocheNum = $('.noche-num');
   const hud = $('.hud');
@@ -235,13 +238,12 @@ function pelicula() {
   // 4 · La decisión: un solo trazo avanza y se divide en tres caminos a la vez,
   // cada uno llega a su opción; luego se apagan los que no se eligen.
   tl.to('.decision', { opacity: 1, duration: 1 }, 68.8)
-    .to('.ramas .tronco', { strokeDashoffset: 0, duration: 2.4, ease: 'none' }, 69.4)
-    .to('.ramas .rama-l', { strokeDashoffset: 0, duration: 2.4, ease: 'power1.out' }, 71.8)
-    .fromTo('.opcion', { opacity: 0, x: 24 }, { opacity: 1, x: 0, duration: 1, ease: 'power2.out' }, 73.6)
+    // (el trazo de la línea y su punta se dibujan en render())
+    .fromTo('.opcion', { opacity: 0, x: 24 }, { opacity: 1, x: 0, duration: 1, ease: 'power2.out' }, 74.4)
     .fromTo('.lateral-decidir', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 1.2 }, 70)
-    .to(['.o-dato', '.o-hum'], { opacity: 0.3, filter: 'blur(4px)', scale: 0.94, x: -20, duration: 1.8, ease: 'power2.out' }, 75.4)
-    .to(['.r-dato', '.r-hum'], { opacity: 0.2, duration: 1.8 }, 75.4)
-    .to('.o-resp', { scale: 1.05, duration: 1.8, ease: 'power2.out' }, 75.4)
+    .to(['.o-dato', '.o-hum'], { opacity: 0.3, filter: 'blur(4px)', scale: 0.94, x: -20, duration: 1.6, ease: 'power2.out' }, 75.8)
+    .to(['.r-dato', '.r-hum'], { opacity: 0.2, duration: 1.6 }, 75.8)
+    .to('.o-resp', { scale: 1.05, duration: 1.6, ease: 'power2.out' }, 75.8)
     .to('.decision', { opacity: 0, duration: 1 }, 77.6);
 
   // 5 · Los datos vuelan a la burbuja mientras se escribe la respuesta.
@@ -357,7 +359,23 @@ function pelicula() {
 
     // 3d · Las reglas se marcan una a una.
     reglas.forEach((li, i) => li.style.setProperty('--ok', suave(tramo(t, 59 + i * 1.6, 60 + i * 1.6)).toFixed(3)));
-    oResp.classList.toggle('elegida', t >= 75.6);
+    oResp.classList.toggle('elegida', t >= 76);
+
+    // 4 · La línea crece desde un punto y se divide en tres, como una barra de carga.
+    const pTronco = tramo(t, 69.2, 72.4);
+    const pRamas = tramo(t, 72.4, 74.8);
+    tronco.style.strokeDashoffset = 1 - pTronco;
+    ramasL.forEach((r) => { r.style.strokeDashoffset = 1 - pRamas; });
+    const cargando = t > 69.2 && pRamas < 1;
+    puntas.forEach((c, i) => {
+      const camino = pTronco < 1 ? (i === 0 ? tronco : null) : ramasL[i];
+      const p = pTronco < 1 ? pTronco : pRamas;
+      if (!cargando || !camino) { c.style.opacity = 0; return; }
+      const punto = camino.getPointAtLength(camino.getTotalLength() * p);
+      c.setAttribute('cx', punto.x.toFixed(1));
+      c.setAttribute('cy', punto.y.toFixed(1));
+      c.style.opacity = 1;
+    });
 
     // 5 · La respuesta se escribe con el scroll (y se borra si regresas).
     escribir(Math.round(largoRespuesta * tramo(t, 80, 87.2)));
@@ -393,7 +411,7 @@ function pelicula() {
   // Cuánto scroll (en vh) le toca a cada tramo de la línea de tiempo. El inicio
   // va rápido; el riel y la respuesta tienen más recorrido para verse con calma.
   const RECORRIDO = [
-    [0, 0], [6, 25], [16.6, 70], [30, 110], [34, 30], [68, 260], [78, 70], [88, 90], [96, 70], [FIN, 100],
+    [0, 0], [6, 25], [16.6, 70], [30, 110], [34, 30], [68, 260], [78, 140], [88, 90], [96, 70], [FIN, 100],
   ];
   const acumulado = [];
   RECORRIDO.reduce((suma, [t, vh]) => { acumulado.push([t, suma + vh]); return suma + vh; }, 0);
