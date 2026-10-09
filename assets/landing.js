@@ -90,6 +90,7 @@ function pelicula() {
   const hudReloj = $('.hud-reloj');
   const hudRelojNum = $('.hud-reloj b');
   const hudBarra = $('.hud-barra i');
+  const hudPunta = $('.hud-punta');
   const saltar = $('.saltar');
 
   ruta.style.strokeDasharray = largoRuta;
@@ -295,6 +296,13 @@ function pelicula() {
   let escenaActual = '';
   const formato = new Intl.NumberFormat('es-CO', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
   const ABANICO = [[-38, -62, -9], [0, -78, 0], [38, -62, 9]];
+  // Instantes en que la cámara viaja de la estación k a la k + 1.
+  const VIAJES = [[39.4, 42], [48.4, 50.8], [56.8, 59.2]];
+  // Avance de un tramo del riel; la punta de luz solo se ve mientras crece.
+  const fijarTramo = (est, lado, p) => {
+    est.style.setProperty(`--p-${lado}`, p.toFixed(4));
+    est.style.setProperty(`--dot-${lado}`, p > 0 && p < 1 ? 1 : 0);
+  };
 
   let velocidad = 0; // px/s del scroll, suavizada
   function render() {
@@ -306,7 +314,10 @@ function pelicula() {
     if (nombre !== escenaActual) { escenaActual = nombre; hudEscena.textContent = nombre; }
     hudRelojNum.textContent = formato.format(reloj(t));
     hudReloj.classList.toggle('listo', t >= 95);
-    hudBarra.style.transform = `scaleX(${(t / FIN).toFixed(4)})`;
+    const avance = `${((t / FIN) * 100).toFixed(2)}%`;
+    hudBarra.style.width = avance;
+    hudPunta.style.left = avance;
+    hudPunta.style.opacity = t > 0.05 && t < FIN - 0.05 ? 1 : 0;
 
     // 2 · El haz barre la pantalla y enciende las palabras clave que toca.
     const xHaz = W * (-0.05 + 1.1 * tramo(t, 19, 28));
@@ -337,6 +348,14 @@ function pelicula() {
       });
       cursorMs.style.left = `${(tramo(t, 32, 68) * 100).toFixed(2)}%`;
     }
+    // Tramos del riel: se construyen mientras la cámara va de una estación a otra.
+    fijarTramo(estaciones[0], 'izq', tramo(t, 31.4, 34));
+    VIAJES.forEach(([a, b], k) => {
+      const medio = (a + b) / 2;
+      fijarTramo(estaciones[k], 'der', tramo(t, a, medio));
+      fijarTramo(estaciones[k + 1], 'izq', tramo(t, medio, b));
+    });
+    fijarTramo(estaciones[3], 'der', tramo(t, 66, 69));
 
     // 3a · Las fichas se abren en abanico; la que coincide pasa al frente.
     const pA = suave(tramo(t, 34.5, 39.5));

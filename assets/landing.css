@@ -96,8 +96,10 @@ em { font-style: normal; color: var(--senal); }
 .hud-reloj { color: var(--senal); font-variant-numeric: tabular-nums; letter-spacing: 0.06em; }
 .hud-reloj b { font-weight: 500; font-size: 13px; }
 .hud-reloj.listo { color: #7dffa8; }
-.hud-barra { grid-column: 1 / -1; height: 1px; background: var(--hilo); overflow: hidden; }
-.hud-barra i { display: block; height: 100%; width: 100%; background: var(--senal); transform: scaleX(0); transform-origin: left; box-shadow: 0 0 8px var(--senal); }
+.hud-barra { grid-column: 1 / -1; position: relative; height: 1px; background: var(--hilo); }
+.hud-barra i { position: absolute; left: 0; top: 0; height: 100%; width: 0; background: var(--senal); box-shadow: 0 0 8px var(--senal); }
+/* Punta de luz que va construyendo la barra (la misma de la decisión). */
+.hud-punta { position: absolute; top: -2.5px; left: 0; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: #d9fffa; box-shadow: 0 0 6px 1px var(--senal), 0 0 16px 3px rgba(73, 227, 211, 0.5); opacity: 0; }
 .hud.fuera { opacity: 0; }
 .pelicula .saltar {
   position: fixed; z-index: 25; right: var(--gutter); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
@@ -243,12 +245,25 @@ em { font-style: normal; color: var(--senal); }
 .riel-linea { display: none; }
 .estacion { position: relative; }
 .estacion::before, .estacion::after {
-  content: ""; position: absolute; top: 50%; height: 1px; pointer-events: none;
-  width: calc((100vw - var(--ancho)) / 2 - 2vw);
-  background: rgba(73, 227, 211, 0.55); box-shadow: 0 0 10px rgba(73, 227, 211, 0.5);
+  --largo: calc((100vw - var(--ancho)) / 2 - 2vw);
+  content: ""; position: absolute; top: calc(50% - 4.5px); height: 9px; pointer-events: none;
+  filter: drop-shadow(0 0 4px rgba(73, 227, 211, 0.6));
 }
-.estacion::before { right: 100%; background: linear-gradient(90deg, rgba(73, 227, 211, 0.1), rgba(73, 227, 211, 0.6)); }
-.estacion::after { left: 100%; background: linear-gradient(90deg, rgba(73, 227, 211, 0.6), rgba(73, 227, 211, 0.1)); }
+/* Cada tramo se construye con su punta de luz mientras la cámara viaja
+   (JS da el avance --p-* y enciende la punta --dot-* solo mientras crece). */
+.estacion::before {
+  right: 100%; width: calc(var(--largo) * var(--p-izq, 0));
+  margin-right: calc(var(--largo) * (1 - var(--p-izq, 0)));
+  background:
+    radial-gradient(circle at calc(100% - 4.5px) 50%, rgba(217, 255, 250, var(--dot-izq, 0)) 0 2.5px, rgba(73, 227, 211, calc(var(--dot-izq, 0) * 0.6)) 3.5px, transparent 6px),
+    linear-gradient(90deg, rgba(73, 227, 211, 0.2), rgba(73, 227, 211, 0.65)) center / 100% 1px no-repeat;
+}
+.estacion::after {
+  left: 100%; width: calc(var(--largo) * var(--p-der, 0));
+  background:
+    radial-gradient(circle at calc(100% - 4.5px) 50%, rgba(217, 255, 250, var(--dot-der, 0)) 0 2.5px, rgba(73, 227, 211, calc(var(--dot-der, 0) * 0.6)) 3.5px, transparent 6px),
+    linear-gradient(90deg, rgba(73, 227, 211, 0.65), rgba(73, 227, 211, 0.2)) center / 100% 1px no-repeat;
+}
 .riel { position: absolute; top: 0; bottom: 0; left: 0; display: flex; align-items: center; gap: 0; will-change: transform; }
 .estacion {
   --ancho: min(520px, 84vw);
