@@ -230,10 +230,10 @@ function pelicula() {
     .to('.riel-caja', { opacity: 1, duration: 2 }, 31.4)
     .fromTo(riel, { x: () => xEstacion(0) + innerWidth * 0.6 }, { x: () => xEstacion(0), duration: 3, ease: 'power2.out' }, 31)
     // Viaja, se detiene en cada estación mientras trabaja, y sigue.
-    .to(riel, { x: () => xEstacion(1), duration: 2.6, ease: 'power2.inOut' }, 39.4)
-    .to(riel, { x: () => xEstacion(2), duration: 2.2, ease: 'power2.inOut' }, 50.6)
-    .to(riel, { x: () => xEstacion(3), duration: 2.2, ease: 'power2.inOut' }, 57.4)
-    .to(riel, { x: () => xEstacion(3) - innerWidth * 0.6, duration: 3, ease: 'power2.in' }, 66)
+    .to(riel, { x: () => xEstacion(1), duration: 2.2, ease: 'power2.inOut' }, 41.8)
+    .to(riel, { x: () => xEstacion(2), duration: 2.2, ease: 'power2.inOut' }, 49.8)
+    .to(riel, { x: () => xEstacion(3), duration: 2.2, ease: 'power2.inOut' }, 57)
+    .to(riel, { x: () => xEstacion(3) - innerWidth * 0.6, duration: 3, ease: 'power2.in' }, 65.6)
     .to('.riel-caja', { opacity: 0, duration: 2 }, 67.5);
 
   // 4 · La decisión: un solo trazo avanza y se divide en tres caminos a la vez,
@@ -291,14 +291,15 @@ function pelicula() {
   };
   const ESCENAS = [
     [0, 'Recibido · WhatsApp · 11:47 p. m.'], [16, 'Lectura · intención'], [31, 'Razonamiento · 1/4 catálogo'],
-    [42, 'Razonamiento · 2/4 existencias'], [51.7, 'Razonamiento · 3/4 envío'], [58.5, 'Razonamiento · 4/4 reglas'],
+    [43, 'Razonamiento · 2/4 existencias'], [51, 'Razonamiento · 3/4 envío'], [58.2, 'Razonamiento · 4/4 reglas'],
     [69, 'Decisión'], [78, 'Redactando · tu tono'], [88, 'Enviado ✓✓'], [96.5, 'Toda la noche · 11:00 p. m. → 7:00 a. m.'],
   ];
   let escenaActual = '';
   const formato = new Intl.NumberFormat('es-CO', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
   const ABANICO = [[-38, -62, -9], [0, -78, 0], [38, -62, 9]];
   // Instantes en que la cámara viaja de la estación k a la k + 1.
-  const VIAJES = [[39.4, 42], [50.6, 52.8], [57.4, 59.6]];
+  // Regla de ritmo: cada estación termina su animación, espera 1,3 y la cámara sigue.
+  const VIAJES = [[41.8, 44], [49.8, 52], [57, 59.2]];
   // Avance de un tramo del riel; la punta de luz solo se ve mientras crece.
   const fijarTramo = (est, lado, p) => {
     est.style.setProperty(`--p-${lado}`, p.toFixed(4));
@@ -356,7 +357,7 @@ function pelicula() {
       fijarTramo(estaciones[k], 'der', tramo(t, a, medio));
       fijarTramo(estaciones[k + 1], 'izq', tramo(t, medio, b));
     });
-    fijarTramo(estaciones[3], 'der', tramo(t, 66, 69));
+    fijarTramo(estaciones[3], 'der', tramo(t, 65.6, 68.6));
 
     // 3a · Las fichas se abren en abanico; la que coincide pasa al frente.
     const pA = suave(tramo(t, 34.5, 39.5));
@@ -370,16 +371,16 @@ function pelicula() {
 
     // 3b · Se recorren las celdas y se enciende blanco · talla 38.
     celdas.forEach((c, i) => {
-      c.style.opacity = c === objetivo ? 1 : (0.35 + 0.65 * tramo(t, 42.5 + i * 0.3, 43.5 + i * 0.3)).toFixed(3);
+      c.style.opacity = c === objetivo ? 1 : (0.35 + 0.65 * tramo(t, 44.2 + i * 0.3, 45.2 + i * 0.3)).toFixed(3);
     });
     // Se ilumina con tiempo de sobra: la estación se queda quieta antes de seguir.
-    objetivo.style.setProperty('--brillo', suave(tramo(t, 45.2, 46.8)).toFixed(3));
+    objetivo.style.setProperty('--brillo', suave(tramo(t, 46.9, 48.5)).toFixed(3));
 
     // 3c · Se dibuja la ruta.
-    ruta.style.strokeDashoffset = (largoRuta * (1 - suave(tramo(t, 53, 56.5)))).toFixed(1);
+    ruta.style.strokeDashoffset = (largoRuta * (1 - suave(tramo(t, 52.2, 55.7)))).toFixed(1);
 
     // 3d · Las reglas se marcan una a una.
-    reglas.forEach((li, i) => li.style.setProperty('--ok', suave(tramo(t, 59.8 + i * 1.3, 60.8 + i * 1.3)).toFixed(3)));
+    reglas.forEach((li, i) => li.style.setProperty('--ok', suave(tramo(t, 59.4 + i * 1.3, 60.4 + i * 1.3)).toFixed(3)));
     oResp.classList.toggle('elegida', t >= 76);
 
     // 4 · La línea crece desde un punto y se divide en tres, como una barra de carga.
