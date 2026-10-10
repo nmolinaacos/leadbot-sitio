@@ -27,14 +27,13 @@
   --vidrio-sombra: inset 1px 1px 0 rgba(255, 255, 255, 0.16), 0 24px 60px -24px rgba(0, 0, 0, 0.85);
 }
 
-/* El remate de la película: el 3,1 golpea en Anybody (ancho máximo, Black);
+/* El remate de la película: el 3,1 golpea en Unbounded Black (900);
    la unidad queda en mono, como en un cronómetro. Es el único lugar donde
    aparece esta fuente. */
 .tiempo-final { display: flex; align-items: baseline; gap: 0.18em; margin: 0.12em 0 0.18em; }
 .cifra-impacto {
-  font-family: "Anybody", var(--display); font-weight: 900; font-stretch: 150%;
-  font-variation-settings: "wdth" 150, "wght" 900;
-  font-size: 1.9em; line-height: 0.95; letter-spacing: 0.01em;
+  font-family: "Unbounded", var(--display); font-weight: 900;
+  font-size: 2.35em; line-height: 0.95; letter-spacing: 0.015em;
   text-shadow: 0 0 40px rgba(73, 227, 211, 0.35);
 }
 .tiempo-final .unidad { font: 500 0.62em/1 var(--mono); letter-spacing: 0.02em; }
