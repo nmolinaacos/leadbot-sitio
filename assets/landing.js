@@ -198,6 +198,7 @@ function pelicula() {
   ajustarMensaje();
   ScrollTrigger.addEventListener('refreshInit', ajustarMensaje);
   tl.to('.titular-intro', { y: -60, opacity: 0, duration: 4, ease: 'power1.in' }, 4)
+    .to('.nota-noti', { x: 20, autoAlpha: 0, duration: 2, ease: 'power1.in' }, 4.5)
     // Relevo: la notificación se cambia por su copia grande, en el mismo lugar
     // y del mismo tamaño, y esa copia crece hasta llenar la pantalla.
     // Se oculta con visibility, no con opacity: la animación CSS de entrada
