@@ -163,7 +163,7 @@ function pelicula() {
   const xEstacion = (i) => innerWidth / 2 - centroEst(i);
 
   /* ---------- Línea de tiempo ---------- */
-  const FIN = 114;
+  const FIN = 116;
   const movil = () => innerWidth <= 760;
   const tl = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut' } });
   gsap.set(mensaje, { xPercent: -50, yPercent: -50, x: 0, y: 0, scale: 0.3 });
@@ -431,7 +431,9 @@ function pelicula() {
   // Cuánto scroll (en vh) le toca a cada tramo de la línea de tiempo. El inicio
   // va rápido; el riel y la respuesta tienen más recorrido para verse con calma.
   const RECORRIDO = [
-    [0, 0], [6, 25], [16.6, 70], [30, 110], [34, 30], [68, 260], [78, 140], [88, 90], [96, 70], [FIN, 100],
+    [0, 0], [6, 25], [16.6, 70], [30, 110], [34, 30], [68, 260], [78, 140], [88, 90], [96, 70], [110, 85],
+    // Pausa al final: el muro de la noche completo se queda en pantalla un rato.
+    [FIN, 95],
   ];
   const acumulado = [];
   RECORRIDO.reduce((suma, [t, vh]) => { acumulado.push([t, suma + vh]); return suma + vh; }, 0);
