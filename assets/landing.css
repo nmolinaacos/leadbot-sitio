@@ -150,6 +150,7 @@ em { font-style: normal; color: var(--senal); }
 /* 0 · Titular */
 .titular-intro { left: var(--gutter); bottom: clamp(48px, 10vh, 110px); width: min(560px, 44vw); display: grid; gap: 18px; z-index: 5; }
 .titular { font-size: clamp(36px, 5vw, 72px); line-height: 0.98; letter-spacing: -0.035em; }
+.titular-intro .bajada { font-size: clamp(15px, 1.3vw, 18px); max-width: 44ch; }
 .desliza { font: 500 11px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--senal); display: flex; align-items: center; gap: 10px; }
 .desliza::after { content: ""; width: 1px; height: 26px; background: linear-gradient(var(--senal), transparent); animation: baja 1.6s var(--ease) infinite; }
 @keyframes baja { from { transform: translateY(-6px); opacity: 0; } 40% { opacity: 1; } to { transform: translateY(8px); opacity: 0; } }
@@ -442,6 +443,8 @@ main > section:not(.historia) > * { width: 100%; max-width: var(--max); margin-i
 @media (max-width: 760px) {
   .titular-intro { width: auto; right: var(--gutter); bottom: 78px; }
   .titular { font-size: clamp(32px, 9vw, 44px); }
+  .titular-intro { gap: 12px; }
+  .titular-intro .bajada { font-size: 14.5px; }
   .telefono { top: 38%; width: 46vw; margin-left: -23vw; margin-top: calc(46vw * -1.066); border-radius: 30px; padding: 6px; }
   .pantalla { border-radius: 25px; }
   .tel-hora { font-size: 34px; }
