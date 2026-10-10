@@ -32,6 +32,11 @@ if (document.documentElement.classList.contains('pelicula') && window.gsap && wi
 function pelicula() {
   gsap.registerPlugin(ScrollTrigger);
 
+  // Al recargar, la película empieza desde el principio (si el navegador
+  // devolviera el scroll a la mitad, la escena arrancaría a medio camino).
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  if (!location.hash) scrollTo(0, 0);
+
   /* ---------- Scroll suave ---------- */
   const lenis = new Lenis({ lerp: 0.085, smoothWheel: true });
   lenis.on('scroll', ScrollTrigger.update);
@@ -195,7 +200,10 @@ function pelicula() {
   tl.to('.titular-intro', { y: -60, opacity: 0, duration: 4, ease: 'power1.in' }, 4)
     // Relevo: la notificación se cambia por su copia grande, en el mismo lugar
     // y del mismo tamaño, y esa copia crece hasta llenar la pantalla.
-    .set(noti, { opacity: 0 }, 6)
+    // Se oculta con visibility, no con opacity: la animación CSS de entrada
+    // controla la opacidad, y si GSAP la leyera a mitad de esa animación
+    // guardaría un 0 y la notificación no reaparecería al volver al inicio.
+    .set(noti, { visibility: 'hidden' }, 6)
     .set(mensaje, { opacity: 1 }, 6)
     .fromTo(mensaje,
       { x: () => desdeNoti().x, y: () => desdeNoti().y, scale: () => noti.offsetWidth / mensaje.offsetWidth },
