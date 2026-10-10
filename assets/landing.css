@@ -445,7 +445,8 @@ main > section:not(.historia) > * { width: 100%; max-width: var(--max); margin-i
   .titular { font-size: clamp(32px, 9vw, 44px); }
   .titular-intro { gap: 12px; }
   .titular-intro .bajada { font-size: 14.5px; }
-  .telefono { top: 38%; width: 46vw; margin-left: -23vw; margin-top: calc(46vw * -1.066); border-radius: 30px; padding: 6px; }
+  /* Debajo de la línea del HUD (que termina ~122px abajo), con aire, y sin tocar el titular. */
+  .telefono { top: calc(env(safe-area-inset-top, 0px) + 140px); width: min(42vw, 20svh); margin-left: calc(min(42vw, 20svh) / -2); margin-top: 0; border-radius: 30px; padding: 6px; }
   .pantalla { border-radius: 25px; }
   .tel-hora { font-size: 34px; }
   .noti { font-size: 10px; padding: 8px; border-radius: 12px; }
@@ -453,7 +454,12 @@ main > section:not(.historia) > * { width: 100%; max-width: var(--max); margin-i
   /* Mismas proporciones que la notificación en celular. */
   .mensaje { padding: 0.8em; border-radius: 1.2em; }
   .mensaje-cab { font-size: 0.85em; margin-bottom: 0.4em; }
-  .tb { font-size: 9.5px; padding: 6px 7px; }
+  .tb { font-size: 9px; line-height: 1.32; padding: 5px 7px; border-radius: 11px; }
+  .tb small { font-size: 8px; margin-top: 2px; }
+  .tel-chat { top: 13.5%; bottom: 5%; gap: 5px; }
+  .tb.pedido span { font-size: 9px; }
+  .tb.pedido b { font-size: 10px; }
+  .tb.pedido .sello { font-size: 8px; white-space: nowrap; }
   .medidor { left: var(--gutter); right: var(--gutter); width: auto; bottom: 74px; }
   .regla-ms { bottom: 74px; }
   .noche-texto { bottom: 70px; }
