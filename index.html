@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@900&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap">
   <link rel="stylesheet" href="assets/vendor/lenis/lenis.css">
-  <link rel="stylesheet" href="assets/landing.css?v=202610102145">
+  <link rel="stylesheet" href="assets/landing.css?v=202610151800">
   <script>
     // La película solo corre con JavaScript y sin "reducir movimiento".
     if (!matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('pelicula');
@@ -37,8 +37,9 @@
   <header class="nav">
     <a class="marca" href="#inicio" aria-label="Leadbot, inicio"><svg aria-hidden="true"><use href="#logo"/></svg><b>Lead<span>bot</span></b></a>
     <nav aria-label="Secciones">
-      <a href="#planes">Planes</a>
-      <a class="nav-cta" href="#contacto">Hablemos</a>
+      <a class="nav-planes" href="#planes">Planes</a>
+      <a href="https://app.leadbot.com.co/">Ingresar</a>
+      <a class="nav-cta" href="https://app.leadbot.com.co/#/registro?plan=crece">Prueba gratis</a>
     </nav>
   </header>
 
@@ -220,55 +221,72 @@
     <section class="planes" id="planes">
       <div class="planes-cabeza">
         <h2 class="seccion-titulo">Un plan para <em>cada momento</em> de tu negocio</h2>
-        <div class="periodo" role="group" aria-label="Forma de pago">
-          <button type="button" data-periodo="mensual" aria-pressed="true">Mensual</button>
-          <button type="button" data-periodo="anual" aria-pressed="false">Anual <small>2 meses gratis</small></button>
-        </div>
+        <p class="planes-sub">Todos traen lo mismo. Cambia cuántas conversaciones atiende tu bot y cuántas personas de tu equipo entran.</p>
       </div>
       <div class="planes-rejilla">
-        <article class="plan" id="plan-chat">
-          <h3>Chat</h3>
+        <article class="plan" id="plan-emprende">
+          <h3>Emprende</h3>
+          <p class="plan-desc">Para probar el bot en un emprendimiento.</p>
+          <p class="plan-precio"><b>$79.900</b><span>al mes</span></p>
+          <p class="plan-cupo"><b>150</b> conversaciones al mes</p>
+          <p class="plan-personas">1 persona</p>
+          <a class="boton vidrio" href="https://app.leadbot.com.co/#/registro?plan=emprende">Empezar gratis</a>
+        </article>
+        <article class="plan" id="plan-inicio">
+          <h3>Inicio</h3>
           <p class="plan-desc">Para empezar a vender por chat.</p>
-          <p class="plan-precio"><b data-mensual="$119.000" data-anual="$99.000">$119.000</b><span>al mes</span></p>
-          <p class="plan-nota" data-mensual="Pago mes a mes" data-anual="Pagas $1.188.000 al año">Pago mes a mes</p>
-          <p class="plan-cupo"><b>800</b> conversaciones al mes con el bot</p>
-          <ul><li><svg><use href="#ok"/></svg>WhatsApp, Instagram y Messenger en un solo tablero</li><li><svg><use href="#ok"/></svg>Bot con IA que conoce tu catálogo, precios y existencias</li><li><svg><use href="#ok"/></svg>Fotos por color y catálogo en PDF automático</li><li><svg><use href="#ok"/></svg>Toma pedidos y calcula el envío por ciudad</li><li><svg><use href="#ok"/></svg>2 personas de tu equipo</li></ul>
-          <a class="boton vidrio" href="https://wa.me/573233272083?text=Hola%2C%20me%20interesa%20el%20plan%20Chat%20de%20Leadbot" target="_blank" rel="noopener">Empezar con Chat</a>
+          <p class="plan-precio"><b>$119.000</b><span>al mes</span></p>
+          <p class="plan-cupo"><b>300</b> conversaciones al mes</p>
+          <p class="plan-personas">2 personas de tu equipo</p>
+          <a class="boton vidrio" href="https://app.leadbot.com.co/#/registro?plan=inicio">Empezar gratis</a>
         </article>
-        <article class="plan destacado" id="plan-voz">
-          <span class="plan-sello">El más elegido</span><h3>Chat + Voz</h3>
+        <article class="plan destacado" id="plan-crece">
+          <span class="plan-sello">El más elegido</span><h3>Crece</h3>
           <p class="plan-desc">Para el comercio que ya vende todos los días.</p>
-          <p class="plan-precio"><b data-mensual="$219.000" data-anual="$183.000">$219.000</b><span>al mes</span></p>
-          <p class="plan-nota" data-mensual="Pago mes a mes" data-anual="Pagas $2.196.000 al año">Pago mes a mes</p>
-          <p class="plan-cupo"><b>2.000</b> conversaciones al mes con el bot</p>
-          <ul><li><svg><use href="#ok"/></svg>Todo lo del plan Chat</li><li><svg><use href="#ok"/></svg>Entiende las notas de voz de tus clientes</li><li><svg><use href="#ok"/></svg>Recupera pedidos a medias y avisa cuando llega lo agotado</li><li><svg><use href="#ok"/></svg>Campañas y recordatorios por WhatsApp</li><li><svg><use href="#ok"/></svg>Qué anuncio te trae cada venta</li><li><svg><use href="#ok"/></svg>5 personas de tu equipo</li></ul>
-          <a class="boton primario" href="https://wa.me/573233272083?text=Hola%2C%20me%20interesa%20el%20plan%20Chat%20%2B%20Voz%20de%20Leadbot" target="_blank" rel="noopener">Empezar con Chat + Voz</a>
+          <p class="plan-precio"><b>$229.000</b><span>al mes</span></p>
+          <p class="plan-cupo"><b>700</b> conversaciones al mes</p>
+          <p class="plan-personas">4 personas de tu equipo</p>
+          <a class="boton primario" href="https://app.leadbot.com.co/#/registro?plan=crece">Empezar gratis</a>
         </article>
-        <article class="plan" id="plan-llave">
-          <h3>Llave en mano</h3>
-          <p class="plan-desc">Nosotros lo dejamos vendiendo por ti.</p>
-          <p class="plan-precio"><b data-mensual="$449.000" data-anual="$374.000">$449.000</b><span>al mes</span></p>
-          <p class="plan-nota" data-mensual="Pago mes a mes" data-anual="Pagas $4.488.000 al año">Pago mes a mes</p>
-          <p class="plan-cupo"><b>5.000</b> conversaciones al mes con el bot</p>
-          <ul><li><svg><use href="#ok"/></svg>Todo lo del plan Chat + Voz</li><li><svg><use href="#ok"/></svg>Cargamos tu catálogo y configuramos el bot con tu forma de hablar</li><li><svg><use href="#ok"/></svg>Conectamos tus canales contigo, sin pasos técnicos</li><li><svg><use href="#ok"/></svg>Revisamos tus conversaciones cada mes para mejorar el bot</li><li><svg><use href="#ok"/></svg>Soporte por WhatsApp el mismo día</li><li><svg><use href="#ok"/></svg>Personas ilimitadas</li></ul>
-          <a class="boton vidrio" href="https://wa.me/573233272083?text=Hola%2C%20me%20interesa%20el%20plan%20Llave%20en%20mano%20de%20Leadbot" target="_blank" rel="noopener">Empezar con Llave en mano</a>
+        <article class="plan" id="plan-pro">
+          <h3>Pro</h3>
+          <p class="plan-desc">Para la tienda con varios canales y equipo.</p>
+          <p class="plan-precio"><b>$449.000</b><span>al mes</span></p>
+          <p class="plan-cupo"><b>1.500</b> conversaciones al mes</p>
+          <p class="plan-personas">8 personas de tu equipo</p>
+          <a class="boton vidrio" href="https://app.leadbot.com.co/#/registro?plan=pro">Empezar gratis</a>
         </article>
+        <article class="plan" id="plan-escala">
+          <h3>Escala</h3>
+          <p class="plan-desc">Para marcas con pauta y mucho volumen.</p>
+          <p class="plan-precio"><b>$1.090.000</b><span>al mes</span></p>
+          <p class="plan-cupo"><b>4.000</b> conversaciones al mes</p>
+          <p class="plan-personas">Personas ilimitadas</p>
+          <a class="boton vidrio" href="https://app.leadbot.com.co/#/registro?plan=escala">Empezar gratis</a>
+        </article>
+      </div>
+      <div class="planes-incluye">
+        <p class="etq">Todos los planes incluyen</p>
+        <ul><li><svg><use href="#ok"/></svg>WhatsApp, Instagram y Messenger en un solo tablero</li><li><svg><use href="#ok"/></svg>Bot con IA que conoce tu catálogo, precios y existencias</li><li><svg><use href="#ok"/></svg>Entiende las notas de voz de tus clientes</li><li><svg><use href="#ok"/></svg>Toma pedidos, calcula el envío por ciudad y agenda citas</li><li><svg><use href="#ok"/></svg>Fotos por color y catálogo en PDF automático</li><li><svg><use href="#ok"/></svg>Recupera pedidos a medias y avisa cuando llega lo agotado</li><li><svg><use href="#ok"/></svg>Campañas y recordatorios por WhatsApp</li><li><svg><use href="#ok"/></svg>Qué anuncio te trae cada venta</li></ul>
       </div>
       <ul class="planes-notas">
         <li><b>14 días de prueba gratis.</b> Sin tarjeta y sin permanencia: cancelas cuando quieras.</li>
+        <li><b>Pagas con tarjeta, Nequi o PSE.</b> Con tarjeta o Nequi se renueva solo cada mes; cancelas desde tu panel.</li>
         <li><b>¿Qué es una conversación?</b> Un cliente que le escribe al bot en un mismo día, sin importar cuántos mensajes se envíen.</li>
-        <li><b>¿Y si me paso?</b> El bot no se detiene: cada 100 conversaciones extra cuestan $15.000.</li>
+        <li><b>¿Y si me paso?</b> El bot no se detiene: cada 100 conversaciones extra cuestan $35.000, o subes de plan cuando quieras.</li>
         <li><b>Mensajes de WhatsApp.</b> Responder a tus clientes no tiene costo. Las campañas y recordatorios usan plantillas que Meta cobra aparte, directo a tu cuenta.</li>
+        <li><b>¿Prefieres que lo dejemos listo?</b> <a href="https://wa.me/573233272083?text=Hola%2C%20quiero%20que%20me%20ayuden%20a%20configurar%20Leadbot" target="_blank" rel="noopener">Escríbenos</a> y configuramos tu catálogo y tu bot contigo.</li>
       </ul>
     </section>
 
     <!-- Cierre -->
     <section class="cierre" id="contacto">
-      <p class="etq">Acceso por invitación</p>
+      <p class="etq">14 días gratis, sin tarjeta</p>
       <h2>Tu negocio no se detiene <em>cuando tú paras.</em></h2>
-      <p class="bajada">Estamos sumando comercios en Colombia. Escríbenos y te mostramos Leadbot con tus propios productos.</p>
+      <p class="bajada">Crea tu cuenta, carga tus productos y deja que Leadbot atienda a tus clientes. Si tienes dudas, escríbenos.</p>
       <div class="acciones">
-        <a class="boton primario" href="https://wa.me/573233272083?text=Hola%2C%20quiero%20conocer%20Leadbot" target="_blank" rel="noopener">Escríbenos por WhatsApp</a>
+        <a class="boton primario" href="https://app.leadbot.com.co/#/registro?plan=crece">Crear mi cuenta</a>
+        <a class="boton vidrio" href="https://wa.me/573233272083?text=Hola%2C%20quiero%20conocer%20Leadbot" target="_blank" rel="noopener">Escríbenos por WhatsApp</a>
         <a class="boton vidrio" href="mailto:contacto@leadbot.com.co?subject=Quiero%20conocer%20Leadbot">contacto@leadbot.com.co</a>
       </div>
     </section>

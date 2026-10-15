@@ -95,6 +95,8 @@ em { font-style: normal; color: var(--senal); }
 .nav nav a:hover { color: var(--texto); background: rgba(255, 255, 255, 0.06); }
 .nav nav .nav-cta { color: #04110f; background: var(--senal); font-weight: 500; }
 .nav nav .nav-cta:hover { background: #6ef0e2; color: #04110f; }
+/* En el celular caben Ingresar y Prueba gratis; Planes se alcanza bajando. */
+@media (max-width: 480px) { .nav nav .nav-planes { display: none; } .nav nav a { padding: 8px 11px; font-size: 13.5px; } }
 
 .hud, .saltar { display: none; }
 .pelicula .hud {
@@ -431,12 +433,21 @@ main > section:not(.historia) > * { width: 100%; max-width: var(--max); margin-i
 .periodo button { min-height: 40px; padding: 0 16px; border: 0; border-radius: 9px; background: transparent; font: 500 14px var(--display); color: var(--texto-2); cursor: pointer; }
 .periodo button small { color: var(--senal); margin-left: 4px; font-weight: 400; }
 .periodo button[aria-pressed="true"] { background: rgba(255, 255, 255, 0.1); color: var(--texto); }
-.planes-rejilla { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-.plan { position: relative; padding: 28px; border-radius: 22px; display: flex; flex-direction: column; gap: 12px; background: var(--vidrio-bg); border: 1px solid var(--vidrio-borde); box-shadow: var(--vidrio-sombra); }
-.plan h3 { font-size: 26px; letter-spacing: -0.02em; }
+.planes-sub { color: var(--tenue); font-size: 15px; max-width: 52ch; }
+.planes-rejilla { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+.plan-personas { font-size: 14px; color: var(--texto-2); flex: 1; }
+/* Con cinco tarjetas el precio largo (1.090.000) no cabe con "al mes" al lado: va debajo en todas. */
+.planes .plan-precio { flex-direction: column; align-items: flex-start; gap: 2px; }
+.planes-incluye { margin-top: 20px; padding: 24px 28px; border-radius: 22px; background: var(--vidrio-bg); border: 1px solid var(--vidrio-borde); }
+.planes-incluye ul { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 32px; font-size: 14.5px; color: var(--texto-2); }
+.planes-incluye li { display: grid; grid-template-columns: 18px 1fr; gap: 10px; }
+.planes-incluye li svg { width: 18px; height: 18px; color: var(--senal); margin-top: 2px; }
+.planes-notas a { color: var(--senal); }
+.plan { position: relative; padding: 24px 22px; border-radius: 22px; display: flex; flex-direction: column; gap: 12px; background: var(--vidrio-bg); border: 1px solid var(--vidrio-borde); box-shadow: var(--vidrio-sombra); }
+.plan h3 { font-size: 23px; letter-spacing: -0.02em; }
 .plan-desc, .plan-nota { color: var(--tenue); font-size: 14.5px; }
 .plan-precio { display: flex; align-items: baseline; gap: 8px; margin-top: 8px; }
-.plan-precio b { font-size: clamp(32px, 3.4vw, 40px); font-weight: 400; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.plan-precio b { font-size: clamp(24px, 1.85vw, 30px); font-weight: 400; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
 .plan-precio span { color: var(--tenue); font-size: 14px; }
 .plan-cupo { padding: 10px 12px; border-radius: 10px; background: rgba(73, 227, 211, 0.07); border: 1px solid rgba(73, 227, 211, 0.18); font-size: 14px; color: var(--texto-2); }
 .plan-cupo b { color: var(--senal); font-weight: 500; }
@@ -445,10 +456,12 @@ main > section:not(.historia) > * { width: 100%; max-width: var(--max); margin-i
 .plan li svg { width: 18px; height: 18px; color: var(--senal); margin-top: 2px; }
 .plan .boton { width: 100%; }
 .plan.destacado { border-color: rgba(73, 227, 211, 0.4); box-shadow: var(--vidrio-sombra), 0 0 60px -24px rgba(73, 227, 211, 0.5); }
-.plan-sello { position: absolute; top: 22px; right: 22px; padding: 4px 10px; border-radius: 99px; font: 500 11px var(--mono); color: #04110f; background: var(--senal); }
+.plan-sello { position: absolute; top: -11px; left: 22px; padding: 4px 10px; border-radius: 99px; font: 500 11px var(--mono); color: #04110f; background: var(--senal); }
 .planes-notas { list-style: none; padding: 0; margin-top: 32px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 32px; font-size: 14px; color: var(--tenue); }
 .planes-notas b { color: var(--texto); font-weight: 500; }
-@media (max-width: 960px) { .planes-rejilla, .planes-notas { grid-template-columns: 1fr; } }
+@media (max-width: 1180px) { .planes-rejilla { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 960px) { .planes-rejilla, .planes-notas, .planes-incluye ul { grid-template-columns: 1fr; } }
+@media (min-width: 640px) and (max-width: 960px) { .planes-rejilla { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 .cierre { display: grid; gap: 22px; justify-items: start; }
 .cierre h2 { font-size: clamp(36px, 5.4vw, 72px); line-height: 1; max-width: 18ch; }
