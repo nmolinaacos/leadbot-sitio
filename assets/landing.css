@@ -434,7 +434,7 @@ main > section:not(.historia) > * { width: 100%; max-width: var(--max); margin-i
 .periodo button small { color: var(--senal); margin-left: 4px; font-weight: 400; }
 .periodo button[aria-pressed="true"] { background: rgba(255, 255, 255, 0.1); color: var(--texto); }
 .planes-sub { color: var(--tenue); font-size: 15px; max-width: 52ch; }
-.planes-rejilla { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+.planes-rejilla { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .plan-personas { font-size: 14px; color: var(--texto-2); flex: 1; }
 /* Con cinco tarjetas el precio largo (1.090.000) no cabe con "al mes" al lado: va debajo en todas. */
 .planes .plan-precio { flex-direction: column; align-items: flex-start; gap: 2px; }
@@ -447,7 +447,7 @@ main > section:not(.historia) > * { width: 100%; max-width: var(--max); margin-i
 .plan h3 { font-size: 23px; letter-spacing: -0.02em; }
 .plan-desc, .plan-nota { color: var(--tenue); font-size: 14.5px; }
 .plan-precio { display: flex; align-items: baseline; gap: 8px; margin-top: 8px; }
-.plan-precio b { font-size: clamp(24px, 1.85vw, 30px); font-weight: 400; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.plan-precio b { font-size: clamp(28px, 2.6vw, 36px); font-weight: 400; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
 .plan-precio span { color: var(--tenue); font-size: 14px; }
 .plan-cupo { padding: 10px 12px; border-radius: 10px; background: rgba(73, 227, 211, 0.07); border: 1px solid rgba(73, 227, 211, 0.18); font-size: 14px; color: var(--texto-2); }
 .plan-cupo b { color: var(--senal); font-weight: 500; }
@@ -459,7 +459,6 @@ main > section:not(.historia) > * { width: 100%; max-width: var(--max); margin-i
 .plan-sello { position: absolute; top: -11px; left: 22px; padding: 4px 10px; border-radius: 99px; font: 500 11px var(--mono); color: #04110f; background: var(--senal); }
 .planes-notas { list-style: none; padding: 0; margin-top: 32px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 32px; font-size: 14px; color: var(--tenue); }
 .planes-notas b { color: var(--texto); font-weight: 500; }
-@media (max-width: 1180px) { .planes-rejilla { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 960px) { .planes-rejilla, .planes-notas, .planes-incluye ul { grid-template-columns: 1fr; } }
 @media (min-width: 640px) and (max-width: 960px) { .planes-rejilla { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
