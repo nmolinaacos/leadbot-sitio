@@ -521,3 +521,10 @@ main > section:not(.historia) > * { width: 100%; max-width: var(--max); margin-i
   .muro { --cols: 12; }
   .muro i { height: 20px; }
 }
+
+/* Logo: los tres puntos del globo se animan como el "escribiendo…" de un chat. */
+.marca-logo .punto { transform-box: fill-box; transform-origin: center; animation: escribiendo 1.3s ease-in-out infinite; opacity: .45; }
+.marca-logo .punto:nth-of-type(2) { animation-delay: .16s; }
+.marca-logo .punto:nth-of-type(3) { animation-delay: .32s; }
+@keyframes escribiendo { 0%, 60%, 100% { transform: translateY(0); opacity: .45; } 30% { transform: translateY(-1.4px); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .marca-logo .punto { animation: none; opacity: 1; } .marca-logo .punto:nth-of-type(1) { opacity: .45; } .marca-logo .punto:nth-of-type(2) { opacity: .7; } }
