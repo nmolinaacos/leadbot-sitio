@@ -478,54 +478,6 @@ function pelicula() {
     onLeave: () => { hud.classList.add('fuera'); saltar.classList.add('fuera'); },
     onEnterBack: () => { hud.classList.remove('fuera'); saltar.classList.remove('fuera'); },
   });
-  /* ---------- Pasos: el scroll nunca deja una escena a medias ---------- */
-  // Los instantes en que cada escena terminó su animación y está quieta. Cuando
-  // el scroll se detiene entre dos pasos, la película sigue sola hasta el
-  // siguiente en la dirección en que iba (o vuelve al anterior si iba hacia
-  // atrás). Si la persona vuelve a hacer scroll mientras tanto, manda ella.
-  const PASOS = [
-    0, //    el celular con la notificación
-    15, //   el mensaje llenó la pantalla
-    26, //   el haz leyó las palabras clave
-    40.5, // estación 1: catálogo
-    48.5, // estación 2: existencias
-    55.7, // estación 3: envío
-    64.3, // estación 4: reglas
-    77.4, // la decisión
-    87.2, // la respuesta escrita
-    96, //   de vuelta al celular, con el pedido
-    FIN, //  la noche completa
-  ];
-  const CERCA = 0.25;
-  let direccion = 1;
-  let ajustando = false;
-  let espera = null;
-  const yDe = (t) => st.start + (st.end - st.start) * aProgreso(t);
-  function completarPaso() {
-    const y = lenis.scroll;
-    if (y < st.start - 2 || y > st.end + 2) return; // fuera de la película: scroll normal
-    const t = aTiempo(limitar((y - st.start) / (st.end - st.start)));
-    if (PASOS.some((p) => Math.abs(p - t) < CERCA)) return;
-    const destino = direccion > 0 ? PASOS.find((p) => p > t) ?? FIN : [...PASOS].reverse().find((p) => p < t) ?? 0;
-    const distancia = Math.abs(yDe(destino) - y) / innerHeight;
-    ajustando = true;
-    lenis.scrollTo(yDe(destino), {
-      duration: limitar(0.5 + distancia * 0.55, 0.6, 2.4),
-      easing: (x) => 1 - Math.pow(1 - x, 3),
-      onComplete: () => { ajustando = false; },
-    });
-  }
-  lenis.on('scroll', (e) => {
-    if (ajustando) {
-      // La persona hizo scroll en contra mientras la película avanzaba sola: manda ella.
-      if (e.direction && e.direction !== direccion) ajustando = false;
-      else return;
-    }
-    if (e.direction) direccion = e.direction;
-    clearTimeout(espera);
-    espera = setTimeout(completarPaso, 160);
-  });
-
   // Al cambiar el tamaño de la pantalla se recalculan las posiciones que dependen de ella.
   ScrollTrigger.addEventListener('refresh', () => {
     const t = tl.time();
