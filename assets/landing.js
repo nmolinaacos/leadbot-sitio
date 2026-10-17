@@ -20,6 +20,7 @@ $$('[data-periodo]').forEach((boton) => {
     const periodo = boton.dataset.periodo;
     $$('[data-periodo]').forEach((b) => b.setAttribute('aria-pressed', String(b === boton)));
     $$('[data-mensual]').forEach((el) => { el.textContent = el.dataset[periodo]; });
+    $$('[data-href-mensual]').forEach((a) => { a.href = periodo === 'anual' ? a.dataset.hrefAnual : a.dataset.hrefMensual; });
   });
 });
 

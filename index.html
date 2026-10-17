@@ -39,7 +39,7 @@
     <nav aria-label="Secciones">
       <a class="nav-planes" href="#planes">Planes</a>
       <a href="https://app.leadbot.com.co/">Ingresar</a>
-      <a class="nav-cta" href="https://app.leadbot.com.co/#/registro?plan=crece">Prueba gratis</a>
+      <a class="nav-cta" href="https://app.leadbot.com.co/#/registro?plan=crece" data-href-mensual="https://app.leadbot.com.co/#/registro?plan=crece" data-href-anual="https://app.leadbot.com.co/#/registro?plan=crece&amp;periodo=anual">Prueba gratis</a>
     </nav>
   </header>
 
@@ -222,28 +222,35 @@
       <div class="planes-cabeza">
         <h2 class="seccion-titulo">Un plan para <em>cada momento</em> de tu negocio</h2>
         <p class="planes-sub">Todos traen lo mismo. Cambia cuántos mensajes responde tu bot al mes, cuántas personas de tu equipo entran y cuántos productos tienes a la venta.</p>
+        <div class="periodo" role="group" aria-label="Forma de pago">
+          <button type="button" data-periodo="mensual" aria-pressed="true">Mensual</button>
+          <button type="button" data-periodo="anual" aria-pressed="false">Anual <small>1 mes gratis</small></button>
+        </div>
       </div>
       <div class="planes-rejilla">
         <article class="plan" id="plan-emprende">
           <h3>Emprende</h3>
           <p class="plan-desc">Para probar el bot en un emprendimiento.</p>
-          <p class="plan-precio"><b>$79.900</b><span>al mes</span></p>
+          <p class="plan-precio"><b data-mensual="$79.900" data-anual="$73.242">$79.900</b><span>al mes</span></p>
+          <p class="plan-nota" data-mensual="Pago mes a mes" data-anual="Pagas $878.900 al año · ahorras $79.900">Pago mes a mes</p>
           <p class="plan-cupo"><b>1.500</b> mensajes al mes con el bot</p>
           <p class="plan-personas">1 persona · 30 productos</p>
-          <a class="boton vidrio" href="https://app.leadbot.com.co/#/registro?plan=emprende">Empezar gratis</a>
+          <a class="boton vidrio" href="https://app.leadbot.com.co/#/registro?plan=emprende" data-href-mensual="https://app.leadbot.com.co/#/registro?plan=emprende" data-href-anual="https://app.leadbot.com.co/#/registro?plan=emprende&amp;periodo=anual">Empezar gratis</a>
         </article>
         <article class="plan" id="plan-inicio">
           <h3>Inicio</h3>
           <p class="plan-desc">Para empezar a vender por chat.</p>
-          <p class="plan-precio"><b>$99.900</b><span>al mes</span></p>
+          <p class="plan-precio"><b data-mensual="$99.900" data-anual="$91.575">$99.900</b><span>al mes</span></p>
+          <p class="plan-nota" data-mensual="Pago mes a mes" data-anual="Pagas $1.098.900 al año · ahorras $99.900">Pago mes a mes</p>
           <p class="plan-cupo"><b>2.500</b> mensajes al mes con el bot</p>
           <p class="plan-personas">2 personas de tu equipo · 60 productos</p>
-          <a class="boton vidrio" href="https://app.leadbot.com.co/#/registro?plan=inicio">Empezar gratis</a>
+          <a class="boton vidrio" href="https://app.leadbot.com.co/#/registro?plan=inicio" data-href-mensual="https://app.leadbot.com.co/#/registro?plan=inicio" data-href-anual="https://app.leadbot.com.co/#/registro?plan=inicio&amp;periodo=anual">Empezar gratis</a>
         </article>
         <article class="plan destacado" id="plan-crece">
           <span class="plan-sello">El más elegido</span><h3>Crece</h3>
           <p class="plan-desc">Para el comercio que ya vende todos los días.</p>
-          <p class="plan-precio"><b>$229.000</b><span>al mes</span></p>
+          <p class="plan-precio"><b data-mensual="$229.000" data-anual="$209.917">$229.000</b><span>al mes</span></p>
+          <p class="plan-nota" data-mensual="Pago mes a mes" data-anual="Pagas $2.519.000 al año · ahorras $229.000">Pago mes a mes</p>
           <p class="plan-cupo"><b>7.000</b> mensajes al mes con el bot</p>
           <p class="plan-personas">4 personas de tu equipo · 120 productos</p>
           <a class="boton primario" href="https://app.leadbot.com.co/#/registro?plan=crece">Empezar gratis</a>
@@ -255,7 +262,7 @@
       </div>
       <ul class="planes-notas">
         <li><b>7 días de prueba gratis</b>, con hasta 1.000 mensajes del bot. Sin tarjeta y sin permanencia: cancelas cuando quieras.</li>
-        <li><b>Pagas con tarjeta, Nequi o PSE.</b> Con tarjeta o Nequi se renueva solo cada mes; cancelas desde tu panel.</li>
+        <li><b>Pagas con tarjeta, Nequi o PSE, mes a mes o por año.</b> Con el pago anual pagas 11 meses y te llevas 12, y los mensajes del plan se renuevan cada mes. Con tarjeta o Nequi se renueva solo; cancelas desde tu panel.</li>
         <li><b>¿Qué es un mensaje?</b> Cada respuesta que envía tu bot. No cuentan los mensajes de tus clientes ni los que escribe tu equipo.</li>
         <li><b>Mensajes de WhatsApp.</b> Responder a tus clientes no tiene costo. Las campañas y recordatorios usan plantillas que Meta cobra aparte, directo a tu cuenta.</li>
         <li><b>¿Prefieres que lo dejemos listo?</b> <a href="https://wa.me/573233272083?text=Hola%2C%20quiero%20que%20me%20ayuden%20a%20configurar%20Leadbot" target="_blank" rel="noopener">Escríbenos</a> y configuramos tu catálogo y tu bot contigo.</li>
